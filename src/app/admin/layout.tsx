@@ -1,20 +1,26 @@
-import { redirect } from "next/navigation";
-import { checkAdminAuth } from "@/lib/auth";
 import { Container } from "@/components/container";
 import Link from "next/link";
 import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings } from "lucide-react";
+import { headers } from "next/headers";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const isAuthenticated = await checkAdminAuth();
-
-  if (!isAuthenticated) {
-    redirect("/admin/login");
+  // Check if we're on login page (set by middleware)
+  const headersList = await headers();
+  const isLoginPage = headersList.get("x-is-login-page") === "true";
+  
+  // Skip admin UI for login page (middleware handles auth redirect)
+  if (isLoginPage) {
+    return <>{children}</>;
   }
+  
+  // For all other admin pages, middleware has already verified auth
+  // Just render the admin UI
 
+  // Render admin UI for authenticated users
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-panel">
