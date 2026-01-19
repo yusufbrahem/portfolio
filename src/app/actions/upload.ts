@@ -24,18 +24,21 @@ export async function uploadCV(formData: FormData) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
-  // Save to public folder
+  // Save to public folder with original filename
   const publicPath = join(process.cwd(), "public");
-  const filename = "cv.pdf";
+  // Sanitize filename to prevent path traversal and keep original name
+  const originalFilename = file.name;
+  const sanitizedFilename = originalFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filename = sanitizedFilename || "cv.pdf";
   const filepath = join(publicPath, filename);
 
   await writeFile(filepath, buffer);
 
-  // Return the public URL path
+  // Return the public URL path and original filename
   const cvUrl = `/${filename}`;
 
   revalidatePath("/admin/contact");
   revalidatePath("/resume");
 
-  return { success: true, cvUrl };
+  return { success: true, cvUrl, filename: originalFilename };
 }

@@ -12,6 +12,18 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
   const [isEditing, setIsEditing] = useState(!initialData);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  
+  // Extract filename from CV URL if it exists
+  const getFilenameFromUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    const parts = url.split("/");
+    return parts[parts.length - 1] || null;
+  };
+  
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(
+    getFilenameFromUrl(initialData?.cvUrl)
+  );
+  
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
     role: initialData?.role || "",
@@ -53,9 +65,10 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
 
       const result = await uploadCV(uploadFormData);
       
-      // Update the form with the new CV URL
+      // Update the form with the new CV URL and filename
       const updatedFormData = { ...formData, cvUrl: result.cvUrl };
       setFormData(updatedFormData);
+      setUploadedFileName(result.filename || null);
       
       // Also update personInfo in database
       const updatedPersonInfo = await updatePersonInfo(updatedFormData);
@@ -144,46 +157,70 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">CV/Resume PDF</label>
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 px-4 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2 cursor-pointer transition-colors">
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4" />
-                      Choose File
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                    className="hidden"
-                  />
-                </label>
-                {formData.cvUrl && (
-                  <span className="text-sm text-muted">
-                    Current: <code className="px-1 py-0.5 bg-panel rounded">{formData.cvUrl}</code>
-                  </span>
-                )}
-              </div>
+              {formData.cvUrl && uploadedFileName ? (
+                <div className="border border-border bg-panel rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-accent/10 rounded-lg">
+                        <Upload className="h-5 w-5 text-accent" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{uploadedFileName}</p>
+                        <p className="text-xs text-muted">{formData.cvUrl}</p>
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 px-3 py-1.5 text-sm border border-border bg-background text-foreground rounded-lg hover:bg-panel2 cursor-pointer transition-colors">
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4" />
+                          Replace
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <label className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-border bg-panel text-foreground rounded-lg hover:bg-panel2 cursor-pointer transition-colors">
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5" />
+                        <span>Click to upload CV/Resume PDF</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-xs text-muted text-center">
+                    Max file size: 10MB • PDF files only
+                  </p>
+                </>
+              )}
               {uploadError && (
                 <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded">{uploadError}</p>
               )}
-              <input
-                type="text"
-                value={formData.cvUrl}
-                onChange={(e) => setFormData({ ...formData, cvUrl: e.target.value })}
-                className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
-                placeholder="/cv.pdf or https://example.com/cv.pdf"
-              />
-              <p className="text-xs text-muted">
-                Upload a PDF file or enter a URL manually. Max file size: 10MB
-              </p>
             </div>
           </div>
           {uploadError && uploadError.includes("LinkedIn") && (
@@ -210,6 +247,8 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
                     linkedIn: personInfo.linkedIn,
                     cvUrl: personInfo.cvUrl || "",
                   });
+                  setUploadedFileName(null);
+                  setUploadError(null);
                 }}
                 className="flex items-center gap-2 px-4 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2"
               >
