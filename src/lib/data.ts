@@ -12,6 +12,7 @@ export async function getPersonInfo() {
       location: "Doha, Qatar",
       email: "yusufbrahem1@gmail.com",
       linkedIn: "https://www.linkedin.com/in/youssef-brahem-8ab717159/",
+      cvUrl: null,
     };
   }
   return info;

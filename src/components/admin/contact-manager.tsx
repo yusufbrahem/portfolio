@@ -15,6 +15,7 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
     location: initialData?.location || "",
     email: initialData?.email || "",
     linkedIn: initialData?.linkedIn || "",
+    cvUrl: initialData?.cvUrl || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,6 +92,19 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
               required
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">CV/Resume PDF URL</label>
+            <input
+              type="url"
+              value={formData.cvUrl}
+              onChange={(e) => setFormData({ ...formData, cvUrl: e.target.value })}
+              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
+              placeholder="/cv.pdf or https://example.com/cv.pdf"
+            />
+            <p className="mt-1 text-xs text-muted">
+              Upload your CV PDF to the <code className="px-1 py-0.5 bg-panel rounded">public</code> folder and enter the path (e.g., /cv.pdf)
+            </p>
+          </div>
           <div className="flex gap-2">
             <button
               type="submit"
@@ -110,6 +124,7 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
                     location: personInfo.location,
                     email: personInfo.email,
                     linkedIn: personInfo.linkedIn,
+                    cvUrl: personInfo.cvUrl || "",
                   });
                 }}
                 className="flex items-center gap-2 px-4 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2"
@@ -143,6 +158,18 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
               {personInfo?.linkedIn ? (
                 <a href={personInfo.linkedIn} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
                   {personInfo.linkedIn}
+                </a>
+              ) : (
+                "Not set"
+              )}
+            </p>
+          </div>
+          <div>
+            <span className="text-sm text-muted">CV/Resume:</span>
+            <p className="text-foreground font-medium">
+              {personInfo?.cvUrl ? (
+                <a href={personInfo.cvUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                  {personInfo.cvUrl}
                 </a>
               ) : (
                 "Not set"

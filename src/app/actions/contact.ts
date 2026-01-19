@@ -14,6 +14,7 @@ export async function updatePersonInfo(data: {
   location: string;
   email: string;
   linkedIn: string;
+  cvUrl?: string | null;
 }) {
   const existing = await prisma.personInfo.findFirst();
   
@@ -28,6 +29,7 @@ export async function updatePersonInfo(data: {
   
   revalidatePath("/admin/contact");
   revalidatePath("/contact");
+  revalidatePath("/resume");
   revalidatePath("/");
   return result;
 }

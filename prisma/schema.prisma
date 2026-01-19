@@ -152,6 +152,7 @@ model PersonInfo {
   location  String
   email     String
   linkedIn  String
+  cvUrl     String?  // URL to CV/Resume PDF file
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

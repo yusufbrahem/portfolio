@@ -5,6 +5,7 @@ import { Section } from "@/components/section";
 import { Card, Pill, PrimaryButton, SecondaryButton } from "@/components/ui";
 import { getPersonInfo, getExperience, getSkills, getProjects } from "@/lib/data";
 import { ResumeActions } from "@/app/resume/resume-actions";
+import { Download } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Resume",
@@ -31,6 +32,16 @@ export default async function ResumePage() {
               Contact
             </PrimaryButton>
             <SecondaryButton href={person.linkedIn}>LinkedIn</SecondaryButton>
+            {person.cvUrl && (
+              <a
+                href={person.cvUrl}
+                download
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2 transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Download CV
+              </a>
+            )}
           </div>
           <ResumeActions />
         </div>
