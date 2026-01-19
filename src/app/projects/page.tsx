@@ -27,13 +27,13 @@ export default function ProjectsPage() {
                   <p className="text-base font-semibold text-foreground">
                     {p.title}
                   </p>
-                  <p className="text-sm leading-6 text-muted">{p.summary}</p>
+                  <p className="text-sm leading-relaxed text-muted">{p.summary}</p>
                 </div>
 
-                <ul className="mt-4 space-y-2 text-sm leading-6 text-muted">
+                <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
                   {p.bullets.map((b) => (
                     <li key={b} className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
                       <span>{b}</span>
                     </li>
                   ))}

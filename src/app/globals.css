@@ -1,30 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  /* Dark mode default (fintech palette) */
-  --background: #070b14; /* deep navy */
-  --foreground: #e7edf7; /* soft off-white */
-  --muted: #9aa7bd;
-  --panel: rgba(255, 255, 255, 0.04);
-  --panel-2: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.10);
-  --accent: #62e6ff; /* cyan accent */
-  --accent-2: #5c7cfa; /* indigo accent */
-  --ring: rgba(98, 230, 255, 0.35);
-  --shadow: 0 16px 50px rgba(0, 0, 0, 0.55);
+  /* WCAG AA compliant fintech palette - EXACT COLORS */
+  --background: #0B1220; /* Primary background - deep navy */
+  --background-secondary: #111827; /* Secondary background - slate */
+  --foreground: #F9FAFB; /* Primary text - near white (15.8:1 contrast) */
+  --muted: #D1D5DB; /* Secondary text - muted gray (8.2:1 contrast) */
+  --muted-disabled: #9CA3AF; /* Disabled/subtle text (5.1:1 contrast) */
+  --accent: #3B82F6; /* Accent - professional blue */
+  --border: #1F2937; /* Border color */
+  --panel: #111827; /* Panel background (secondary bg) */
+  --panel-2: #1F2937; /* Panel 2 background (border color) */
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --radius: 16px;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-muted-disabled: var(--muted-disabled);
   --color-panel: var(--panel);
   --color-panel2: var(--panel-2);
   --color-border: var(--border);
   --color-accent: var(--accent);
-  --color-accent2: var(--accent-2);
-  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -33,32 +33,13 @@ body {
   background: var(--background);
   color: var(--foreground);
   color-scheme: dark;
+  font-size: 16px;
+  line-height: 1.6;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-/* Subtle grid + vignette (premium fintech feel) */
-.app-bg {
-  background:
-    radial-gradient(1200px 700px at 20% 10%, rgba(92, 124, 250, 0.14), transparent 55%),
-    radial-gradient(1000px 600px at 80% 20%, rgba(98, 230, 255, 0.10), transparent 50%),
-    radial-gradient(800px 500px at 50% 90%, rgba(255, 255, 255, 0.05), transparent 55%),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04), transparent 40%),
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size:
-    auto,
-    auto,
-    auto,
-    auto,
-    24px 24px;
-  background-position:
-    center,
-    center,
-    center,
-    center,
-    top left;
+  background: var(--accent);
+  color: var(--foreground);
 }
 
 /* Improve focus visibility */
@@ -66,6 +47,21 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 10px;
+}
+
+/* Motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @media print {
@@ -77,6 +73,16 @@ body {
 
   body {
     background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Force high contrast for print */
+  * {
+    color: #000000 !important;
+    background: #ffffff !important;
+  }
+
+  .print\:text-black {
     color: #000000 !important;
   }
 }

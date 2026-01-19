@@ -66,9 +66,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased app-bg min-h-dvh`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh`}
       >
-        <div className="pointer-events-none fixed inset-0 bg-black/30 [mask-image:radial-gradient(1200px_700px_at_50%_10%,black,transparent)]" />
         <Header />
         <main className="relative">{children}</main>
         <Footer />

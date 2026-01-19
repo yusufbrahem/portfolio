@@ -25,7 +25,7 @@ export default function ContactPage() {
               <Card className="p-6">
                 <div className="space-y-5">
                   <div className="flex items-start gap-3">
-                    <Mail className="mt-0.5 h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+                    <Mail className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">
                         Email
@@ -40,7 +40,7 @@ export default function ContactPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Linkedin className="mt-0.5 h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+                    <Linkedin className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">
                         LinkedIn
@@ -57,7 +57,7 @@ export default function ContactPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <MapPin className="mt-0.5 h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+                    <MapPin className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">
                         Location
@@ -82,7 +82,7 @@ export default function ContactPage() {
                 <p className="text-sm font-semibold text-foreground">
                   What I can help with
                 </p>
-                <ul className="mt-4 space-y-2 text-sm leading-6 text-muted">
+                <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
                   {[
                     "Backend architecture for digital banking and fintech products",
                     "OAuth2/OIDC and Keycloak integrations (design, hardening, rollout)",
@@ -90,7 +90,7 @@ export default function ContactPage() {
                     "Production readiness: monitoring, alerts, incident response improvements",
                   ].map((x) => (
                     <li key={x} className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
                       <span>{x}</span>
                     </li>
                   ))}

@@ -26,10 +26,10 @@ export default function ArchitecturePage() {
                 <p className="text-base font-semibold text-foreground">
                   {p.title}
                 </p>
-                <ul className="mt-4 space-y-2 text-sm leading-6 text-muted">
+                <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
                   {p.points.map((x) => (
                     <li key={x} className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
                       <span>{x}</span>
                     </li>
                   ))}

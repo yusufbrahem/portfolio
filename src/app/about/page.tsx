@@ -23,7 +23,7 @@ export default function AboutPage() {
           <div className="space-y-4 lg:col-span-7">
             {site.about.paragraphs.slice(1).map((p) => (
               <Motion key={p}>
-                <p className="text-base leading-7 text-muted sm:text-lg">{p}</p>
+                <p className="text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed">{p}</p>
               </Motion>
             ))}
           </div>
@@ -35,7 +35,7 @@ export default function AboutPage() {
                     <p className="text-sm font-semibold text-foreground">
                       {x.title}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-muted">
+                    <p className="mt-2 text-sm leading-relaxed text-muted">
                       {x.description}
                     </p>
                   </Card>

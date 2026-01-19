@@ -41,6 +41,17 @@ This project provides a **PDF-ready resume page** at `/resume`.
 - Click **Print / Save as PDF**
 - Choose **Save as PDF** in your browser’s print dialog
 
+## Add your profile photo
+
+To display your photo in the hero section:
+
+1. Save your headshot image as `public/profile.png`
+2. Recommended: Square aspect ratio (e.g., 600x600px or 800x800px)
+3. Format: PNG or JPG (PNG preferred for transparency)
+4. The photo will automatically appear in the hero section on the home page
+
+If the photo file is missing, a placeholder icon will be shown instead.
+
 ## Update content later
 
 All copy and structured content is centralized in:

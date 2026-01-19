@@ -29,7 +29,7 @@ export default function ExperiencePage() {
                       {role.title}
                     </p>
                     <p className="text-sm text-muted">{role.company}</p>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="mt-1 text-xs text-muted-disabled">
                       {role.location} • {role.period}
                     </p>
                   </div>
@@ -40,10 +40,10 @@ export default function ExperiencePage() {
                   </div>
                 </div>
 
-                <ul className="mt-4 space-y-2 text-sm leading-6 text-muted">
+                <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
                   {role.bullets.map((b) => (
                     <li key={b} className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
                       <span>{b}</span>
                     </li>
                   ))}

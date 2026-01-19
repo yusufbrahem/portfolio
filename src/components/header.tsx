@@ -22,16 +22,11 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border bg-background">
       <Container className="py-4">
         <div className="flex items-center justify-between gap-6">
-          <Link href="/" className="group inline-flex items-baseline gap-2">
-            <span className="text-sm font-semibold tracking-tight text-foreground">
-              {site.person.name}
-            </span>
-            <span className="hidden text-xs text-muted sm:inline">
-              {site.person.role}
-            </span>
+          <Link href="/" className="text-base font-semibold tracking-tight text-foreground hover:text-accent transition-colors">
+            {site.person.name}
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
@@ -72,7 +67,7 @@ export function Header() {
               <span className="hidden sm:inline">LinkedIn</span>
             </a>
             <Link
-              className="hidden items-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--accent2),var(--accent))] px-3 py-2 text-sm font-semibold text-black lg:inline-flex"
+              className="hidden items-center gap-2 rounded-full bg-accent px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-blue-500 lg:inline-flex"
               href="/resume"
             >
               <FileDown className="h-4 w-4" aria-hidden="true" />

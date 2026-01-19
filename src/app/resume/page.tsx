@@ -31,22 +31,22 @@ export default function ResumePage() {
         </div>
 
         <Motion>
-          <Card className="mt-6 p-8 print:border-0 print:bg-white print:p-0 print:text-black print:shadow-none">
-            <div className="space-y-8">
+          <Card className="mt-6 p-8 print:border-0 print:bg-white print:p-0 print:shadow-none">
+            <div className="space-y-8 print:text-black">
               <div className="space-y-2">
-                <h2 className="text-2xl font-semibold tracking-tight text-foreground print:text-black">
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground print:!text-black">
                   {site.person.name}
                 </h2>
-                <p className="text-sm text-muted print:text-black">
+                <p className="text-sm leading-relaxed text-muted print:!text-black">
                   {site.person.role} • {site.person.location}
                 </p>
-                <p className="text-sm text-muted print:text-black">
-                  <a className="hover:underline" href={`mailto:${site.person.email}`}>
+                <p className="text-sm leading-relaxed text-muted print:!text-black">
+                  <a className="hover:underline print:!text-black print:no-underline" href={`mailto:${site.person.email}`}>
                     {site.person.email}
                   </a>{" "}
                   •{" "}
                   <a
-                    className="hover:underline"
+                    className="hover:underline print:!text-black print:no-underline"
                     href={site.person.linkedIn}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -57,7 +57,7 @@ export default function ResumePage() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm leading-6 text-muted print:text-black">
+                <p className="text-sm leading-relaxed text-muted print:!text-black">
                   Senior Backend Engineer with 5+ years in banking and fintech. Specialized in Java,
                   Spring Boot, secure REST APIs, OAuth2/OpenID Connect, Keycloak, transaction processing,
                   and payment systems for large-scale mobile and digital banking platforms.
@@ -72,21 +72,21 @@ export default function ResumePage() {
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold tracking-[0.2em] text-muted uppercase print:text-black">
+                <h3 className="text-sm font-semibold tracking-[0.2em] text-foreground uppercase print:!text-black">
                   Experience
                 </h3>
                 <div className="space-y-5">
                   {site.experience.roles.map((r) => (
                     <div key={`${r.title}-${r.company}`} className="space-y-2">
                       <div>
-                        <p className="text-sm font-semibold text-foreground print:text-black">
+                        <p className="text-sm font-semibold text-foreground print:!text-black">
                           {r.title}
                         </p>
-                        <p className="text-sm text-muted print:text-black">
+                        <p className="text-sm leading-relaxed text-muted print:!text-black">
                           {r.company} • {r.location} • {r.period}
                         </p>
                       </div>
-                      <ul className="space-y-1 text-sm leading-6 text-muted print:text-black">
+                      <ul className="space-y-1 text-sm leading-relaxed text-muted print:!text-black">
                         {r.bullets.map((b) => (
                           <li key={b}>- {b}</li>
                         ))}
@@ -97,16 +97,16 @@ export default function ResumePage() {
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold tracking-[0.2em] text-muted uppercase print:text-black">
+                <h3 className="text-sm font-semibold tracking-[0.2em] text-foreground uppercase print:!text-black">
                   Skills
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {site.skills.map((g) => (
                     <div key={g.group} className="space-y-2">
-                      <p className="text-sm font-semibold text-foreground print:text-black">
+                      <p className="text-sm font-semibold text-foreground print:!text-black">
                         {g.group}
                       </p>
-                      <p className="text-sm text-muted print:text-black">
+                      <p className="text-sm leading-relaxed text-muted print:!text-black">
                         {g.items.join(" • ")}
                       </p>
                     </div>
@@ -115,17 +115,17 @@ export default function ResumePage() {
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold tracking-[0.2em] text-muted uppercase print:text-black">
+                <h3 className="text-sm font-semibold tracking-[0.2em] text-foreground uppercase print:!text-black">
                   Selected work (anonymized)
                 </h3>
                 <div className="space-y-4">
                   {site.projects.map((p) => (
                     <div key={p.title} className="space-y-1">
-                      <p className="text-sm font-semibold text-foreground print:text-black">
+                      <p className="text-sm font-semibold text-foreground print:!text-black">
                         {p.title}
                       </p>
-                      <p className="text-sm text-muted print:text-black">{p.summary}</p>
-                      <ul className="mt-1 space-y-1 text-sm leading-6 text-muted print:text-black">
+                      <p className="text-sm leading-relaxed text-muted print:!text-black">{p.summary}</p>
+                      <ul className="mt-1 space-y-1 text-sm leading-relaxed text-muted print:!text-black">
                         {p.bullets.map((b) => (
                           <li key={b}>- {b}</li>
                         ))}

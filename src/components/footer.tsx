@@ -3,7 +3,7 @@ import { site } from "@/content/site";
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-background/50 backdrop-blur">
+    <footer className="border-t border-border bg-background">
       <Container className="py-10">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
@@ -26,7 +26,7 @@ export function Footer() {
             >
               LinkedIn
             </a>
-            <p className="text-xs text-muted">
+            <p className="text-xs text-muted-disabled">
               © {new Date().getFullYear()} {site.person.name}. Built with Next.js.
             </p>
           </div>

@@ -11,7 +11,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius)] border border-border bg-panel backdrop-blur",
+        "rounded-[var(--radius)] border border-border bg-panel",
         "shadow-[var(--shadow)]",
         className,
       )}
@@ -32,7 +32,7 @@ export function Pill({
     <span
       className={cn(
         "inline-flex items-center rounded-full border border-border bg-panel2 px-3 py-1",
-        "text-xs font-medium text-foreground/90",
+        "text-xs font-medium text-foreground",
         className,
       )}
     >
@@ -55,9 +55,9 @@ export function PrimaryButton({
       href={href}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5",
-        "bg-[linear-gradient(135deg,var(--accent2),var(--accent))] text-black",
-        "font-semibold tracking-tight shadow-[0_12px_30px_rgba(98,230,255,0.16)]",
-        "transition-transform hover:translate-y-[-1px] active:translate-y-0",
+        "bg-accent text-foreground",
+        "font-semibold tracking-tight shadow-[0_10px_24px_rgba(59,130,246,0.3)]",
+        "transition-colors hover:bg-blue-500 active:bg-blue-600",
         className,
       )}
     >
@@ -81,7 +81,7 @@ export function SecondaryButton({
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5",
         "border border-border bg-panel text-foreground",
-        "font-semibold tracking-tight backdrop-blur",
+        "font-semibold tracking-tight",
         "transition-colors hover:bg-panel2",
         className,
       )}
