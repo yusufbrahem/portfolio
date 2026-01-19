@@ -114,6 +114,30 @@ npm run dev
   - Tech (technologies used)
 - Ordering supported
 
+### About
+- Manage about section title and paragraphs
+- Add/edit/delete principles
+- Paragraphs are separated by blank lines
+
+### Architecture
+- Manage architecture pillars and their points
+- Add/edit/delete pillars
+- Add/edit/delete points within each pillar
+- Ordering supported
+
+### Contact
+- Manage personal information:
+  - Name
+  - Role
+  - Location
+  - Email
+  - LinkedIn URL
+  - **CV/Resume PDF URL** (for download functionality)
+- To add a CV:
+  1. Upload your CV PDF file to the `public` folder (e.g., `public/cv.pdf`)
+  2. In Admin → Contact, enter the path: `/cv.pdf`
+  3. The CV download button will appear on the Resume page (`/resume`)
+
 ## Public Pages
 
 All public pages (`/`, `/skills`, `/projects`, `/experience`, `/about`, `/resume`) now read dynamically from the database. Changes made in admin panel reflect immediately.
@@ -176,15 +200,26 @@ If you see Prisma adapter errors:
 2. Check that migrations ran: `npm run db:migrate`
 3. Verify database file exists at path in `DATABASE_URL`
 
+## CV Download Feature
+
+The portfolio includes a CV download feature:
+
+1. **Upload CV**: Place your CV PDF file in the `public` folder (e.g., `public/cv.pdf`)
+2. **Configure URL**: Go to Admin → Contact and enter the CV URL path (e.g., `/cv.pdf`)
+3. **Download Button**: A "Download CV" button will automatically appear on the Resume page (`/resume`) when a CV URL is configured
+
+The CV download button is only visible on the Resume page and is hidden when printing/exporting to PDF.
+
 ## Next Steps / Future Enhancements
 
-- [ ] Add About page content management (`/admin/about`)
+- [x] Add About page content management (`/admin/about`)
+- [x] Add Architecture content management (`/admin/architecture`)
+- [x] Add Contact info management (`/admin/contact`)
+- [x] Add CV download functionality
 - [ ] Add Hero content management (`/admin/hero`)
-- [ ] Add Person info management (`/admin/person`)
 - [ ] Add drag-and-drop reordering for items
 - [ ] Add bulk operations (delete multiple, reorder)
 - [ ] Add export/import functionality
-- [ ] Migrate to PostgreSQL for production scalability
 
 ## File Structure
 
