@@ -23,9 +23,21 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await updatePersonInfo(formData);
-    setPersonInfo(result);
-    setIsEditing(false);
+    
+    // Validate LinkedIn URL format
+    if (formData.linkedIn && !formData.linkedIn.match(/^https?:\/\/.+/)) {
+      setUploadError("LinkedIn URL must start with http:// or https://");
+      return;
+    }
+    
+    try {
+      const result = await updatePersonInfo(formData);
+      setPersonInfo(result);
+      setIsEditing(false);
+      setUploadError(null);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Failed to save contact information");
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,10 +130,15 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
             <input
               type="url"
               value={formData.linkedIn}
-              onChange={(e) => setFormData({ ...formData, linkedIn: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, linkedIn: e.target.value });
+                setUploadError(null); // Clear error when user types
+              }}
               className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
               placeholder="https://www.linkedin.com/in/..."
               required
+              pattern="https?://.+"
+              title="Please enter a valid URL starting with http:// or https://"
             />
           </div>
           <div>
@@ -155,10 +172,10 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
                 )}
               </div>
               {uploadError && (
-                <p className="text-sm text-red-500">{uploadError}</p>
+                <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded">{uploadError}</p>
               )}
               <input
-                type="url"
+                type="text"
                 value={formData.cvUrl}
                 onChange={(e) => setFormData({ ...formData, cvUrl: e.target.value })}
                 className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
@@ -169,6 +186,9 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
               </p>
             </div>
           </div>
+          {uploadError && uploadError.includes("LinkedIn") && (
+            <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded">{uploadError}</p>
+          )}
           <div className="flex gap-2">
             <button
               type="submit"
