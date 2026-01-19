@@ -129,3 +129,31 @@ export async function getAboutContent() {
     })),
   };
 }
+
+export async function getArchitectureContent() {
+  const architecture = await prisma.architectureContent.findFirst({
+    include: {
+      pillars: {
+        include: {
+          points: {
+            orderBy: { order: "asc" },
+          },
+        },
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+
+  if (!architecture) {
+    return {
+      pillars: [],
+    };
+  }
+
+  return {
+    pillars: architecture.pillars.map((pillar) => ({
+      title: pillar.title,
+      points: pillar.points.map((point) => point.text),
+    })),
+  };
+}

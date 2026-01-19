@@ -1,6 +1,6 @@
 import { Container } from "@/components/container";
 import Link from "next/link";
-import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings } from "lucide-react";
+import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail } from "lucide-react";
 import { headers } from "next/headers";
 
 export default async function AdminLayout({
@@ -90,6 +90,20 @@ export default async function AdminLayout({
             >
               <User className="h-4 w-4" />
               About
+            </Link>
+            <Link
+              href="/admin/architecture"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+            >
+              <Building2 className="h-4 w-4" />
+              Architecture
+            </Link>
+            <Link
+              href="/admin/contact"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+            >
+              <Mail className="h-4 w-4" />
+              Contact
             </Link>
           </nav>
         </aside>

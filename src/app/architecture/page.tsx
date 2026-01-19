@@ -3,7 +3,7 @@ import { Container } from "@/components/container";
 import { Motion } from "@/components/motion";
 import { Section } from "@/components/section";
 import { Card } from "@/components/ui";
-import { site } from "@/content/site";
+import { getArchitectureContent } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Architecture & Expertise",
@@ -11,7 +11,11 @@ export const metadata: Metadata = {
     "Security, transaction integrity, scalability, and reliability patterns for banking and fintech backend systems.",
 };
 
-export default function ArchitecturePage() {
+export const dynamic = "force-dynamic";
+
+export default async function ArchitecturePage() {
+  const architecture = await getArchitectureContent();
+
   return (
     <Container>
       <Section
@@ -20,7 +24,7 @@ export default function ArchitecturePage() {
         description="A concise view of the patterns I apply to reduce risk and keep systems predictable under load."
       >
         <div className="grid gap-6 lg:grid-cols-3">
-          {site.architecture.pillars.map((p, idx) => (
+          {architecture.pillars.map((p, idx) => (
             <Motion key={p.title} delay={idx * 0.05}>
               <Card className="h-full p-6">
                 <p className="text-base font-semibold text-foreground">
