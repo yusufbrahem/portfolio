@@ -4,20 +4,22 @@ import { Container } from "@/components/container";
 import { Motion } from "@/components/motion";
 import { Section } from "@/components/section";
 import { Card, PrimaryButton } from "@/components/ui";
-import { site } from "@/content/site";
+import { getPersonInfo } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Contact",
   description: "Contact details: email, LinkedIn, and location.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const person = await getPersonInfo();
+
   return (
     <Container>
       <Section
         eyebrow="Contact"
-        title="Let’s talk about secure banking platforms"
-        description="If you’re hiring for backend, fintech, or banking consulting, I’m happy to discuss how I approach delivery, security, and reliability."
+        title="Let's talk about secure banking platforms"
+        description="If you're hiring for backend, fintech, or banking consulting, I'm happy to discuss how I approach delivery, security, and reliability."
       >
         <div className="grid gap-6 lg:grid-cols-12">
           <div className="lg:col-span-7">
@@ -32,9 +34,9 @@ export default function ContactPage() {
                       </p>
                       <a
                         className="text-sm text-muted hover:underline"
-                        href={`mailto:${site.person.email}`}
+                        href={`mailto:${person.email}`}
                       >
-                        {site.person.email}
+                        {person.email}
                       </a>
                     </div>
                   </div>
@@ -47,11 +49,11 @@ export default function ContactPage() {
                       </p>
                       <a
                         className="text-sm text-muted hover:underline"
-                        href={site.person.linkedIn}
+                        href={person.linkedIn}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        {site.person.linkedIn.replace("https://", "")}
+                        {person.linkedIn.replace("https://", "")}
                       </a>
                     </div>
                   </div>
@@ -62,13 +64,13 @@ export default function ContactPage() {
                       <p className="text-sm font-semibold text-foreground">
                         Location
                       </p>
-                      <p className="text-sm text-muted">{site.person.location}</p>
+                      <p className="text-sm text-muted">{person.location}</p>
                     </div>
                   </div>
 
                   <div className="pt-2">
-                    <PrimaryButton href={`mailto:${site.person.email}`}>
-                      Email {site.person.name}
+                    <PrimaryButton href={`mailto:${person.email}`}>
+                      Email {person.name}
                     </PrimaryButton>
                   </div>
                 </div>

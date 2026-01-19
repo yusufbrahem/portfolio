@@ -3,9 +3,14 @@ import { Container } from "@/components/container";
 import { Motion } from "@/components/motion";
 import { Avatar } from "@/components/avatar";
 import { Card, Pill, PrimaryButton, SecondaryButton } from "@/components/ui";
-import { site } from "@/content/site";
+import { getPersonInfo, getHeroContent } from "@/lib/data";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const person = await getPersonInfo();
+  const hero = await getHeroContent();
+
   return (
     <div>
       <Container className="py-14 sm:py-20">
@@ -37,12 +42,12 @@ export default function Home() {
 
             <Motion delay={0.05}>
               <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                {site.hero.headline}
+                {hero.headline}
               </h1>
             </Motion>
 
             <p className="max-w-2xl text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed">
-              {site.hero.subheadline}
+              {hero.subheadline}
             </p>
 
             <Motion delay={0.15}>
@@ -55,7 +60,7 @@ export default function Home() {
             </Motion>
 
             <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
-              {site.hero.highlights.map((h) => (
+              {hero.highlights.map((h: string) => (
                 <li key={h} className="flex gap-2">
                   <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
                   <span>{h}</span>
@@ -69,7 +74,7 @@ export default function Home() {
               <Motion delay={0.08}>
                 <Avatar
                   src="/profile.png"
-                  alt={`${site.person.name} headshot`}
+                  alt={`${person.name} headshot`}
                   priority
                   className="mx-auto aspect-square w-[260px] sm:w-[300px] lg:w-full"
                 />
@@ -82,9 +87,9 @@ export default function Home() {
                         Profile
                       </p>
                       <p className="text-lg font-semibold text-foreground">
-                        {site.person.name}
+                        {person.name}
                       </p>
-                      <p className="text-sm text-muted">{site.person.role}</p>
+                      <p className="text-sm text-muted">{person.role}</p>
                     </div>
 
                     <div className="grid gap-3">
@@ -108,7 +113,7 @@ export default function Home() {
                         <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
                           Location
                         </p>
-                        <p className="mt-1 text-sm leading-relaxed text-foreground">{site.person.location}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-foreground">{person.location}</p>
                       </div>
                     </div>
                   </div>

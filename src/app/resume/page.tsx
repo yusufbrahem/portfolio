@@ -3,7 +3,7 @@ import { Container } from "@/components/container";
 import { Motion } from "@/components/motion";
 import { Section } from "@/components/section";
 import { Card, Pill, PrimaryButton, SecondaryButton } from "@/components/ui";
-import { site } from "@/content/site";
+import { getPersonInfo, getExperience, getSkills, getProjects } from "@/lib/data";
 import { ResumeActions } from "@/app/resume/resume-actions";
 
 export const metadata: Metadata = {
@@ -12,20 +12,25 @@ export const metadata: Metadata = {
     "Resume page formatted for PDF export (print-to-PDF). Includes experience focus areas, skills, and project highlights.",
 };
 
-export default function ResumePage() {
+export default async function ResumePage() {
+  const person = await getPersonInfo();
+  const experience = await getExperience();
+  const skills = await getSkills();
+  const projects = await getProjects();
+
   return (
     <Container>
       <Section
         eyebrow="Resume"
         title="Resume (PDF-ready)"
-        description="This page is designed to export cleanly to PDF using your browser’s Print → Save as PDF."
+        description="This page is designed to export cleanly to PDF using your browser's Print → Save as PDF."
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <PrimaryButton href="/contact">
               Contact
             </PrimaryButton>
-            <SecondaryButton href={site.person.linkedIn}>LinkedIn</SecondaryButton>
+            <SecondaryButton href={person.linkedIn}>LinkedIn</SecondaryButton>
           </div>
           <ResumeActions />
         </div>
@@ -35,23 +40,23 @@ export default function ResumePage() {
             <div className="space-y-8 print:text-black">
               <div className="space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight text-foreground print:!text-black">
-                  {site.person.name}
+                  {person.name}
                 </h2>
                 <p className="text-sm leading-relaxed text-muted print:!text-black">
-                  {site.person.role} • {site.person.location}
+                  {person.role} • {person.location}
                 </p>
                 <p className="text-sm leading-relaxed text-muted print:!text-black">
-                  <a className="hover:underline print:!text-black print:no-underline" href={`mailto:${site.person.email}`}>
-                    {site.person.email}
+                  <a className="hover:underline print:!text-black print:no-underline" href={`mailto:${person.email}`}>
+                    {person.email}
                   </a>{" "}
                   •{" "}
                   <a
                     className="hover:underline print:!text-black print:no-underline"
-                    href={site.person.linkedIn}
+                    href={person.linkedIn}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {site.person.linkedIn}
+                    {person.linkedIn}
                   </a>
                 </p>
               </div>
@@ -76,7 +81,7 @@ export default function ResumePage() {
                   Experience
                 </h3>
                 <div className="space-y-5">
-                  {site.experience.roles.map((r) => (
+                  {experience.roles.map((r) => (
                     <div key={`${r.title}-${r.company}`} className="space-y-2">
                       <div>
                         <p className="text-sm font-semibold text-foreground print:!text-black">
@@ -87,8 +92,8 @@ export default function ResumePage() {
                         </p>
                       </div>
                       <ul className="space-y-1 text-sm leading-relaxed text-muted print:!text-black">
-                        {r.bullets.map((b) => (
-                          <li key={b}>- {b}</li>
+                        {r.bullets.map((b, idx) => (
+                          <li key={idx}>- {b}</li>
                         ))}
                       </ul>
                     </div>
@@ -101,7 +106,7 @@ export default function ResumePage() {
                   Skills
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {site.skills.map((g) => (
+                  {skills.map((g) => (
                     <div key={g.group} className="space-y-2">
                       <p className="text-sm font-semibold text-foreground print:!text-black">
                         {g.group}
@@ -119,15 +124,15 @@ export default function ResumePage() {
                   Selected work (anonymized)
                 </h3>
                 <div className="space-y-4">
-                  {site.projects.map((p) => (
+                  {projects.map((p) => (
                     <div key={p.title} className="space-y-1">
                       <p className="text-sm font-semibold text-foreground print:!text-black">
                         {p.title}
                       </p>
                       <p className="text-sm leading-relaxed text-muted print:!text-black">{p.summary}</p>
                       <ul className="mt-1 space-y-1 text-sm leading-relaxed text-muted print:!text-black">
-                        {p.bullets.map((b) => (
-                          <li key={b}>- {b}</li>
+                        {p.bullets.map((b, idx) => (
+                          <li key={idx}>- {b}</li>
                         ))}
                       </ul>
                     </div>

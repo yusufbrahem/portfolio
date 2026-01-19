@@ -3,7 +3,7 @@ import { Container } from "@/components/container";
 import { Motion } from "@/components/motion";
 import { Section } from "@/components/section";
 import { Card, Pill } from "@/components/ui";
-import { site } from "@/content/site";
+import { getProjects } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Projects",
@@ -11,16 +11,20 @@ export const metadata: Metadata = {
     "Selected banking and fintech projects (anonymized) focused on security, transaction processing, and production reliability.",
 };
 
-export default function ProjectsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ProjectsPage() {
+  const projects = await getProjects();
+
   return (
     <Container>
       <Section
         eyebrow="Projects"
         title="Banking-grade delivery, anonymized with measurable relevance"
-        description="Examples of the systems and patterns I’ve shipped in regulated environments—identity, transactions, and operational resilience."
+        description="Examples of the systems and patterns I've shipped in regulated environments—identity, transactions, and operational resilience."
       >
         <div className="grid gap-6 lg:grid-cols-3">
-          {site.projects.map((p, idx) => (
+          {projects.map((p, idx) => (
             <Motion key={p.title} delay={idx * 0.05}>
               <Card className="flex h-full flex-col p-6">
                 <div className="space-y-2">

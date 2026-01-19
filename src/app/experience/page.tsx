@@ -3,7 +3,7 @@ import { Container } from "@/components/container";
 import { Motion } from "@/components/motion";
 import { Section } from "@/components/section";
 import { Card, Pill } from "@/components/ui";
-import { site } from "@/content/site";
+import { getExperience } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Experience",
@@ -11,16 +11,20 @@ export const metadata: Metadata = {
     "Experience delivering secure backend services for banking and fintech, with identity, transaction integrity, and operational readiness.",
 };
 
-export default function ExperiencePage() {
+export const dynamic = "force-dynamic";
+
+export default async function ExperiencePage() {
+  const experience = await getExperience();
+
   return (
     <Container>
       <Section
         eyebrow="Experience"
         title="Banking and fintech delivery—security, transactions, reliability"
-        description={site.experience.intro}
+        description={experience.intro}
       >
         <div className="space-y-6">
-          {site.experience.roles.map((role, idx) => (
+          {experience.roles.map((role, idx) => (
             <Motion key={`${role.title}-${role.company}`} delay={idx * 0.05}>
               <Card className="p-6">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
