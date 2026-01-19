@@ -17,13 +17,18 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
   const [editingContent, setEditingContent] = useState(false);
   const [editingPrinciple, setEditingPrinciple] = useState<string | null>(null);
   const [isCreatingPrinciple, setIsCreatingPrinciple] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleUpdateContent = async (data: { title: string; paragraphs: string[] }) => {
     if (!aboutContent) return;
-    await updateAboutContent(data);
-    setAboutContent({ ...aboutContent, title: data.title, paragraphs: JSON.stringify(data.paragraphs) });
-    setEditingContent(false);
-    window.location.reload();
+    setError(null);
+    try {
+      await updateAboutContent(data);
+      setAboutContent({ ...aboutContent, title: data.title, paragraphs: JSON.stringify(data.paragraphs) });
+      setEditingContent(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update about content");
+    }
   };
 
   const handleCreatePrinciple = async () => {
@@ -33,44 +38,63 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
 
   const handleSaveNewPrinciple = async (data: { title: string; description: string }) => {
     if (!aboutContent) return;
-    const order = aboutContent.principles.length;
-    await createPrinciple({
-      aboutContentId: aboutContent.id,
-      ...data,
-      order,
-    });
-    window.location.reload();
+    setError(null);
+    try {
+      const order = aboutContent.principles.length;
+      const newPrinciple = await createPrinciple({
+        aboutContentId: aboutContent.id,
+        ...data,
+        order,
+      });
+      setAboutContent({
+        ...aboutContent,
+        principles: [...aboutContent.principles, newPrinciple],
+      });
+      setIsCreatingPrinciple(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create principle");
+    }
   };
 
   const handleUpdatePrinciple = async (
     id: string,
     data: { title: string; description: string; order: number }
   ) => {
-    await updatePrinciple(id, data);
-    setAboutContent(
-      aboutContent
-        ? {
-            ...aboutContent,
-            principles: aboutContent.principles.map((p) =>
-              p.id === id ? { ...p, ...data } : p
-            ),
-          }
-        : null
-    );
-    setEditingPrinciple(null);
+    setError(null);
+    try {
+      await updatePrinciple(id, data);
+      setAboutContent(
+        aboutContent
+          ? {
+              ...aboutContent,
+              principles: aboutContent.principles.map((p) =>
+                p.id === id ? { ...p, ...data } : p
+              ),
+            }
+          : null
+      );
+      setEditingPrinciple(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update principle");
+    }
   };
 
   const handleDeletePrinciple = async (id: string) => {
     if (!confirm("Delete this principle?")) return;
-    await deletePrinciple(id);
-    setAboutContent(
-      aboutContent
-        ? {
-            ...aboutContent,
-            principles: aboutContent.principles.filter((p) => p.id !== id),
-          }
-        : null
-    );
+    setError(null);
+    try {
+      await deletePrinciple(id);
+      setAboutContent(
+        aboutContent
+          ? {
+              ...aboutContent,
+              principles: aboutContent.principles.filter((p) => p.id !== id),
+            }
+          : null
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete principle");
+    }
   };
 
   if (!aboutContent) {
@@ -79,6 +103,12 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
       {/* About Content */}
       <div className="border border-border bg-panel rounded-lg p-6">
         <div className="flex justify-between items-center mb-4">
@@ -86,7 +116,7 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
           {!editingContent && (
             <button
               onClick={() => setEditingContent(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors"
             >
               <Edit2 className="h-4 w-4" />
               Edit
@@ -122,7 +152,7 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
           {!isCreatingPrinciple && (
             <button
               onClick={handleCreatePrinciple}
-              className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500"
+              className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
             >
               <Plus className="h-4 w-4" />
               Add Principle
@@ -138,7 +168,10 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
         )}
 
         <div className="space-y-4 mt-4">
-          {aboutContent.principles.map((principle) => (
+          {aboutContent.principles.length === 0 && !isCreatingPrinciple ? (
+            <p className="text-sm text-muted text-center py-4">No principles yet. Add your first principle to get started.</p>
+          ) : (
+            aboutContent.principles.map((principle) => (
             <div key={principle.id} className="border border-border bg-background rounded-lg p-4">
               {editingPrinciple === principle.id ? (
                 <PrincipleForm
@@ -164,13 +197,13 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingPrinciple(principle.id)}
-                      className="p-2 text-muted hover:text-foreground"
+                      className="p-2 text-muted hover:text-foreground transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDeletePrinciple(principle.id)}
-                      className="p-2 text-red-500 hover:text-red-600"
+                      className="p-2 text-red-500 hover:text-red-600 transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -178,7 +211,8 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
                 </div>
               )}
             </div>
-          ))}
+          ))
+          )}
         </div>
       </div>
     </div>

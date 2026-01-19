@@ -1,23 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit2, X, Save } from "lucide-react";
+import { Plus, Trash2, Edit2, X, Save, Loader2 } from "lucide-react";
 import {
   createProject,
   updateProject,
   deleteProject,
-  type getProjects,
+  getProjects,
+  type getProjects as GetProjects,
 } from "@/app/actions/projects";
 
-type Project = Awaited<ReturnType<typeof getProjects>>[0];
+type Project = Awaited<ReturnType<typeof GetProjects>>[0];
 
 export function ProjectsManager({ initialData }: { initialData: Project[] }) {
   const [projects, setProjects] = useState(initialData);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
 
   const handleCreate = async () => {
     setIsCreating(true);
+    setError(null);
   };
 
   const handleSaveNew = async (data: {
@@ -26,10 +30,18 @@ export function ProjectsManager({ initialData }: { initialData: Project[] }) {
     bullets: string[];
     tags: string[];
   }) => {
-    const order = projects.length;
-    await createProject({ ...data, order });
-    // Refetch projects to get full data with relations
-    window.location.reload();
+    setLoading("create");
+    setError(null);
+    try {
+      const order = projects.length;
+      const newProject = await createProject({ ...data, order });
+      setProjects([...projects, newProject]);
+      setIsCreating(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create project");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handleUpdate = async (
@@ -43,49 +55,82 @@ export function ProjectsManager({ initialData }: { initialData: Project[] }) {
   ) => {
     const project = projects.find((p) => p.id === id);
     if (!project) return;
-    await updateProject(id, { ...data, order: project.order });
-    setProjects(
-      projects.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              ...data,
-              bullets: data.bullets.map((text, i) => ({ id: `temp-${i}`, projectId: id, text, order: i, createdAt: new Date() })),
-              tags: data.tags.map((name, i) => ({ id: `temp-${i}`, projectId: id, name, order: i, createdAt: new Date() })),
-            }
-          : p,
-      ),
-    );
-    setEditingId(null);
+    setLoading(id);
+    setError(null);
+    try {
+      await updateProject(id, { ...data, order: project.order });
+      setProjects(
+        projects.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                ...data,
+                bullets: data.bullets.map((text, i) => ({ id: `temp-${i}`, projectId: id, text, order: i, createdAt: new Date() })),
+                tags: data.tags.map((name, i) => ({ id: `temp-${i}`, projectId: id, name, order: i, createdAt: new Date() })),
+              }
+            : p,
+        ),
+      );
+      setEditingId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update project");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this project?")) return;
-    await deleteProject(id);
-    setProjects(projects.filter((p) => p.id !== id));
+    setLoading(id);
+    setError(null);
+    try {
+      await deleteProject(id);
+      setProjects(projects.filter((p) => p.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete project");
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold text-foreground">Projects</h2>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500"
-        >
-          <Plus className="h-4 w-4" />
-          Add Project
-        </button>
+        {!isCreating && (
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Project
+          </button>
+        )}
       </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
 
       {isCreating && (
         <ProjectForm
           onSave={handleSaveNew}
-          onCancel={() => setIsCreating(false)}
+          onCancel={() => {
+            setIsCreating(false);
+            setError(null);
+          }}
+          loading={loading === "create"}
         />
       )}
 
-      {projects.map((project) =>
+      {projects.length === 0 && !isCreating ? (
+        <div className="border border-border bg-panel rounded-lg p-8 text-center">
+          <p className="text-muted">No projects yet. Create your first project to get started.</p>
+        </div>
+      ) : (
+        projects.map((project) =>
         editingId === project.id ? (
           <ProjectForm
             key={project.id}
@@ -101,13 +146,19 @@ export function ProjectsManager({ initialData }: { initialData: Project[] }) {
                 <p className="text-sm text-muted">{project.summary}</p>
               </div>
               <div className="flex items-center gap-2">
+                {loading === project.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
                 <button
                   onClick={() => setEditingId(project.id)}
-                  className="text-muted hover:text-foreground"
+                  className="text-muted hover:text-foreground transition-colors"
+                  disabled={loading === project.id}
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
-                <button onClick={() => handleDelete(project.id)} className="text-red-500 hover:text-red-400">
+                <button
+                  onClick={() => handleDelete(project.id)}
+                  className="text-red-500 hover:text-red-400 transition-colors"
+                  disabled={loading === project.id}
+                >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -134,7 +185,7 @@ export function ProjectsManager({ initialData }: { initialData: Project[] }) {
             </div>
           </div>
         ),
-      )}
+      ))}
     </div>
   );
 }
@@ -143,10 +194,12 @@ function ProjectForm({
   project,
   onSave,
   onCancel,
+  loading,
 }: {
   project?: Project;
   onSave: (data: { title: string; summary: string; bullets: string[]; tags: string[] }) => void;
   onCancel: () => void;
+  loading?: boolean;
 }) {
   const [title, setTitle] = useState(project?.title || "");
   const [summary, setSummary] = useState(project?.summary || "");
@@ -256,15 +309,17 @@ function ProjectForm({
       <div className="flex items-center gap-2">
         <button
           type="submit"
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500"
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50"
         >
-          <Save className="h-4 w-4" />
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-border bg-panel2 text-foreground rounded-lg hover:bg-panel"
+          disabled={loading}
+          className="px-4 py-2 border border-border bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors"
         >
           Cancel
         </button>

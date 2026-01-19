@@ -1,23 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit2, X, Save } from "lucide-react";
+import { Plus, Trash2, Edit2, X, Save, Loader2 } from "lucide-react";
 import {
   createExperience,
   updateExperience,
   deleteExperience,
-  type getExperiences,
+  getExperiences,
+  type getExperiences as GetExperiences,
 } from "@/app/actions/experience";
 
-type Experience = Awaited<ReturnType<typeof getExperiences>>[0];
+type Experience = Awaited<ReturnType<typeof GetExperiences>>[0];
 
 export function ExperienceManager({ initialData }: { initialData: Experience[] }) {
   const [experiences, setExperiences] = useState(initialData);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
 
   const handleCreate = async () => {
     setIsCreating(true);
+    setError(null);
   };
 
   const handleSaveNew = async (data: {
@@ -28,10 +32,18 @@ export function ExperienceManager({ initialData }: { initialData: Experience[] }
     bullets: string[];
     tech: string[];
   }) => {
-    const order = experiences.length;
-    await createExperience({ ...data, order });
-    // Refetch experiences to get full data with relations
-    window.location.reload();
+    setLoading("create");
+    setError(null);
+    try {
+      const order = experiences.length;
+      const newExperience = await createExperience({ ...data, order });
+      setExperiences([...experiences, newExperience]);
+      setIsCreating(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create experience");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handleUpdate = async (
@@ -47,49 +59,82 @@ export function ExperienceManager({ initialData }: { initialData: Experience[] }
   ) => {
     const exp = experiences.find((e) => e.id === id);
     if (!exp) return;
-    await updateExperience(id, { ...data, order: exp.order });
-    setExperiences(
-      experiences.map((e) =>
-        e.id === id
-          ? {
-              ...e,
-              ...data,
-              bullets: data.bullets.map((text, i) => ({ id: `temp-${i}`, experienceId: id, text, order: i, createdAt: new Date() })),
-              tech: data.tech.map((name, i) => ({ id: `temp-${i}`, experienceId: id, name, order: i, createdAt: new Date() })),
-            }
-          : e,
-      ),
-    );
-    setEditingId(null);
+    setLoading(id);
+    setError(null);
+    try {
+      await updateExperience(id, { ...data, order: exp.order });
+      setExperiences(
+        experiences.map((e) =>
+          e.id === id
+            ? {
+                ...e,
+                ...data,
+                bullets: data.bullets.map((text, i) => ({ id: `temp-${i}`, experienceId: id, text, order: i, createdAt: new Date() })),
+                tech: data.tech.map((name, i) => ({ id: `temp-${i}`, experienceId: id, name, order: i, createdAt: new Date() })),
+              }
+            : e,
+        ),
+      );
+      setEditingId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update experience");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this experience entry?")) return;
-    await deleteExperience(id);
-    setExperiences(experiences.filter((e) => e.id !== id));
+    setLoading(id);
+    setError(null);
+    try {
+      await deleteExperience(id);
+      setExperiences(experiences.filter((e) => e.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete experience");
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold text-foreground">Experience Entries</h2>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500"
-        >
-          <Plus className="h-4 w-4" />
-          Add Experience
-        </button>
+        {!isCreating && (
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Experience
+          </button>
+        )}
       </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
 
       {isCreating && (
         <ExperienceForm
           onSave={handleSaveNew}
-          onCancel={() => setIsCreating(false)}
+          onCancel={() => {
+            setIsCreating(false);
+            setError(null);
+          }}
+          loading={loading === "create"}
         />
       )}
 
-      {experiences.map((exp) =>
+      {experiences.length === 0 && !isCreating ? (
+        <div className="border border-border bg-panel rounded-lg p-8 text-center">
+          <p className="text-muted">No experience entries yet. Create your first entry to get started.</p>
+        </div>
+      ) : (
+        experiences.map((exp) =>
         editingId === exp.id ? (
           <ExperienceForm
             key={exp.id}
@@ -106,13 +151,19 @@ export function ExperienceManager({ initialData }: { initialData: Experience[] }
                 <p className="text-xs text-muted-disabled">{exp.location} • {exp.period}</p>
               </div>
               <div className="flex items-center gap-2">
+                {loading === exp.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
                 <button
                   onClick={() => setEditingId(exp.id)}
-                  className="text-muted hover:text-foreground"
+                  className="text-muted hover:text-foreground transition-colors"
+                  disabled={loading === exp.id}
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
-                <button onClick={() => handleDelete(exp.id)} className="text-red-500 hover:text-red-400">
+                <button
+                  onClick={() => handleDelete(exp.id)}
+                  className="text-red-500 hover:text-red-400 transition-colors"
+                  disabled={loading === exp.id}
+                >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -139,7 +190,7 @@ export function ExperienceManager({ initialData }: { initialData: Experience[] }
             </div>
           </div>
         ),
-      )}
+      ))}
     </div>
   );
 }
@@ -148,10 +199,12 @@ function ExperienceForm({
   experience,
   onSave,
   onCancel,
+  loading,
 }: {
   experience?: Experience;
   onSave: (data: { title: string; company: string; location: string; period: string; bullets: string[]; tech: string[] }) => void;
   onCancel: () => void;
+  loading?: boolean;
 }) {
   const [title, setTitle] = useState(experience?.title || "");
   const [company, setCompany] = useState(experience?.company || "");
@@ -286,15 +339,17 @@ function ExperienceForm({
       <div className="flex items-center gap-2">
         <button
           type="submit"
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500"
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50"
         >
-          <Save className="h-4 w-4" />
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-border bg-panel2 text-foreground rounded-lg hover:bg-panel"
+          disabled={loading}
+          className="px-4 py-2 border border-border bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors"
         >
           Cancel
         </button>

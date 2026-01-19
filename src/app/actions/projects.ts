@@ -49,6 +49,14 @@ export async function createProject(data: {
         create: tags.map((name, index) => ({ name, order: index })),
       },
     },
+    include: {
+      bullets: {
+        orderBy: { order: "asc" },
+      },
+      tags: {
+        orderBy: { order: "asc" },
+      },
+    },
   });
   revalidatePath("/admin/projects");
   revalidatePath("/projects");

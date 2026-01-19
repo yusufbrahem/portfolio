@@ -19,6 +19,7 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
   const [editingPillar, setEditingPillar] = useState<string | null>(null);
   const [editingPoint, setEditingPoint] = useState<{ pillarId: string; pointId: string } | null>(null);
   const [isCreatingPillar, setIsCreatingPillar] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [expandedPillars, setExpandedPillars] = useState<Set<string>>(
     new Set(architecture?.pillars.map((p) => p.id) || [])
   );
@@ -39,39 +40,58 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
 
   const handleSaveNewPillar = async (data: { title: string }) => {
     if (!architecture) return;
-    const order = architecture.pillars.length;
-    await createPillar({
-      architectureContentId: architecture.id,
-      ...data,
-      order,
-    });
-    window.location.reload();
+    setError(null);
+    try {
+      const order = architecture.pillars.length;
+      const newPillar = await createPillar({
+        architectureContentId: architecture.id,
+        ...data,
+        order,
+      });
+      setArchitecture({
+        ...architecture,
+        pillars: [...architecture.pillars, { ...newPillar, points: [] }],
+      });
+      setIsCreatingPillar(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create pillar");
+    }
   };
 
   const handleUpdatePillar = async (id: string, data: { title: string; order: number }) => {
-    await updatePillar(id, data);
-    setArchitecture(
-      architecture
-        ? {
-            ...architecture,
-            pillars: architecture.pillars.map((p) => (p.id === id ? { ...p, ...data } : p)),
-          }
-        : null
-    );
-    setEditingPillar(null);
+    setError(null);
+    try {
+      await updatePillar(id, data);
+      setArchitecture(
+        architecture
+          ? {
+              ...architecture,
+              pillars: architecture.pillars.map((p) => (p.id === id ? { ...p, ...data } : p)),
+            }
+          : null
+      );
+      setEditingPillar(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update pillar");
+    }
   };
 
   const handleDeletePillar = async (id: string) => {
     if (!confirm("Delete this pillar and all its points?")) return;
-    await deletePillar(id);
-    setArchitecture(
-      architecture
-        ? {
-            ...architecture,
-            pillars: architecture.pillars.filter((p) => p.id !== id),
-          }
-        : null
-    );
+    setError(null);
+    try {
+      await deletePillar(id);
+      setArchitecture(
+        architecture
+          ? {
+              ...architecture,
+              pillars: architecture.pillars.filter((p) => p.id !== id),
+            }
+          : null
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete pillar");
+    }
   };
 
   const handleCreatePoint = async (pillarId: string) => {
@@ -81,13 +101,28 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
   const handleSaveNewPoint = async (pillarId: string, data: { text: string }) => {
     const pillar = architecture?.pillars.find((p) => p.id === pillarId);
     if (!pillar) return;
-    const order = pillar.points.length;
-    await createPoint({
-      architecturePillarId: pillarId,
-      ...data,
-      order,
-    });
-    window.location.reload();
+    setError(null);
+    try {
+      const order = pillar.points.length;
+      const newPoint = await createPoint({
+        architecturePillarId: pillarId,
+        ...data,
+        order,
+      });
+      setArchitecture(
+        architecture
+          ? {
+              ...architecture,
+              pillars: architecture.pillars.map((p) =>
+                p.id === pillarId ? { ...p, points: [...p.points, newPoint] } : p
+              ),
+            }
+          : null
+      );
+      setEditingPoint(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create point");
+    }
   };
 
   const handleUpdatePoint = async (
@@ -95,14 +130,48 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
     pointId: string,
     data: { text: string; order: number }
   ) => {
-    await updatePoint(pointId, data);
-    window.location.reload();
+    setError(null);
+    try {
+      await updatePoint(pointId, data);
+      setArchitecture(
+        architecture
+          ? {
+              ...architecture,
+              pillars: architecture.pillars.map((p) =>
+                p.id === pillarId
+                  ? {
+                      ...p,
+                      points: p.points.map((pt) => (pt.id === pointId ? { ...pt, ...data } : pt)),
+                    }
+                  : p
+              ),
+            }
+          : null
+      );
+      setEditingPoint(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update point");
+    }
   };
 
   const handleDeletePoint = async (pillarId: string, pointId: string) => {
     if (!confirm("Delete this point?")) return;
-    await deletePoint(pointId);
-    window.location.reload();
+    setError(null);
+    try {
+      await deletePoint(pointId);
+      setArchitecture(
+        architecture
+          ? {
+              ...architecture,
+              pillars: architecture.pillars.map((p) =>
+                p.id === pillarId ? { ...p, points: p.points.filter((pt) => pt.id !== pointId) } : p
+              ),
+            }
+          : null
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete point");
+    }
   };
 
   if (!architecture) {
@@ -111,12 +180,18 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold text-foreground">Architecture Pillars</h2>
         {!isCreatingPillar && (
           <button
             onClick={handleCreatePillar}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500"
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
           >
             <Plus className="h-4 w-4" />
             Add Pillar
@@ -131,9 +206,14 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
         />
       )}
 
-      <div className="space-y-4">
-        {architecture.pillars.map((pillar) => (
-          <div key={pillar.id} className="border border-border bg-panel rounded-lg p-4">
+      {architecture.pillars.length === 0 && !isCreatingPillar ? (
+        <div className="border border-border bg-panel rounded-lg p-8 text-center">
+          <p className="text-muted">No architecture pillars yet. Create your first pillar to get started.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {architecture.pillars.map((pillar) => (
+            <div key={pillar.id} className="border border-border bg-panel rounded-lg p-4">
             <div className="flex justify-between items-center mb-2">
               {editingPillar === pillar.id ? (
                 <PillarForm
@@ -146,7 +226,7 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
                   <div className="flex items-center gap-2 flex-1">
                     <button
                       onClick={() => togglePillar(pillar.id)}
-                      className="p-1 text-muted hover:text-foreground"
+                      className="p-1 text-muted hover:text-foreground transition-colors"
                     >
                       {expandedPillars.has(pillar.id) ? (
                         <ChevronDown className="h-4 w-4" />
@@ -160,13 +240,13 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingPillar(pillar.id)}
-                      className="p-2 text-muted hover:text-foreground"
+                      className="p-2 text-muted hover:text-foreground transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDeletePillar(pillar.id)}
-                      className="p-2 text-red-500 hover:text-red-600"
+                      className="p-2 text-red-500 hover:text-red-600 transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -182,7 +262,7 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
                   {editingPoint?.pillarId !== pillar.id && (
                     <button
                       onClick={() => handleCreatePoint(pillar.id)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs bg-panel2 text-foreground rounded hover:bg-panel"
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-panel2 text-foreground rounded hover:bg-panel transition-colors"
                     >
                       <Plus className="h-3 w-3" />
                       Add Point
@@ -197,8 +277,11 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
                   />
                 )}
 
-                {pillar.points.map((point) => (
-                  <div key={point.id} className="flex justify-between items-start p-2 bg-background rounded">
+                {pillar.points.length === 0 && editingPoint?.pillarId !== pillar.id ? (
+                  <p className="text-xs text-muted py-2">No points yet. Add your first point.</p>
+                ) : (
+                  pillar.points.map((point) => (
+                    <div key={point.id} className="flex justify-between items-start p-2 bg-background rounded">
                     {editingPoint?.pillarId === pillar.id && editingPoint.pointId === point.id ? (
                       <PointForm
                         initialData={{ text: point.text, order: point.order }}
@@ -211,26 +294,28 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
                         <div className="flex gap-2">
                           <button
                             onClick={() => setEditingPoint({ pillarId: pillar.id, pointId: point.id })}
-                            className="p-1 text-muted hover:text-foreground"
+                            className="p-1 text-muted hover:text-foreground transition-colors"
                           >
                             <Edit2 className="h-3 w-3" />
                           </button>
                           <button
                             onClick={() => handleDeletePoint(pillar.id, point.id)}
-                            className="p-1 text-red-500 hover:text-red-600"
+                            className="p-1 text-red-500 hover:text-red-600 transition-colors"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
                         </div>
                       </>
                     )}
-                  </div>
-                ))}
+                    </div>
+                  ))
+                )}
               </div>
             )}
-          </div>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -264,7 +349,7 @@ function PillarForm({
       <div className="flex gap-2">
         <button
           type="submit"
-          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-accent text-foreground rounded-lg hover:bg-blue-500"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
         >
           <Save className="h-3 w-3" />
           Save
@@ -272,7 +357,7 @@ function PillarForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm border border-border bg-panel text-foreground rounded-lg hover:bg-panel2"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm border border-border bg-panel text-foreground rounded-lg hover:bg-panel2 transition-colors"
         >
           <X className="h-3 w-3" />
           Cancel
@@ -311,7 +396,7 @@ function PointForm({
       <div className="flex gap-2">
         <button
           type="submit"
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-accent text-foreground rounded hover:bg-blue-500"
+          className="flex items-center gap-1 px-2 py-1 text-xs bg-accent text-foreground rounded hover:bg-blue-500 transition-colors"
         >
           <Save className="h-3 w-3" />
           Save
@@ -319,7 +404,7 @@ function PointForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-1 px-2 py-1 text-xs border border-border bg-panel text-foreground rounded hover:bg-panel2"
+          className="flex items-center gap-1 px-2 py-1 text-xs border border-border bg-panel text-foreground rounded hover:bg-panel2 transition-colors"
         >
           <X className="h-3 w-3" />
           Cancel

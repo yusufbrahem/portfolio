@@ -51,6 +51,14 @@ export async function createExperience(data: {
         create: tech.map((name, index) => ({ name, order: index })),
       },
     },
+    include: {
+      bullets: {
+        orderBy: { order: "asc" },
+      },
+      tech: {
+        orderBy: { order: "asc" },
+      },
+    },
   });
   revalidatePath("/admin/experience");
   revalidatePath("/experience");
