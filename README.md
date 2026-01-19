@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Youssef Brahem — Portfolio (Next.js)
 
-## Getting Started
+Production-ready personal portfolio website built with:
+- **Next.js (App Router)** + **TypeScript**
+- **Tailwind CSS**
+- **Framer Motion**
+- **Lucide React**
+- **SEO via `next/metadata`**
+- **Deployment target: Vercel**
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build for production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
+## Deploy to Vercel
 
-To learn more about Next.js, take a look at the following resources:
+- Push this repo to GitHub.
+- In Vercel: **New Project → Import** the repo.
+- Framework preset: **Next.js**
+- Add environment variable (recommended):
+  - **`NEXT_PUBLIC_SITE_URL`** = your production URL (e.g. `https://your-domain.com`)
+- Deploy.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Resume PDF (print-to-PDF)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project provides a **PDF-ready resume page** at `/resume`.
 
-## Deploy on Vercel
+- Open `/resume`
+- Click **Print / Save as PDF**
+- Choose **Save as PDF** in your browser’s print dialog
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Update content later
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All copy and structured content is centralized in:
+
+- `src/content/site.ts`
+
