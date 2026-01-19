@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Save } from "lucide-react";
+import { Save, Upload, Loader2 } from "lucide-react";
 import { updatePersonInfo, type getPersonInfo } from "@/app/actions/contact";
+import { uploadCV } from "@/app/actions/upload";
 
 type PersonInfo = Awaited<ReturnType<typeof getPersonInfo>>;
 
 export function ContactManager({ initialData }: { initialData: PersonInfo | null }) {
   const [personInfo, setPersonInfo] = useState(initialData);
   const [isEditing, setIsEditing] = useState(!initialData);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
     role: initialData?.role || "",
@@ -23,6 +26,35 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
     const result = await updatePersonInfo(formData);
     setPersonInfo(result);
     setIsEditing(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+
+      const result = await uploadCV(uploadFormData);
+      
+      // Update the form with the new CV URL
+      const updatedFormData = { ...formData, cvUrl: result.cvUrl };
+      setFormData(updatedFormData);
+      
+      // Also update personInfo in database
+      const updatedPersonInfo = await updatePersonInfo(updatedFormData);
+      setPersonInfo(updatedPersonInfo);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Failed to upload CV");
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      e.target.value = "";
+    }
   };
 
   return (
@@ -93,17 +125,49 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">CV/Resume PDF URL</label>
-            <input
-              type="url"
-              value={formData.cvUrl}
-              onChange={(e) => setFormData({ ...formData, cvUrl: e.target.value })}
-              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
-              placeholder="/cv.pdf or https://example.com/cv.pdf"
-            />
-            <p className="mt-1 text-xs text-muted">
-              Upload your CV PDF to the <code className="px-1 py-0.5 bg-panel rounded">public</code> folder and enter the path (e.g., /cv.pdf)
-            </p>
+            <label className="block text-sm font-medium text-foreground mb-2">CV/Resume PDF</label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 px-4 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2 cursor-pointer transition-colors">
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Choose File
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={handleFileUpload}
+                    disabled={isUploading}
+                    className="hidden"
+                  />
+                </label>
+                {formData.cvUrl && (
+                  <span className="text-sm text-muted">
+                    Current: <code className="px-1 py-0.5 bg-panel rounded">{formData.cvUrl}</code>
+                  </span>
+                )}
+              </div>
+              {uploadError && (
+                <p className="text-sm text-red-500">{uploadError}</p>
+              )}
+              <input
+                type="url"
+                value={formData.cvUrl}
+                onChange={(e) => setFormData({ ...formData, cvUrl: e.target.value })}
+                className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
+                placeholder="/cv.pdf or https://example.com/cv.pdf"
+              />
+              <p className="text-xs text-muted">
+                Upload a PDF file or enter a URL manually. Max file size: 10MB
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
