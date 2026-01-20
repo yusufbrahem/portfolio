@@ -10,10 +10,47 @@ Production-ready personal portfolio website built with:
 
 ## Run locally
 
-```bash
-npm install
-npm run dev
-```
+### Option 1: With Docker Compose (Recommended)
+
+1. **Start PostgreSQL database:**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Set up environment variables:**
+   ```bash
+   # Copy development template
+   cp .env.development.example .env.local
+   
+   # Edit .env.local with your values:
+   # DATABASE_URL="postgresql://postgres:admin123@localhost:5432/portfolio"
+   # ADMIN_PASSWORD="your-dev-password"
+   ```
+
+3. **Run database migrations:**
+   ```bash
+   npm run db:migrate
+   npm run db:seed
+   ```
+
+4. **Start development server:**
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+5. **Stop database when done:**
+   ```bash
+   docker-compose down
+   ```
+
+### Option 2: Without Docker
+
+If you have PostgreSQL installed locally:
+
+1. Create a database named `portfolio`
+2. Set up your `.env.local` file with your local database connection string
+3. Run migrations and start the dev server
 
 Open `http://localhost:3000`.
 
@@ -62,10 +99,28 @@ This portfolio includes a **configurable CMS system** with an admin panel:
 - **Security**: See [SECURITY.md](./SECURITY.md) for security best practices and deployment guide
 
 **Quick Setup:**
-1. Create your local env file (recommended): `.env.local`
-2. Add the required environment variables (names only; do **not** commit values)
-3. Run `npm run db:migrate` and `npm run db:seed`
-4. Access admin at `/admin/login`
+
+1. **Start database (if using Docker Compose):**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Create your local env file:**
+   ```bash
+   cp .env.development.example .env.local
+   ```
+   Then edit `.env.local` with your actual values:
+   - `DATABASE_URL="postgresql://postgres:admin123@localhost:5432/portfolio"` (for Docker)
+   - `ADMIN_PASSWORD="your-secure-password"`
+
+3. **Run database migrations:**
+   ```bash
+   npm run db:migrate
+   npm run db:seed
+   ```
+
+4. **Access admin panel:**
+   Navigate to `/admin/login` and use your `ADMIN_PASSWORD`
 
 ## Environment variables (required)
 
