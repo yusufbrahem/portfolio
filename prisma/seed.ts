@@ -9,7 +9,10 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
-console.log("Database URL:", process.env.DATABASE_URL);
+// Log database connection info without exposing credentials
+const dbUrl = process.env.DATABASE_URL;
+const urlObj = new URL(dbUrl);
+console.log(`Connecting to database: ${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`);
 
 // Create PostgreSQL adapter
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });

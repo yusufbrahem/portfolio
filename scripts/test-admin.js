@@ -1,6 +1,14 @@
 // Test admin pages with proper authentication
 const baseUrl = "http://localhost:3000";
 
+// Get admin password from environment variable
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error("❌ ERROR: ADMIN_PASSWORD environment variable is not set.");
+  console.error("   Please set it in your .env file or export it before running this script.");
+  process.exit(1);
+}
+
 async function testAdminPages() {
   console.log("Testing Admin Pages...\n");
 
@@ -9,7 +17,7 @@ async function testAdminPages() {
   const loginResponse = await fetch(`${baseUrl}/api/admin/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password: "admin123" }),
+    body: JSON.stringify({ password: ADMIN_PASSWORD }),
   });
 
   if (!loginResponse.ok) {

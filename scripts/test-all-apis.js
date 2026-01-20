@@ -85,21 +85,29 @@ async function runTests() {
   console.log("ADMIN AUTHENTICATION");
   console.log("=".repeat(60));
   
-  results.total++;
-  const loginResult = await testAPI(
-    "Admin Login",
-    "/api/admin/login",
-    {
-      method: "POST",
-      body: JSON.stringify({ password: "admin123" }),
-    }
-  );
-  
-  if (loginResult.success) {
-    results.passed++;
-    console.log("  ✓ Login successful - session cookie set");
+  // Get admin password from environment variable
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  if (!ADMIN_PASSWORD) {
+    console.error("❌ ERROR: ADMIN_PASSWORD environment variable is not set.");
+    console.error("   Please set it in your .env file or export it before running this script.");
+    console.error("   Skipping admin authentication tests...\n");
   } else {
-    results.failed++;
+    results.total++;
+    const loginResult = await testAPI(
+      "Admin Login",
+      "/api/admin/login",
+      {
+        method: "POST",
+        body: JSON.stringify({ password: ADMIN_PASSWORD }),
+      }
+    );
+  
+    if (loginResult.success) {
+      results.passed++;
+      console.log("  ✓ Login successful - session cookie set");
+    } else {
+      results.failed++;
+    }
   }
   
   // Test admin pages (should redirect if not logged in)
