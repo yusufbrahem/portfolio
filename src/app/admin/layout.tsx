@@ -2,6 +2,8 @@ import { Container } from "@/components/container";
 import Link from "next/link";
 import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail } from "lucide-react";
 import { headers } from "next/headers";
+import { checkAdminAuth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function AdminLayout({
   children,
@@ -17,8 +19,15 @@ export default async function AdminLayout({
     return <>{children}</>;
   }
   
-  // For all other admin pages, middleware has already verified auth
-  // Just render the admin UI
+  // Defense in depth: Verify authentication again at layout level
+  // Middleware protects routes, but this adds an extra layer
+  const isAuthenticated = await checkAdminAuth();
+  if (!isAuthenticated) {
+    redirect("/admin/login");
+  }
+  
+  // For all other admin pages, both middleware and layout have verified auth
+  // Render the admin UI
 
   // Render admin UI for authenticated users
   return (

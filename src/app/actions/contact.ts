@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/auth";
 
 export async function getPersonInfo() {
   const info = await prisma.personInfo.findFirst();
@@ -16,6 +17,7 @@ export async function updatePersonInfo(data: {
   linkedIn: string;
   cvUrl?: string | null;
 }) {
+  await requireAdmin();
   const existing = await prisma.personInfo.findFirst();
   
   const result = await prisma.personInfo.upsert({

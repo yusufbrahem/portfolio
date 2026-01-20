@@ -15,6 +15,10 @@ export function middleware(request: NextRequest) {
         headers: requestHeaders,
       },
     });
+    
+    // Add security headers
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    
     return response;
   }
   
@@ -28,7 +32,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
   
-  return NextResponse.next();
+  // Add security headers for authenticated admin pages
+  const response = NextResponse.next();
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  
+  return response;
 }
 
 export const config = {

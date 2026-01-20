@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/auth";
 
 export async function getAboutContent() {
   const about = await prisma.aboutContent.findFirst({
@@ -18,6 +19,7 @@ export async function updateAboutContent(data: {
   title: string;
   paragraphs: string[];
 }) {
+  await requireAdmin();
   const existing = await prisma.aboutContent.findFirst();
   
   const result = await prisma.aboutContent.upsert({
@@ -44,6 +46,7 @@ export async function createPrinciple(data: {
   description: string;
   order: number;
 }) {
+  await requireAdmin();
   const result = await prisma.aboutPrinciple.create({
     data,
   });
@@ -56,6 +59,7 @@ export async function updatePrinciple(
   id: string,
   data: { title?: string; description?: string; order?: number }
 ) {
+  await requireAdmin();
   const result = await prisma.aboutPrinciple.update({
     where: { id },
     data,
@@ -66,6 +70,7 @@ export async function updatePrinciple(
 }
 
 export async function deletePrinciple(id: string) {
+  await requireAdmin();
   await prisma.aboutPrinciple.delete({
     where: { id },
   });

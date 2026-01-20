@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/auth";
 
 export async function getArchitectureContent() {
   const architecture = await prisma.architectureContent.findFirst({
@@ -20,6 +21,7 @@ export async function getArchitectureContent() {
 }
 
 export async function ensureArchitectureContent() {
+  await requireAdmin();
   const existing = await prisma.architectureContent.findFirst();
   if (existing) return existing;
   
@@ -35,6 +37,7 @@ export async function createPillar(data: {
   title: string;
   order: number;
 }) {
+  await requireAdmin();
   const result = await prisma.architecturePillar.create({
     data,
   });
@@ -47,6 +50,7 @@ export async function updatePillar(
   id: string,
   data: { title?: string; order?: number }
 ) {
+  await requireAdmin();
   const result = await prisma.architecturePillar.update({
     where: { id },
     data,
@@ -57,6 +61,7 @@ export async function updatePillar(
 }
 
 export async function deletePillar(id: string) {
+  await requireAdmin();
   await prisma.architecturePillar.delete({
     where: { id },
   });
@@ -69,6 +74,7 @@ export async function createPoint(data: {
   text: string;
   order: number;
 }) {
+  await requireAdmin();
   const result = await prisma.architecturePoint.create({
     data,
   });
@@ -81,6 +87,7 @@ export async function updatePoint(
   id: string,
   data: { text?: string; order?: number }
 ) {
+  await requireAdmin();
   const result = await prisma.architecturePoint.update({
     where: { id },
     data,
@@ -91,6 +98,7 @@ export async function updatePoint(
 }
 
 export async function deletePoint(id: string) {
+  await requireAdmin();
   await prisma.architecturePoint.delete({
     where: { id },
   });
