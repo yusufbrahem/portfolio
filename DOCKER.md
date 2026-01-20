@@ -130,27 +130,64 @@ The `docker-compose.yml` file configures:
 
 ## Changing Database Password
 
-If you want to change the database password:
+### Method 1: Using Script (Recommended - Preserves Data)
 
-1. **Stop and remove containers:**
+Use the provided PowerShell script:
+
+```powershell
+.\scripts\change-db-password.ps1 -NewPassword "your-new-secure-password"
+```
+
+This script will:
+1. Change the password in PostgreSQL (preserves all data)
+2. Update `docker-compose.yml`
+3. Update `.env.local`
+4. Restart the container
+
+### Method 2: Manual Steps (Preserves Data)
+
+1. **Connect to PostgreSQL:**
    ```bash
-   docker-compose down -v
+   docker exec -it portfolio-db psql -U postgres -d portfolio
    ```
 
-2. **Edit `docker-compose.yml`:**
+2. **Change password in PostgreSQL:**
+   ```sql
+   ALTER USER postgres WITH PASSWORD 'your-new-password';
+   \q
+   ```
+
+3. **Update `docker-compose.yml`:**
    ```yaml
-   environment:
-     POSTGRES_PASSWORD: your-new-password
+   POSTGRES_PASSWORD: your-new-password
    ```
 
-3. **Update `.env.local`:**
+4. **Update `.env.local`:**
    ```env
    DATABASE_URL="postgresql://postgres:your-new-password@localhost:5432/portfolio"
    ```
 
-4. **Restart:**
+5. **Restart container:**
+   ```bash
+   docker-compose restart postgres
+   ```
+
+### Method 3: Fresh Start (⚠️ Loses All Data)
+
+If you want to start fresh:
+
+1. **Stop and remove everything:**
+   ```bash
+   docker-compose down -v
+   ```
+
+2. **Update `docker-compose.yml` and `.env.local`** (same as Method 2)
+
+3. **Start fresh:**
    ```bash
    docker-compose up -d
+   npm run db:migrate
+   npm run db:seed
    ```
 
 ## Troubleshooting
