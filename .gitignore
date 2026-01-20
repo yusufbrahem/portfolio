@@ -61,3 +61,6 @@ public/*.doc
 public/*.docx
 # Keep profile image
 !public/profile.png
+
+# temporary/unused files
+temp/
