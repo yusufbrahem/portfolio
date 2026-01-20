@@ -52,9 +52,34 @@ To display your photo in the hero section:
 
 If the photo file is missing, a placeholder icon will be shown instead.
 
+## Admin Panel & CMS
+
+This portfolio includes a **configurable CMS system** with an admin panel:
+
+- **Admin Access**: Navigate to `/admin/login` (password protected)
+- **Content Management**: Edit Skills, Projects, Experience, About, Architecture, and Contact details via web UI
+- **Setup**: See [README_ADMIN.md](./README_ADMIN.md) for detailed setup instructions
+- **Security**: See [SECURITY.md](./SECURITY.md) for security best practices and deployment guide
+
+**Quick Setup:**
+1. Copy `.env.example` to `.env`
+2. Set `DATABASE_URL` and `ADMIN_PASSWORD`
+3. Run `npm run db:migrate` and `npm run db:seed`
+4. Access admin at `/admin/login`
+
+## Security
+
+**✅ This repository is safe to share publicly:**
+- No passwords in source code
+- No `.env` files committed
+- All secrets stored in environment variables
+- Admin routes protected by middleware
+- See [SECURITY.md](./SECURITY.md) for complete security guide
+
 ## Update content later
 
 All copy and structured content is centralized in:
 
-- `src/content/site.ts`
+- `src/content/site.ts` (legacy - now managed via admin panel)
+- Admin panel at `/admin` (recommended)
 
