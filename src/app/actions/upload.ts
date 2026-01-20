@@ -3,10 +3,10 @@
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 
 export async function uploadCV(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const file = formData.get("file") as File;
   
   if (!file) {

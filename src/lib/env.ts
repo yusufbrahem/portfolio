@@ -1,6 +1,6 @@
 import "server-only";
 
-type RequiredEnvVar = "ADMIN_PASSWORD" | "DATABASE_URL";
+type RequiredEnvVar = "DATABASE_URL" | "AUTH_SECRET";
 
 function requireEnv(name: RequiredEnvVar): string {
   const value = process.env[name];
@@ -19,13 +19,13 @@ function requireEnv(name: RequiredEnvVar): string {
  * Import from here instead of reading process.env directly for secrets.
  */
 export const env = {
-  ADMIN_PASSWORD: requireEnv("ADMIN_PASSWORD"),
   DATABASE_URL: requireEnv("DATABASE_URL"),
+  AUTH_SECRET: requireEnv("AUTH_SECRET"),
 } as const;
 
 export function validateRequiredEnv(): void {
   // Accessing `env` already validates; keep a callable for explicit validation sites.
-  void env.ADMIN_PASSWORD;
   void env.DATABASE_URL;
+  void env.AUTH_SECRET;
 }
 

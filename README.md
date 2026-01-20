@@ -24,7 +24,9 @@ Production-ready personal portfolio website built with:
    
    # Edit .env.local with your values:
    # DATABASE_URL="postgresql://postgres:admin123@localhost:5432/portfolio"
-   # ADMIN_PASSWORD="your-dev-password"
+   # AUTH_SECRET="generate-with-openssl-rand-base64-32"
+   # ADMIN_EMAIL="admin@example.com" (optional, for seed script)
+   # ADMIN_PASSWORD="your-dev-password" (optional, for seed script)
    ```
 
 3. **Run database migrations:**
@@ -111,7 +113,9 @@ This portfolio includes a **configurable CMS system** with an admin panel:
    ```
    Then edit `.env.local` with your actual values:
    - `DATABASE_URL="postgresql://postgres:admin123@localhost:5432/portfolio"` (for Docker)
-   - `ADMIN_PASSWORD="your-secure-password"`
+   - `AUTH_SECRET="generate-with-openssl-rand-base64-32"`
+   - `ADMIN_EMAIL="admin@example.com"` (optional, for seed script)
+   - `ADMIN_PASSWORD="your-secure-password"` (optional, for seed script)
 
 3. **Run database migrations:**
    ```bash
@@ -120,14 +124,14 @@ This portfolio includes a **configurable CMS system** with an admin panel:
    ```
 
 4. **Access admin panel:**
-   Navigate to `/admin/login` and use your `ADMIN_PASSWORD`
+   Navigate to `/admin/login` and use the email/password from the seed script
 
 ## Environment variables (required)
 
 These are **required at runtime** (the app will fail fast if missing):
 
 - **`DATABASE_URL`**: PostgreSQL connection string (server-side only)
-- **`ADMIN_PASSWORD`**: Admin login password (server-side only)
+- **`AUTH_SECRET`**: NextAuth.js secret for signing JWT tokens (generate with `openssl rand -base64 32`)
 
 Optional:
 

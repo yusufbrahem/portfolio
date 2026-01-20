@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 
 export async function getExperiences() {
   return await prisma.experience.findMany({
@@ -41,7 +41,7 @@ export async function createExperience(data: {
   bullets: string[];
   tech: string[];
 }) {
-  await requireAdmin();
+  await requireAuth();
   const { bullets, tech, ...experienceData } = data;
   const result = await prisma.experience.create({
     data: {
@@ -80,7 +80,7 @@ export async function updateExperience(
     tech?: string[];
   },
 ) {
-  await requireAdmin();
+  await requireAuth();
   const { bullets, tech, ...experienceData } = data;
 
   if (bullets !== undefined) {
@@ -113,7 +113,7 @@ export async function updateExperience(
 }
 
 export async function deleteExperience(id: string) {
-  await requireAdmin();
+  await requireAuth();
   await prisma.experience.delete({
     where: { id },
   });

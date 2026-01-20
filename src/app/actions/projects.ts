@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 
 export async function getProjects() {
   return await prisma.project.findMany({
@@ -39,7 +39,7 @@ export async function createProject(data: {
   bullets: string[];
   tags: string[];
 }) {
-  await requireAdmin();
+  await requireAuth();
   const { bullets, tags, ...projectData } = data;
   const result = await prisma.project.create({
     data: {
@@ -75,7 +75,7 @@ export async function updateProject(
     tags?: string[];
   },
 ) {
-  await requireAdmin();
+  await requireAuth();
   const { bullets, tags, ...projectData } = data;
 
   if (bullets !== undefined) {
@@ -107,7 +107,7 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: string) {
-  await requireAdmin();
+  await requireAuth();
   await prisma.project.delete({
     where: { id },
   });

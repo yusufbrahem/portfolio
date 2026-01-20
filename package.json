@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-auth": "tsx prisma/seed-auth.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate"
   },
@@ -22,6 +23,7 @@
     "framer-motion": "^12.27.0",
     "lucide-react": "^0.562.0",
     "next": "16.1.3",
+    "next-auth": "^5.0.0-beta.30",
     "pg": "^8.17.1",
     "prisma": "^7.2.0",
     "react": "19.2.3",

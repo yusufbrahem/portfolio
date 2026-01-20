@@ -1,35 +1,40 @@
-import { cookies } from "next/headers";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { env } from "@/lib/env";
 
-export async function verifyAdmin(password: string): Promise<boolean> {
-  return password === env.ADMIN_PASSWORD;
+/**
+ * Get the current authenticated session
+ * Returns null if not authenticated
+ */
+export async function getSession() {
+  return await auth();
 }
 
-export async function setAdminSession() {
-  const cookieStore = await cookies();
-  cookieStore.set("admin-auth", "authenticated", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  });
-}
-
-export async function checkAdminAuth(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const auth = cookieStore.get("admin-auth");
-  return auth?.value === "authenticated";
-}
-
-export async function requireAdmin() {
-  const isAuthenticated = await checkAdminAuth();
-  if (!isAuthenticated) {
+/**
+ * Require authentication - redirects to login if not authenticated
+ * Use this in server components and server actions
+ */
+export async function requireAuth() {
+  const session = await getSession();
+  if (!session) {
     redirect("/admin/login");
   }
+  return session;
 }
 
-export async function clearAdminSession() {
-  const cookieStore = await cookies();
-  cookieStore.delete("admin-auth");
+/**
+ * Get the current user ID from session
+ * Throws if not authenticated
+ */
+export async function getUserId(): Promise<string> {
+  const session = await requireAuth();
+  return session.user.id;
+}
+
+/**
+ * Check if user is authenticated (does not redirect)
+ * Use this when you need to check auth status without redirecting
+ */
+export async function isAuthenticated(): Promise<boolean> {
+  const session = await getSession();
+  return !!session;
 }

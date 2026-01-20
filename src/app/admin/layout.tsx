@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import Link from "next/link";
 import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail } from "lucide-react";
 import { headers } from "next/headers";
-import { checkAdminAuth } from "@/lib/auth";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
 export default async function AdminLayout({
@@ -21,8 +21,8 @@ export default async function AdminLayout({
   
   // Defense in depth: Verify authentication again at layout level
   // Middleware protects routes, but this adds an extra layer
-  const isAuthenticated = await checkAdminAuth();
-  if (!isAuthenticated) {
+  const session = await auth();
+  if (!session) {
     redirect("/admin/login");
   }
   
@@ -46,8 +46,8 @@ export default async function AdminLayout({
               </Link>
               <form action={async () => {
                 "use server";
-                const { logout } = await import("@/app/actions/logout");
-                await logout();
+                const { signOut } = await import("@/auth");
+                await signOut({ redirectTo: "/admin/login" });
               }}>
                 <button
                   type="submit"
