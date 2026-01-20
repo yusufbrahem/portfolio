@@ -58,8 +58,9 @@ Seed script logged full `DATABASE_URL` which could expose database credentials i
 **Status:** PASSED
 
 **Checked:**
-- `src/lib/auth.ts` - ✅ Uses `process.env.ADMIN_PASSWORD`, no fallback
-- `src/lib/prisma.ts` - ✅ Uses `process.env.DATABASE_URL`, no fallback
+- `src/lib/env.ts` - ✅ Centralized runtime validation for `ADMIN_PASSWORD` and `DATABASE_URL` (fail fast, no fallbacks)
+- `src/lib/auth.ts` - ✅ Admin auth reads `ADMIN_PASSWORD` via `env` (no fallback)
+- `src/lib/prisma.ts` - ✅ Database reads `DATABASE_URL` via `env` (no fallback)
 - `prisma.config.ts` - ✅ Uses `process.env.DATABASE_URL`, no fallback
 - All server actions - ✅ Use environment variables only
 

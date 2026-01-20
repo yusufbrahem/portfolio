@@ -62,10 +62,21 @@ This portfolio includes a **configurable CMS system** with an admin panel:
 - **Security**: See [SECURITY.md](./SECURITY.md) for security best practices and deployment guide
 
 **Quick Setup:**
-1. Copy `.env.example` to `.env`
-2. Set `DATABASE_URL` and `ADMIN_PASSWORD`
+1. Create your local env file (recommended): `.env.local`
+2. Add the required environment variables (names only; do **not** commit values)
 3. Run `npm run db:migrate` and `npm run db:seed`
 4. Access admin at `/admin/login`
+
+## Environment variables (required)
+
+These are **required at runtime** (the app will fail fast if missing):
+
+- **`DATABASE_URL`**: PostgreSQL connection string (server-side only)
+- **`ADMIN_PASSWORD`**: Admin login password (server-side only)
+
+Optional:
+
+- **`NEXT_PUBLIC_SITE_URL`**: Used for metadata/sitemap/robots. Public value (not a secret).
 
 ## Security
 

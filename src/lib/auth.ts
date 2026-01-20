@@ -1,19 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
-function getAdminPassword(): string {
-  const password = process.env.ADMIN_PASSWORD;
-  if (!password) {
-    throw new Error(
-      "ADMIN_PASSWORD environment variable is not set. Please set it in your .env file."
-    );
-  }
-  return password;
-}
+import { env } from "@/lib/env";
 
 export async function verifyAdmin(password: string): Promise<boolean> {
-  const adminPassword = getAdminPassword();
-  return password === adminPassword;
+  return password === env.ADMIN_PASSWORD;
 }
 
 export async function setAdminSession() {
