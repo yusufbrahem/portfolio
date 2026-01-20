@@ -51,3 +51,10 @@ dev.db
 # temporary files
 *.log
 w.txt
+
+# user-uploaded files (CVs, resumes, etc.)
+public/*.pdf
+public/*.doc
+public/*.docx
+# Keep profile image
+!public/profile.png
