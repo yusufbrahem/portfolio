@@ -2,41 +2,88 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
 
 // Public read - no auth required
-export async function getAboutContent() {
-  const about = await prisma.aboutContent.findFirst({
+// Can optionally filter by portfolioId (for future public portfolio pages)
+export async function getAboutContent(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
+  return await prisma.aboutContent.findFirst({
+    where,
     include: {
       principles: {
         orderBy: { order: "asc" },
       },
     },
   });
-  return about;
 }
 
 // Admin read - requires authentication
+// Regular users see only their portfolio, super_admin sees all
 export async function getAboutContentForAdmin() {
-  await requireAuth();
-  return await getAboutContent();
+  const session = await requireAuth();
+  const currentPortfolioId = session.user.portfolioId;
+  
+  // Super admin can see any portfolio's about content
+  if (session.user.role === "super_admin") {
+    // Return first available (for now, in future could allow selection)
+    return await prisma.aboutContent.findFirst({
+      include: {
+        principles: {
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+  }
+  
+  // Regular users: only their portfolio
+  if (!currentPortfolioId) {
+    return null; // No portfolio = no about content
+  }
+  
+  return await prisma.aboutContent.findFirst({
+    where: { portfolioId: currentPortfolioId },
+    include: {
+      principles: {
+        orderBy: { order: "asc" },
+      },
+    },
+  });
 }
 
 export async function updateAboutContent(data: {
   title: string;
   paragraphs: string[];
 }) {
-  await requireAuth();
-  const existing = await prisma.aboutContent.findFirst();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
+  const portfolioId = session.user.portfolioId;
+  
+  if (!portfolioId) {
+    throw new Error("User must have a portfolio to update about content");
+  }
+  
+  const existing = await prisma.aboutContent.findFirst({
+    where: { portfolioId },
+  });
+  
+  // Ownership check: if existing content, verify it belongs to user's portfolio
+  if (existing && session.user.role !== "super_admin") {
+    if (existing.portfolioId !== portfolioId) {
+      throw new Error("Access denied");
+    }
+  }
   
   const result = await prisma.aboutContent.upsert({
-    where: { id: existing?.id || "about-1" },
+    where: { id: existing?.id || `about-${portfolioId}` },
     update: {
       title: data.title,
       paragraphs: JSON.stringify(data.paragraphs),
     },
     create: {
-      id: "about-1",
+      id: `about-${portfolioId}`,
+      portfolioId,
       title: data.title,
       paragraphs: JSON.stringify(data.paragraphs),
     },
@@ -53,12 +100,24 @@ export async function createPrinciple(data: {
   description: string;
   order: number;
 }) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
   
-  // Verify parent resource exists (ownership check would go here if schema supported it)
-  const parent = await prisma.aboutContent.findUnique({ where: { id: data.aboutContentId } });
+  // Verify parent resource exists and user has access
+  const parent = await prisma.aboutContent.findUnique({ 
+    where: { id: data.aboutContentId },
+    select: { portfolioId: true },
+  });
+  
   if (!parent) {
     throw new Error("Parent resource not found");
+  }
+  
+  // Ownership check: super_admin can create in any portfolio, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || parent.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
   }
   
   const result = await prisma.aboutPrinciple.create({
@@ -73,12 +132,28 @@ export async function updatePrinciple(
   id: string,
   data: { title?: string; description?: string; order?: number }
 ) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
   
-  // Verify resource exists (ownership check would go here if schema supported it)
-  const existing = await prisma.aboutPrinciple.findUnique({ where: { id } });
+  // Verify resource exists and get parent portfolioId
+  const existing = await prisma.aboutPrinciple.findUnique({ 
+    where: { id },
+    include: {
+      aboutContent: {
+        select: { portfolioId: true },
+      },
+    },
+  });
+  
   if (!existing) {
     throw new Error("Resource not found");
+  }
+  
+  // Ownership check: super_admin can update any, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || existing.aboutContent.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
   }
   
   const result = await prisma.aboutPrinciple.update({
@@ -91,12 +166,28 @@ export async function updatePrinciple(
 }
 
 export async function deletePrinciple(id: string) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
   
-  // Verify resource exists (ownership check would go here if schema supported it)
-  const existing = await prisma.aboutPrinciple.findUnique({ where: { id } });
+  // Verify resource exists and get parent portfolioId
+  const existing = await prisma.aboutPrinciple.findUnique({ 
+    where: { id },
+    include: {
+      aboutContent: {
+        select: { portfolioId: true },
+      },
+    },
+  });
+  
   if (!existing) {
     throw new Error("Resource not found");
+  }
+  
+  // Ownership check: super_admin can delete any, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || existing.aboutContent.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
   }
   
   await prisma.aboutPrinciple.delete({

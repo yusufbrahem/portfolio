@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+
+const IMPERSONATE_PORTFOLIO_COOKIE = "admin_impersonate_portfolio_id";
 
 /**
  * Get the current authenticated session
@@ -20,6 +23,61 @@ export async function requireAuth() {
     redirect("/admin/login");
   }
   return session;
+}
+
+/**
+ * Require super admin (server-side).
+ */
+export async function requireSuperAdmin() {
+  const session = await requireAuth();
+  if (session.user.role !== "super_admin") {
+    throw new Error("Access denied");
+  }
+  return session;
+}
+
+/**
+ * Read current impersonation (super-admin only) from secure cookie.
+ * This is used for READ paths only.
+ */
+export async function getImpersonatedPortfolioId(): Promise<string | null> {
+  const session = await requireAuth();
+  if (session.user.role !== "super_admin") return null;
+
+  const store = await cookies();
+  const value = store.get(IMPERSONATE_PORTFOLIO_COOKIE)?.value;
+  return value || null;
+}
+
+/**
+ * Portfolio scope for admin READ operations.
+ * - super_admin + impersonation => read only that portfolio
+ * - super_admin (no impersonation) => read all portfolios (returns null)
+ * - regular user => read their own portfolio only
+ */
+export async function getAdminReadScope(): Promise<{ portfolioId: string | null; isImpersonating: boolean }> {
+  const session = await requireAuth();
+
+  if (session.user.role === "super_admin") {
+    const impersonated = await getImpersonatedPortfolioId();
+    return { portfolioId: impersonated, isImpersonating: !!impersonated };
+  }
+
+  return { portfolioId: session.user.portfolioId || null, isImpersonating: false };
+}
+
+/**
+ * Enforce read-only impersonation.
+ * If super_admin is impersonating, all writes must be blocked.
+ */
+export async function assertNotImpersonatingForWrite(): Promise<void> {
+  const session = await requireAuth();
+  if (session.user.role !== "super_admin") return;
+
+  const impersonated = await getImpersonatedPortfolioId();
+  if (impersonated) {
+    throw new Error("Read-only mode: stop impersonating to make changes.");
+  }
 }
 
 /**

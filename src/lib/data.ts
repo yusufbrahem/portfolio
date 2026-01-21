@@ -1,9 +1,45 @@
 import { prisma } from "./prisma";
+import { notFound } from "next/navigation";
 
 // Public data access functions - used by public pages
 
-export async function getPersonInfo() {
-  const info = await prisma.personInfo.findFirst();
+/**
+ * Get portfolio by slug - public access
+ * Returns portfolio if published, throws 404 if not found or not published
+ */
+export async function getPortfolioBySlug(slug: string) {
+  const portfolio = await prisma.portfolio.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      slug: true,
+      isPublished: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!portfolio || !portfolio.isPublished) {
+    notFound();
+  }
+
+  return portfolio;
+}
+
+// Public read - no auth required
+// Accepts optional portfolioId for future public portfolio pages
+// If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
+export async function getPersonInfo(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
+  const info = await prisma.personInfo.findFirst({
+    where,
+  });
+  
   if (!info) {
     // Fallback to default if not in DB
     return {
@@ -18,8 +54,16 @@ export async function getPersonInfo() {
   return info;
 }
 
-export async function getHeroContent() {
-  const hero = await prisma.heroContent.findFirst();
+// Public read - no auth required
+// Accepts optional portfolioId for future public portfolio pages
+// If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
+export async function getHeroContent(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
+  const hero = await prisma.heroContent.findFirst({
+    where,
+  });
+  
   if (!hero) {
     return {
       headline: "Senior Backend & Fintech Engineer building secure banking platforms.",
@@ -38,8 +82,14 @@ export async function getHeroContent() {
   };
 }
 
-export async function getSkills() {
+// Public read - no auth required
+// Accepts optional portfolioId for future public portfolio pages
+// If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
+export async function getSkills(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
   const groups = await prisma.skillGroup.findMany({
+    where,
     include: {
       skills: {
         orderBy: { order: "asc" },
@@ -54,8 +104,14 @@ export async function getSkills() {
   }));
 }
 
-export async function getExperience() {
+// Public read - no auth required
+// Accepts optional portfolioId for future public portfolio pages
+// If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
+export async function getExperience(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
   const roles = await prisma.experience.findMany({
+    where,
     include: {
       bullets: {
         orderBy: { order: "asc" },
@@ -81,8 +137,14 @@ export async function getExperience() {
   };
 }
 
-export async function getProjects() {
+// Public read - no auth required
+// Accepts optional portfolioId for future public portfolio pages
+// If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
+export async function getProjects(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
   const projects = await prisma.project.findMany({
+    where,
     include: {
       bullets: {
         orderBy: { order: "asc" },
@@ -102,8 +164,14 @@ export async function getProjects() {
   }));
 }
 
-export async function getAboutContent() {
+// Public read - no auth required
+// Accepts optional portfolioId for future public portfolio pages
+// If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
+export async function getAboutContent(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
   const about = await prisma.aboutContent.findFirst({
+    where,
     include: {
       principles: {
         orderBy: { order: "asc" },
@@ -131,8 +199,14 @@ export async function getAboutContent() {
   };
 }
 
-export async function getArchitectureContent() {
+// Public read - no auth required
+// Accepts optional portfolioId for future public portfolio pages
+// If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
+export async function getArchitectureContent(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
   const architecture = await prisma.architectureContent.findFirst({
+    where,
     include: {
       pillars: {
         include: {

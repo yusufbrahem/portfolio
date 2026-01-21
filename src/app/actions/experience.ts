@@ -2,11 +2,15 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
 
 // Public read - no auth required
-export async function getExperiences() {
+// Can optionally filter by portfolioId (for future public portfolio pages)
+export async function getExperiences(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
   return await prisma.experience.findMany({
+    where,
     include: {
       bullets: {
         orderBy: { order: "asc" },
@@ -20,9 +24,43 @@ export async function getExperiences() {
 }
 
 // Admin read - requires authentication
+// Regular users see only their portfolio, super_admin sees all
 export async function getExperiencesForAdmin() {
-  await requireAuth();
-  return await getExperiences();
+  const session = await requireAuth();
+  const currentPortfolioId = session.user.portfolioId;
+  
+  // Super admin can see all portfolios' experiences
+  if (session.user.role === "super_admin") {
+    return await prisma.experience.findMany({
+      include: {
+        bullets: {
+          orderBy: { order: "asc" },
+        },
+        tech: {
+          orderBy: { order: "asc" },
+        },
+      },
+      orderBy: { order: "asc" },
+    });
+  }
+  
+  // Regular users: only their portfolio
+  if (!currentPortfolioId) {
+    return []; // No portfolio = no experiences
+  }
+  
+  return await prisma.experience.findMany({
+    where: { portfolioId: currentPortfolioId },
+    include: {
+      bullets: {
+        orderBy: { order: "asc" },
+      },
+      tech: {
+        orderBy: { order: "asc" },
+      },
+    },
+    orderBy: { order: "asc" },
+  });
 }
 
 // Public read - no auth required
@@ -41,9 +79,34 @@ export async function getExperience(id: string) {
 }
 
 // Admin read - requires authentication
+// Regular users can only access their portfolio's experiences
 export async function getExperienceForAdmin(id: string) {
-  await requireAuth();
-  return await getExperience(id);
+  const session = await requireAuth();
+  
+  const experience = await prisma.experience.findUnique({
+    where: { id },
+    include: {
+      bullets: {
+        orderBy: { order: "asc" },
+      },
+      tech: {
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+  
+  if (!experience) {
+    throw new Error("Resource not found");
+  }
+  
+  // Ownership check: super_admin can see any, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || experience.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
+  }
+  
+  return experience;
 }
 
 export async function createExperience(data: {
@@ -55,11 +118,19 @@ export async function createExperience(data: {
   bullets: string[];
   tech: string[];
 }) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
+  const portfolioId = session.user.portfolioId;
+  
+  if (!portfolioId) {
+    throw new Error("User must have a portfolio to create experiences");
+  }
+  
   const { bullets, tech, ...experienceData } = data;
   const result = await prisma.experience.create({
     data: {
       ...experienceData,
+      portfolioId,
       bullets: {
         create: bullets.map((text, index) => ({ text, order: index })),
       },
@@ -94,12 +165,24 @@ export async function updateExperience(
     tech?: string[];
   },
 ) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
   
-  // Verify resource exists (ownership check would go here if schema supported it)
-  const existing = await prisma.experience.findUnique({ where: { id } });
+  // Verify resource exists and user has access
+  const existing = await prisma.experience.findUnique({ 
+    where: { id },
+    select: { portfolioId: true },
+  });
+  
   if (!existing) {
     throw new Error("Resource not found");
+  }
+  
+  // Ownership check: super_admin can update any, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || existing.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
   }
   
   const { bullets, tech, ...experienceData } = data;
@@ -134,12 +217,24 @@ export async function updateExperience(
 }
 
 export async function deleteExperience(id: string) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
   
-  // Verify resource exists (ownership check would go here if schema supported it)
-  const existing = await prisma.experience.findUnique({ where: { id } });
+  // Verify resource exists and user has access
+  const existing = await prisma.experience.findUnique({ 
+    where: { id },
+    select: { portfolioId: true },
+  });
+  
   if (!existing) {
     throw new Error("Resource not found");
+  }
+  
+  // Ownership check: super_admin can delete any, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || existing.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
   }
   
   await prisma.experience.delete({

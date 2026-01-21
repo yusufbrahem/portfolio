@@ -3,10 +3,11 @@
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
 
 export async function uploadCV(formData: FormData) {
   await requireAuth();
+  await assertNotImpersonatingForWrite();
   const file = formData.get("file") as File;
   
   if (!file) {

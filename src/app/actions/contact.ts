@@ -2,18 +2,38 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
 
 // Public read - no auth required
-export async function getPersonInfo() {
-  const info = await prisma.personInfo.findFirst();
-  return info;
+// Can optionally filter by portfolioId (for future public portfolio pages)
+export async function getPersonInfo(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
+  return await prisma.personInfo.findFirst({
+    where,
+  });
 }
 
 // Admin read - requires authentication
+// Regular users see only their portfolio, super_admin sees all
 export async function getPersonInfoForAdmin() {
-  await requireAuth();
-  return await getPersonInfo();
+  const session = await requireAuth();
+  const currentPortfolioId = session.user.portfolioId;
+  
+  // Super admin can see any portfolio's person info
+  if (session.user.role === "super_admin") {
+    // Return first available (for now, in future could allow selection)
+    return await prisma.personInfo.findFirst();
+  }
+  
+  // Regular users: only their portfolio
+  if (!currentPortfolioId) {
+    return null; // No portfolio = no person info
+  }
+  
+  return await prisma.personInfo.findFirst({
+    where: { portfolioId: currentPortfolioId },
+  });
 }
 
 export async function updatePersonInfo(data: {
@@ -24,14 +44,31 @@ export async function updatePersonInfo(data: {
   linkedIn: string;
   cvUrl?: string | null;
 }) {
-  await requireAuth();
-  const existing = await prisma.personInfo.findFirst();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
+  const portfolioId = session.user.portfolioId;
+  
+  if (!portfolioId) {
+    throw new Error("User must have a portfolio to update person info");
+  }
+  
+  const existing = await prisma.personInfo.findFirst({
+    where: { portfolioId },
+  });
+  
+  // Ownership check: if existing person info, verify it belongs to user's portfolio
+  if (existing && session.user.role !== "super_admin") {
+    if (existing.portfolioId !== portfolioId) {
+      throw new Error("Access denied");
+    }
+  }
   
   const result = await prisma.personInfo.upsert({
-    where: { id: existing?.id || "person-1" },
+    where: { id: existing?.id || `person-${portfolioId}` },
     update: data,
     create: {
-      id: "person-1",
+      id: `person-${portfolioId}`,
+      portfolioId,
       ...data,
     },
   });

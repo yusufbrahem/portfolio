@@ -2,11 +2,15 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
 
 // Public read - no auth required
-export async function getProjects() {
+// Can optionally filter by portfolioId (for future public portfolio pages)
+export async function getProjects(portfolioId?: string | null) {
+  const where = portfolioId ? { portfolioId } : {};
+  
   return await prisma.project.findMany({
+    where,
     include: {
       bullets: {
         orderBy: { order: "asc" },
@@ -20,9 +24,43 @@ export async function getProjects() {
 }
 
 // Admin read - requires authentication
+// Regular users see only their portfolio, super_admin sees all
 export async function getProjectsForAdmin() {
-  await requireAuth();
-  return await getProjects();
+  const session = await requireAuth();
+  const currentPortfolioId = session.user.portfolioId;
+  
+  // Super admin can see all portfolios' projects
+  if (session.user.role === "super_admin") {
+    return await prisma.project.findMany({
+      include: {
+        bullets: {
+          orderBy: { order: "asc" },
+        },
+        tags: {
+          orderBy: { order: "asc" },
+        },
+      },
+      orderBy: { order: "asc" },
+    });
+  }
+  
+  // Regular users: only their portfolio
+  if (!currentPortfolioId) {
+    return []; // No portfolio = no projects
+  }
+  
+  return await prisma.project.findMany({
+    where: { portfolioId: currentPortfolioId },
+    include: {
+      bullets: {
+        orderBy: { order: "asc" },
+      },
+      tags: {
+        orderBy: { order: "asc" },
+      },
+    },
+    orderBy: { order: "asc" },
+  });
 }
 
 // Public read - no auth required
@@ -41,9 +79,34 @@ export async function getProject(id: string) {
 }
 
 // Admin read - requires authentication
+// Regular users can only access their portfolio's projects
 export async function getProjectForAdmin(id: string) {
-  await requireAuth();
-  return await getProject(id);
+  const session = await requireAuth();
+  
+  const project = await prisma.project.findUnique({
+    where: { id },
+    include: {
+      bullets: {
+        orderBy: { order: "asc" },
+      },
+      tags: {
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+  
+  if (!project) {
+    throw new Error("Resource not found");
+  }
+  
+  // Ownership check: super_admin can see any, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || project.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
+  }
+  
+  return project;
 }
 
 export async function createProject(data: {
@@ -53,11 +116,19 @@ export async function createProject(data: {
   bullets: string[];
   tags: string[];
 }) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
+  const portfolioId = session.user.portfolioId;
+  
+  if (!portfolioId) {
+    throw new Error("User must have a portfolio to create projects");
+  }
+  
   const { bullets, tags, ...projectData } = data;
   const result = await prisma.project.create({
     data: {
       ...projectData,
+      portfolioId,
       bullets: {
         create: bullets.map((text, index) => ({ text, order: index })),
       },
@@ -89,12 +160,24 @@ export async function updateProject(
     tags?: string[];
   },
 ) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
   
-  // Verify resource exists (ownership check would go here if schema supported it)
-  const existing = await prisma.project.findUnique({ where: { id } });
+  // Verify resource exists and user has access
+  const existing = await prisma.project.findUnique({ 
+    where: { id },
+    select: { portfolioId: true },
+  });
+  
   if (!existing) {
     throw new Error("Resource not found");
+  }
+  
+  // Ownership check: super_admin can update any, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || existing.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
   }
   
   const { bullets, tags, ...projectData } = data;
@@ -128,12 +211,24 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: string) {
-  await requireAuth();
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
   
-  // Verify resource exists (ownership check would go here if schema supported it)
-  const existing = await prisma.project.findUnique({ where: { id } });
+  // Verify resource exists and user has access
+  const existing = await prisma.project.findUnique({ 
+    where: { id },
+    select: { portfolioId: true },
+  });
+  
   if (!existing) {
     throw new Error("Resource not found");
+  }
+  
+  // Ownership check: super_admin can delete any, users only their own
+  if (session.user.role !== "super_admin") {
+    if (!session.user.portfolioId || existing.portfolioId !== session.user.portfolioId) {
+      throw new Error("Access denied");
+    }
   }
   
   await prisma.project.delete({

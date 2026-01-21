@@ -7,14 +7,18 @@ datasource db {
 }
 
 model SkillGroup {
-  id        String   @id @default(uuid())
-  name      String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  skills    Skill[]
+  id          String     @id @default(uuid())
+  portfolioId String     // Portfolio that owns this skill group
+  portfolio   Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  name        String
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  skills      Skill[]
 
   @@index([order])
+  @@index([portfolioId])
+  @@index([portfolioId, order])
 }
 
 model Skill {
@@ -30,18 +34,22 @@ model Skill {
 }
 
 model Experience {
-  id        String             @id @default(uuid())
-  title     String
-  company   String
-  location  String
-  period    String
-  order     Int                @default(0)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
-  bullets   ExperienceBullet[]
-  tech      ExperienceTech[]
+  id          String             @id @default(uuid())
+  portfolioId String             // Portfolio that owns this experience
+  portfolio   Portfolio          @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  title       String
+  company     String
+  location    String
+  period      String
+  order       Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  bullets     ExperienceBullet[]
+  tech        ExperienceTech[]
 
   @@index([order])
+  @@index([portfolioId])
+  @@index([portfolioId, order])
 }
 
 model ExperienceBullet {
@@ -67,16 +75,20 @@ model ExperienceTech {
 }
 
 model Project {
-  id        String          @id @default(uuid())
-  title     String
-  summary   String
-  order     Int             @default(0)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  bullets   ProjectBullet[]
-  tags      ProjectTag[]
+  id          String          @id @default(uuid())
+  portfolioId String          // Portfolio that owns this project
+  portfolio   Portfolio       @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  bullets     ProjectBullet[]
+  tags        ProjectTag[]
 
   @@index([order])
+  @@index([portfolioId])
+  @@index([portfolioId, order])
 }
 
 model ProjectBullet {
@@ -102,12 +114,16 @@ model ProjectTag {
 }
 
 model AboutContent {
-  id         String           @id @default(uuid())
-  title      String
-  paragraphs String
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-  principles AboutPrinciple[]
+  id          String           @id @default(uuid())
+  portfolioId String           // Portfolio that owns this about content
+  portfolio   Portfolio        @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  title       String
+  paragraphs  String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  principles  AboutPrinciple[]
+
+  @@index([portfolioId])
 }
 
 model AboutPrinciple {
@@ -123,31 +139,43 @@ model AboutPrinciple {
 }
 
 model PersonInfo {
-  id        String   @id @default(uuid())
-  name      String
-  role      String
-  location  String
-  email     String
-  linkedIn  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  cvUrl     String?
+  id          String    @id @default(uuid())
+  portfolioId String    // Portfolio that owns this person info
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  name        String
+  role        String
+  location    String
+  email       String
+  linkedIn    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cvUrl       String?
+
+  @@index([portfolioId])
 }
 
 model HeroContent {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
+  portfolioId String    // Portfolio that owns this hero content
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   headline    String
   subheadline String
   highlights  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([portfolioId])
 }
 
 model ArchitectureContent {
-  id        String               @id @default(uuid())
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
-  pillars   ArchitecturePillar[]
+  id          String               @id @default(uuid())
+  portfolioId String               // Portfolio that owns this architecture content
+  portfolio   Portfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  pillars     ArchitecturePillar[]
+
+  @@index([portfolioId])
 }
 
 model ArchitecturePillar {
@@ -185,13 +213,20 @@ model AdminUser {
 }
 
 model Portfolio {
-  id          String    @id @default(uuid())
-  userId      String    @unique // One portfolio per user
-  user        AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
-  slug        String?   // URL-friendly identifier (e.g., "john-doe")
-  isPublished Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                String                @id @default(uuid())
+  userId            String                @unique // One portfolio per user
+  user              AdminUser             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug              String?               // URL-friendly identifier (e.g., "john-doe")
+  isPublished       Boolean               @default(false)
+  skillGroups       SkillGroup[]          // Portfolio-specific skill groups
+  experiences       Experience[]          // Portfolio-specific experience entries
+  projects          Project[]             // Portfolio-specific projects
+  aboutContent      AboutContent?         // Portfolio-specific about content (1-1)
+  heroContent       HeroContent?          // Portfolio-specific hero content (1-1)
+  personInfo        PersonInfo?           // Portfolio-specific person info (1-1)
+  architectureContent ArchitectureContent? // Portfolio-specific architecture content (1-1)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
 
   @@index([userId])
   @@index([slug])

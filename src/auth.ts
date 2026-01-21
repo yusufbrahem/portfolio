@@ -16,6 +16,7 @@ declare module "next-auth" {
       id: string;
       email: string;
       name?: string | null;
+      role: string; // "super_admin" | "user"
       portfolioId?: string | null; // Portfolio ID for the logged-in user
     } & DefaultSession["user"];
   }
@@ -24,6 +25,7 @@ declare module "next-auth" {
     id: string;
     email: string;
     name?: string | null;
+    role: string;
   }
 }
 
@@ -40,9 +42,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        // Find user by email
+        // Find user by email (include role)
         const user = await prisma.adminUser.findUnique({
           where: { email: credentials.email as string },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            passwordHash: true,
+          },
         });
 
         if (!user) {
@@ -81,6 +90,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
+          role: user.role || "user", // Default to "user" if role not set
           portfolioId,
         };
       },
@@ -99,9 +109,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        token.role = user.role || "user";
         // Store portfolioId in token (from authorize or refresh if needed)
         if ("portfolioId" in user) {
           token.portfolioId = user.portfolioId as string | null;
+        }
+      }
+      // Refresh role if missing (e.g., after role update)
+      // Safe lookup - role field may not exist in Prisma Client until migration
+      if (!token.role && token.id) {
+        try {
+          // @ts-expect-error - role field may not exist in Prisma Client until migration
+          const user = await prisma.adminUser.findUnique({
+            where: { id: token.id as string },
+            select: { role: true },
+          });
+          token.role = user?.role || "user";
+        } catch (error) {
+          // Role field doesn't exist yet - default to "user"
+          token.role = "user";
         }
       }
       // Refresh portfolioId if not in token (e.g., after portfolio creation)
@@ -126,6 +152,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string | null;
+        session.user.role = (token.role as string) || "user";
         session.user.portfolioId = (token.portfolioId as string | null) || null;
       }
       return session;
