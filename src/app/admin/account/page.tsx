@@ -7,20 +7,25 @@ export default async function AdminAccountPage() {
   const session = await requireAuth();
   const scope = await getAdminReadScope();
 
-  // Account page always shows YOUR account (not impersonated user's account)
-  // But we check impersonation to show a warning if needed
+  // Account email/name always shows YOUR account (not impersonated user's account)
   const me = await prisma.adminUser.findUnique({
     where: { id: session.user.id },
     select: { email: true, name: true },
   });
 
-  // Always use the super admin's own portfolio (not impersonated)
-  const portfolio = await prisma.portfolio.findUnique({
-    where: { userId: session.user.id },
-    select: { slug: true, id: true },
-  });
+  // Portfolio slug/avatar: show impersonated portfolio if impersonating, otherwise YOUR portfolio
+  const portfolioId = scope.isImpersonating && scope.portfolioId 
+    ? scope.portfolioId 
+    : session.user.portfolioId;
 
-  // Get avatar URL from PersonInfo of YOUR portfolio (not impersonated)
+  const portfolio = portfolioId
+    ? await prisma.portfolio.findUnique({
+        where: { id: portfolioId },
+        select: { slug: true, id: true },
+      })
+    : null;
+
+  // Get avatar URL from PersonInfo of the active portfolio (impersonated or your own)
   const personInfo = portfolio?.id
     ? await prisma.personInfo.findUnique({
         where: { portfolioId: portfolio.id },

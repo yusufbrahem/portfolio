@@ -24,33 +24,20 @@ export async function getExperiences(portfolioId?: string | null) {
 }
 
 // Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all
+// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
 export async function getExperiencesForAdmin() {
   const session = await requireAuth();
-  const currentPortfolioId = session.user.portfolioId;
+  const { getAdminReadScope } = await import("@/lib/auth");
+  const scope = await getAdminReadScope();
+  const portfolioId = scope.portfolioId || session.user.portfolioId;
   
-  // Super admin can see all portfolios' experiences
-  if (session.user.role === "super_admin") {
-    return await prisma.experience.findMany({
-      include: {
-        bullets: {
-          orderBy: { order: "asc" },
-        },
-        tech: {
-          orderBy: { order: "asc" },
-        },
-      },
-      orderBy: { order: "asc" },
-    });
-  }
-  
-  // Regular users: only their portfolio
-  if (!currentPortfolioId) {
-    return []; // No portfolio = no experiences
+  // If no portfolio ID (super admin not impersonating and no own portfolio), return empty
+  if (!portfolioId) {
+    return [];
   }
   
   return await prisma.experience.findMany({
-    where: { portfolioId: currentPortfolioId },
+    where: { portfolioId },
     include: {
       bullets: {
         orderBy: { order: "asc" },
