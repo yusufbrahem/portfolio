@@ -1,9 +1,9 @@
 import { Container } from "@/components/container";
-import { getExperiences } from "@/app/actions/experience";
+import { getExperiencesForAdmin } from "@/app/actions/experience";
 import { ExperienceManager } from "@/components/admin/experience-manager";
 
 export default async function AdminExperiencePage() {
-  const experiences = await getExperiences();
+  const experiences = await getExperiencesForAdmin();
 
   return (
     <Container>

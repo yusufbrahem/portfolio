@@ -1,16 +1,16 @@
 import { Container } from "@/components/container";
-import { getArchitectureContent, ensureArchitectureContent } from "@/app/actions/architecture";
+import { getArchitectureContentForAdmin, ensureArchitectureContent } from "@/app/actions/architecture";
 import { ArchitectureManager } from "@/components/admin/architecture-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminArchitecturePage() {
-  let architectureContent = await getArchitectureContent();
+  let architectureContent = await getArchitectureContentForAdmin();
   
   // Ensure architecture content exists
   if (!architectureContent) {
     await ensureArchitectureContent();
-    architectureContent = await getArchitectureContent();
+    architectureContent = await getArchitectureContentForAdmin();
   }
 
   return (

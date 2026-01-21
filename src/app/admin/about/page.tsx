@@ -1,11 +1,11 @@
 import { Container } from "@/components/container";
-import { getAboutContent } from "@/app/actions/about";
+import { getAboutContentForAdmin } from "@/app/actions/about";
 import { AboutManager } from "@/components/admin/about-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminAboutPage() {
-  const aboutContent = await getAboutContent();
+  const aboutContent = await getAboutContentForAdmin();
 
   return (
     <Container>

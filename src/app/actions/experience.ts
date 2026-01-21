@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 
+// Public read - no auth required
 export async function getExperiences() {
   return await prisma.experience.findMany({
     include: {
@@ -18,6 +19,13 @@ export async function getExperiences() {
   });
 }
 
+// Admin read - requires authentication
+export async function getExperiencesForAdmin() {
+  await requireAuth();
+  return await getExperiences();
+}
+
+// Public read - no auth required
 export async function getExperience(id: string) {
   return await prisma.experience.findUnique({
     where: { id },
@@ -30,6 +38,12 @@ export async function getExperience(id: string) {
       },
     },
   });
+}
+
+// Admin read - requires authentication
+export async function getExperienceForAdmin(id: string) {
+  await requireAuth();
+  return await getExperience(id);
 }
 
 export async function createExperience(data: {
@@ -81,6 +95,13 @@ export async function updateExperience(
   },
 ) {
   await requireAuth();
+  
+  // Verify resource exists (ownership check would go here if schema supported it)
+  const existing = await prisma.experience.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error("Resource not found");
+  }
+  
   const { bullets, tech, ...experienceData } = data;
 
   if (bullets !== undefined) {
@@ -114,6 +135,13 @@ export async function updateExperience(
 
 export async function deleteExperience(id: string) {
   await requireAuth();
+  
+  // Verify resource exists (ownership check would go here if schema supported it)
+  const existing = await prisma.experience.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error("Resource not found");
+  }
+  
   await prisma.experience.delete({
     where: { id },
   });

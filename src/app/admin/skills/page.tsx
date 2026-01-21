@@ -1,9 +1,9 @@
 import { Container } from "@/components/container";
-import { getSkillGroups } from "@/app/actions/skills";
+import { getSkillGroupsForAdmin } from "@/app/actions/skills";
 import { SkillsManager } from "@/components/admin/skills-manager";
 
 export default async function AdminSkillsPage() {
-  const skillGroups = await getSkillGroups();
+  const skillGroups = await getSkillGroupsForAdmin();
 
   return (
     <Container>

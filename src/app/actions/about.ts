@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 
+// Public read - no auth required
 export async function getAboutContent() {
   const about = await prisma.aboutContent.findFirst({
     include: {
@@ -13,6 +14,12 @@ export async function getAboutContent() {
     },
   });
   return about;
+}
+
+// Admin read - requires authentication
+export async function getAboutContentForAdmin() {
+  await requireAuth();
+  return await getAboutContent();
 }
 
 export async function updateAboutContent(data: {
@@ -47,6 +54,13 @@ export async function createPrinciple(data: {
   order: number;
 }) {
   await requireAuth();
+  
+  // Verify parent resource exists (ownership check would go here if schema supported it)
+  const parent = await prisma.aboutContent.findUnique({ where: { id: data.aboutContentId } });
+  if (!parent) {
+    throw new Error("Parent resource not found");
+  }
+  
   const result = await prisma.aboutPrinciple.create({
     data,
   });
@@ -60,6 +74,13 @@ export async function updatePrinciple(
   data: { title?: string; description?: string; order?: number }
 ) {
   await requireAuth();
+  
+  // Verify resource exists (ownership check would go here if schema supported it)
+  const existing = await prisma.aboutPrinciple.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error("Resource not found");
+  }
+  
   const result = await prisma.aboutPrinciple.update({
     where: { id },
     data,
@@ -71,6 +92,13 @@ export async function updatePrinciple(
 
 export async function deletePrinciple(id: string) {
   await requireAuth();
+  
+  // Verify resource exists (ownership check would go here if schema supported it)
+  const existing = await prisma.aboutPrinciple.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error("Resource not found");
+  }
+  
   await prisma.aboutPrinciple.delete({
     where: { id },
   });

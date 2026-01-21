@@ -2,8 +2,12 @@ import { Container } from "@/components/container";
 import Link from "next/link";
 import { Code, FolderOpen, Briefcase, User, Building2, Mail, Home } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 export default async function AdminDashboard() {
+  // Require authentication before accessing any data
+  await requireAuth();
+  
   const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo] = await Promise.all([
     prisma.skill.count(),
     prisma.project.count(),

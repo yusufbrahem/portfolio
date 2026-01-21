@@ -35,8 +35,22 @@ async function seedAdminUser() {
     process.exit(1);
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@example.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+  // Require ADMIN_EMAIL and ADMIN_PASSWORD to prevent insecure defaults
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  
+  if (!adminEmail) {
+    console.error("❌ ADMIN_EMAIL environment variable is required!");
+    console.error("   Set it in your .env.local file.");
+    process.exit(1);
+  }
+  
+  if (!adminPassword) {
+    console.error("❌ ADMIN_PASSWORD environment variable is required!");
+    console.error("   Set it in your .env.local file.");
+    console.error("   ⚠️  Never use default passwords in production!");
+    process.exit(1);
+  }
 
   console.log("🌱 Seeding admin user...");
   console.log(`   Email: ${adminEmail}`);

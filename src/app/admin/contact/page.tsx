@@ -1,11 +1,11 @@
 import { Container } from "@/components/container";
-import { getPersonInfo } from "@/app/actions/contact";
+import { getPersonInfoForAdmin } from "@/app/actions/contact";
 import { ContactManager } from "@/components/admin/contact-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminContactPage() {
-  const personInfo = await getPersonInfo();
+  const personInfo = await getPersonInfoForAdmin();
 
   return (
     <Container>

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 
+// Public read - no auth required
 export async function getProjects() {
   return await prisma.project.findMany({
     include: {
@@ -18,6 +19,13 @@ export async function getProjects() {
   });
 }
 
+// Admin read - requires authentication
+export async function getProjectsForAdmin() {
+  await requireAuth();
+  return await getProjects();
+}
+
+// Public read - no auth required
 export async function getProject(id: string) {
   return await prisma.project.findUnique({
     where: { id },
@@ -30,6 +38,12 @@ export async function getProject(id: string) {
       },
     },
   });
+}
+
+// Admin read - requires authentication
+export async function getProjectForAdmin(id: string) {
+  await requireAuth();
+  return await getProject(id);
 }
 
 export async function createProject(data: {
@@ -76,6 +90,13 @@ export async function updateProject(
   },
 ) {
   await requireAuth();
+  
+  // Verify resource exists (ownership check would go here if schema supported it)
+  const existing = await prisma.project.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error("Resource not found");
+  }
+  
   const { bullets, tags, ...projectData } = data;
 
   if (bullets !== undefined) {
@@ -108,6 +129,13 @@ export async function updateProject(
 
 export async function deleteProject(id: string) {
   await requireAuth();
+  
+  // Verify resource exists (ownership check would go here if schema supported it)
+  const existing = await prisma.project.findUnique({ where: { id } });
+  if (!existing) {
+    throw new Error("Resource not found");
+  }
+  
   await prisma.project.delete({
     where: { id },
   });

@@ -1,9 +1,9 @@
 import { Container } from "@/components/container";
-import { getProjects } from "@/app/actions/projects";
+import { getProjectsForAdmin } from "@/app/actions/projects";
 import { ProjectsManager } from "@/components/admin/projects-manager";
 
 export default async function AdminProjectsPage() {
-  const projects = await getProjects();
+  const projects = await getProjectsForAdmin();
 
   return (
     <Container>
