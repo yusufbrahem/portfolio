@@ -11,6 +11,11 @@ export default async function AdminAccountPage() {
     select: { email: true, name: true },
   });
 
+  const portfolio = await prisma.portfolio.findUnique({
+    where: { userId: session.user.id },
+    select: { slug: true },
+  });
+
   return (
     <Container>
       <div className="space-y-6">
@@ -19,7 +24,11 @@ export default async function AdminAccountPage() {
           <p className="text-muted">Update your display name and login email.</p>
         </div>
 
-        <AccountForm initialEmail={me?.email || session.user.email} initialName={me?.name || ""} />
+        <AccountForm
+          initialEmail={me?.email || session.user.email}
+          initialName={me?.name || ""}
+          initialSlug={portfolio?.slug || ""}
+        />
       </div>
     </Container>
   );

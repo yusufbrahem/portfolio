@@ -2,18 +2,21 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateMyAccount } from "@/app/actions/account";
+import { updateMyAccount, updateMyPortfolioSlug } from "@/app/actions/account";
 import { signOut } from "next-auth/react";
 
 export function AccountForm({
   initialEmail,
   initialName,
+  initialSlug,
 }: {
   initialEmail: string;
   initialName: string;
+  initialSlug: string;
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState(initialName);
+  const [slug, setSlug] = useState(initialSlug);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -27,6 +30,11 @@ export function AccountForm({
     startTransition(async () => {
       try {
         const res = await updateMyAccount({ email, name });
+        const slugChanged = slug.trim() !== (initialSlug || "").trim();
+        if (slugChanged) {
+          const updated = await updateMyPortfolioSlug({ slug });
+          setSlug(updated.slug);
+        }
         if (res.emailChanged) {
           // Force re-login so session token reflects new email
           await signOut({ callbackUrl: "/admin/login" });
@@ -75,6 +83,26 @@ export function AccountForm({
               If you change your email, you’ll be logged out and must sign in again.
             </p>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1" htmlFor="slug">
+            Portfolio URL
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted">/portfolio/</span>
+            <input
+              id="slug"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              disabled={isPending}
+              className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              placeholder="your-name"
+            />
+          </div>
+          <p className="mt-1 text-xs text-muted-disabled">
+            This controls your public URL. It will be normalized to lowercase and hyphens.
+          </p>
         </div>
 
         {error ? (
