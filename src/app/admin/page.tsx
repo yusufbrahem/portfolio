@@ -68,6 +68,40 @@ export default async function AdminDashboard() {
           <p className="text-muted">Manage your portfolio content</p>
         </div>
 
+        {/* Profile Overview Card */}
+        {personInfo && (
+          <div className="border border-border bg-panel rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Profile Overview</h2>
+            <div className="flex items-center gap-6">
+              {(personInfo as any)?.avatarUrl ? (
+                <div className="h-24 w-24 rounded-full overflow-hidden border-2 border-border bg-panel2 flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={(personInfo as any).avatarUrl}
+                    alt={`${personInfo.name} avatar`}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-24 w-24 rounded-full border-2 border-border bg-panel2 flex items-center justify-center flex-shrink-0">
+                  <User className="h-12 w-12 text-muted" />
+                </div>
+              )}
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-foreground">{personInfo.name}</h3>
+                <p className="text-muted">{personInfo.role}</p>
+                <p className="text-sm text-muted-disabled mt-1">{personInfo.location}</p>
+                <Link
+                  href="/admin/account"
+                  className="mt-3 inline-block text-sm text-accent hover:underline"
+                >
+                  Edit profile →
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Link
             href="/admin/skills"

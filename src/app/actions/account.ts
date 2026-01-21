@@ -8,6 +8,18 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function normalizeSlug(input: string) {
+  const v = input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "")
+    .replace(/-{2,}/g, "-");
+
+  return v;
+}
+
 export async function updateMyAccount(data: { name?: string | null; email?: string | null }) {
   const session = await requireAuth();
   await assertNotImpersonatingForWrite();
@@ -59,3 +71,54 @@ export async function updateMyAccount(data: { name?: string | null; email?: stri
   };
 }
 
+export async function getMyPortfolioSlug() {
+  const session = await requireAuth();
+  const portfolio = await prisma.portfolio.findUnique({
+    where: { userId: session.user.id },
+    select: { id: true, slug: true },
+  });
+  return portfolio?.slug || "";
+}
+
+export async function updateMyPortfolioSlug(data: { slug: string }) {
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
+
+  const portfolio = await prisma.portfolio.findUnique({
+    where: { userId: session.user.id },
+    select: { id: true, slug: true },
+  });
+  if (!portfolio) {
+    throw new Error("No portfolio found for this account");
+  }
+
+  const nextSlug = normalizeSlug(data.slug);
+  if (!nextSlug) {
+    throw new Error("Slug cannot be empty");
+  }
+  if (nextSlug.length < 2) {
+    throw new Error("Slug must be at least 2 characters");
+  }
+
+  const existing = await prisma.portfolio.findFirst({
+    where: {
+      slug: nextSlug,
+      NOT: { id: portfolio.id },
+    },
+    select: { id: true },
+  });
+  if (existing) {
+    throw new Error("That URL is already taken");
+  }
+
+  await prisma.portfolio.update({
+    where: { id: portfolio.id },
+    data: { slug: nextSlug },
+    select: { id: true },
+  });
+
+  revalidatePath("/admin/account");
+  revalidatePath("/admin/users");
+
+  return { slug: nextSlug };
+}

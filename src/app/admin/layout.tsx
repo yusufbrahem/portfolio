@@ -29,6 +29,8 @@ export default async function AdminLayout({
   const isReadOnly = scope.isImpersonating;
 
   let activePortfolioLabel: string = "—";
+  let avatarUrl: string | null = null;
+  
   if (session.user.role === "super_admin" && !scope.portfolioId) {
     activePortfolioLabel = "All portfolios";
   } else if (scope.portfolioId) {
@@ -46,6 +48,14 @@ export default async function AdminLayout({
       } else {
         activePortfolioLabel = "Portfolio";
       }
+      // Get avatar for this portfolio
+      if (p?.id) {
+        const personInfo = await prisma.personInfo.findUnique({
+          where: { portfolioId: p.id },
+          select: { avatarUrl: true },
+        });
+        avatarUrl = (personInfo as any)?.avatarUrl || null;
+      }
     } catch {
       activePortfolioLabel = "Portfolio";
     }
@@ -55,9 +65,17 @@ export default async function AdminLayout({
       // @ts-expect-error - Prisma Client may be stale in editor until TS server refresh; DB is aligned.
       const p = await prisma.portfolio.findUnique({
         where: { id: session.user.portfolioId },
-        select: { slug: true },
+        select: { slug: true, id: true },
       });
       activePortfolioLabel = p?.slug || session.user.email.split("@")[0] || "Portfolio";
+      // Get avatar for this portfolio
+      if (p?.id) {
+        const personInfo = await prisma.personInfo.findUnique({
+          where: { portfolioId: p.id },
+          select: { avatarUrl: true },
+        });
+        avatarUrl = (personInfo as any)?.avatarUrl || null;
+      }
     } catch {
       activePortfolioLabel = session.user.email.split("@")[0] || "Portfolio";
     }
@@ -83,21 +101,29 @@ export default async function AdminLayout({
           ) : null}
 
           <div className="flex items-start justify-between gap-6">
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Admin Panel</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                <span>
-                  <span className="text-muted-disabled">User:</span>{" "}
-                  <span className="text-foreground">{session.user.email}</span>
-                </span>
-                <span>
-                  <span className="text-muted-disabled">Role:</span>{" "}
-                  <span className="text-foreground">{session.user.role}</span>
-                </span>
-                <span>
-                  <span className="text-muted-disabled">Portfolio:</span>{" "}
-                  <span className="text-foreground">{activePortfolioLabel}</span>
-                </span>
+            <div className="flex items-center gap-4">
+              {avatarUrl && (
+                <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-border bg-panel2 flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Admin Panel</h1>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                  <span>
+                    <span className="text-muted-disabled">User:</span>{" "}
+                    <span className="text-foreground">{session.user.email}</span>
+                  </span>
+                  <span>
+                    <span className="text-muted-disabled">Role:</span>{" "}
+                    <span className="text-foreground">{session.user.role}</span>
+                  </span>
+                  <span>
+                    <span className="text-muted-disabled">Portfolio:</span>{" "}
+                    <span className="text-foreground">{activePortfolioLabel}</span>
+                  </span>
+                </div>
               </div>
             </div>
 
