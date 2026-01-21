@@ -147,6 +147,7 @@ model PersonInfo {
   location    String
   email       String
   linkedIn    String
+  avatarUrl   String?   // Public URL to avatar image (per-portfolio)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   cvUrl       String?

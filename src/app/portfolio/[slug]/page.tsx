@@ -56,7 +56,7 @@ export default async function PortfolioPage({ params }: PageProps) {
 
   return (
     <div>
-      <PortfolioHeader slug={slug} name={person.name} />
+      <PortfolioHeader slug={slug} name={person.name} avatarSrc={(person as any).avatarUrl || "/profile.png"} />
       {/* Hero Section */}
       <Container className="py-14 sm:py-20">
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
@@ -122,7 +122,7 @@ export default async function PortfolioPage({ params }: PageProps) {
             <div className="grid gap-5">
               <Motion delay={0.08}>
                 <Avatar
-                  src="/profile.png"
+                  src={(person as any).avatarUrl || "/profile.png"}
                   alt={`${person.name} headshot`}
                   priority
                   className="mx-auto aspect-square w-[260px] sm:w-[300px] lg:w-full"

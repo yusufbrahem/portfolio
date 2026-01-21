@@ -43,6 +43,7 @@ export async function updatePersonInfo(data: {
   email: string;
   linkedIn: string;
   cvUrl?: string | null;
+  avatarUrl?: string | null;
 }) {
   const session = await requireAuth();
   await assertNotImpersonatingForWrite();
@@ -74,8 +75,6 @@ export async function updatePersonInfo(data: {
   });
   
   revalidatePath("/admin/contact");
-  revalidatePath("/contact");
-  revalidatePath("/resume");
-  revalidatePath("/");
+  // Public portfolio pages are under /portfolio/:slug now; revalidate admin only.
   return result;
 }

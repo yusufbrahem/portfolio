@@ -4,6 +4,7 @@ import { writeFile } from "fs/promises";
 import { join } from "path";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function uploadCV(formData: FormData) {
   await requireAuth();
@@ -44,4 +45,62 @@ export async function uploadCV(formData: FormData) {
   revalidatePath("/resume");
 
   return { success: true, cvUrl, filename: originalFilename };
+}
+
+export async function uploadAvatar(formData: FormData) {
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite();
+
+  const portfolioId = session.user.portfolioId;
+  if (!portfolioId) {
+    throw new Error("User must have a portfolio to upload an avatar");
+  }
+
+  const file = formData.get("file") as File;
+  if (!file) {
+    throw new Error("No file provided");
+  }
+
+  const allowed = ["image/png", "image/jpeg", "image/webp"];
+  if (!allowed.includes(file.type)) {
+    throw new Error("Only PNG, JPEG, or WebP images are allowed");
+  }
+
+  // Max 3MB
+  if (file.size > 3 * 1024 * 1024) {
+    throw new Error("Avatar file size must be less than 3MB");
+  }
+
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  const publicPath = join(process.cwd(), "public");
+  const uploadsDir = join(publicPath, "uploads", "avatars", portfolioId);
+
+  // Ensure directory exists
+  await (await import("fs/promises")).mkdir(uploadsDir, { recursive: true });
+
+  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const filename = `avatar.${ext}`;
+  const filepath = join(uploadsDir, filename);
+
+  await writeFile(filepath, buffer);
+
+  const avatarUrl = `/uploads/avatars/${portfolioId}/${filename}`;
+
+  // Persist on PersonInfo (upsert by portfolioId)
+  const existing = await prisma.personInfo.findUnique({ where: { portfolioId } });
+  if (!existing) {
+    // Require profile to exist first (keeps flow explicit and avoids creating empty profile)
+    throw new Error("Create your profile first, then upload an avatar.");
+  }
+
+  await prisma.personInfo.update({
+    where: { portfolioId },
+    data: { avatarUrl },
+  });
+
+  revalidatePath("/admin/contact");
+
+  return { success: true, avatarUrl };
 }

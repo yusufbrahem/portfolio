@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Upload, Loader2 } from "lucide-react";
+import { Save, Upload, Loader2, Image as ImageIcon } from "lucide-react";
 import { updatePersonInfo, type getPersonInfo } from "@/app/actions/contact";
-import { uploadCV } from "@/app/actions/upload";
+import { uploadCV, uploadAvatar } from "@/app/actions/upload";
 
 type PersonInfo = Awaited<ReturnType<typeof getPersonInfo>>;
 
@@ -31,6 +31,8 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
     email: initialData?.email || "",
     linkedIn: initialData?.linkedIn || "",
     cvUrl: initialData?.cvUrl || "",
+    // @ts-expect-error - avatarUrl added in schema; Prisma client may lag until migration is applied + generate
+    avatarUrl: (initialData as any)?.avatarUrl || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,6 +84,29 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await uploadAvatar(fd);
+      // Update local state
+      const next = { ...formData, avatarUrl: result.avatarUrl };
+      setFormData(next as any);
+      setPersonInfo((prev) => (prev ? ({ ...prev, avatarUrl: result.avatarUrl } as any) : prev));
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Failed to upload avatar");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  };
+
   if (!personInfo && !isEditing) {
     return (
       <div className="border border-border bg-panel rounded-lg p-6">
@@ -115,6 +140,37 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
 
       {isEditing ? (
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Avatar (optional)</label>
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 overflow-hidden rounded-xl border border-border bg-panel2 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {((formData as any).avatarUrl || (personInfo as any)?.avatarUrl) ? (
+                  <img
+                    src={((formData as any).avatarUrl || (personInfo as any)?.avatarUrl) as string}
+                    alt="Avatar preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <ImageIcon className="h-6 w-6 text-muted" />
+                )}
+              </div>
+              <label className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2 transition-colors cursor-pointer">
+                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Upload avatar
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={isUploading || !personInfo}
+                />
+              </label>
+              {!personInfo ? (
+                <p className="text-xs text-muted-disabled">Create profile first to enable avatar upload.</p>
+              ) : null}
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Name</label>
             <input
