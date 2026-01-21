@@ -47,6 +47,7 @@ export default async function AdminUsersPage() {
             <table className="w-full">
               <thead className="bg-panel2 border-b border-border">
                 <tr>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Avatar</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Email</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Name</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Role</th>
@@ -58,15 +59,34 @@ export default async function AdminUsersPage() {
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted">
                       No users found
                     </td>
                   </tr>
                 ) : (
                   users.map((user) => {
                     const isCurrentlyImpersonating = currentImpersonation === user.portfolio?.id;
+                    const avatarUrl = (user.portfolio as any)?.personInfo?.avatarUrl;
+                    const avatarUpdatedAt = (user.portfolio as any)?.personInfo?.updatedAt;
+                    const avatarSrc = avatarUrl
+                      ? `${avatarUrl}?t=${avatarUpdatedAt ? new Date(avatarUpdatedAt).getTime() : Date.now()}`
+                      : null;
                     return (
                       <tr key={user.id} className="border-b border-border hover:bg-panel2">
+                        <td className="px-4 py-3">
+                          <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-border bg-panel2 flex items-center justify-center flex-shrink-0">
+                            {avatarSrc ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={avatarSrc}
+                                alt={`${user.name || user.email} avatar`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <Users className="h-5 w-5 text-muted" />
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-sm text-foreground">{user.email}</td>
                         <td className="px-4 py-3 text-sm text-muted">{user.name || "—"}</td>
                         <td className="px-4 py-3 text-sm">

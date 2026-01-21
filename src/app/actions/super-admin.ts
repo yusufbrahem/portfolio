@@ -187,6 +187,12 @@ export async function getUsersWithPortfolios() {
           id: true,
           slug: true,
           isPublished: true,
+          personInfo: {
+            select: {
+              avatarUrl: true,
+              updatedAt: true,
+            },
+          },
         },
       },
     },
