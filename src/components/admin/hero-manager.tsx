@@ -10,7 +10,7 @@ type HeroRecord = {
   highlights: string; // JSON in DB
 } | null;
 
-export function HeroManager({ initialData }: { initialData: HeroRecord }) {
+export function HeroManager({ initialData, isReadOnly = false }: { initialData: HeroRecord; isReadOnly?: boolean }) {
   const [hero, setHero] = useState<HeroRecord>(initialData);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,13 +86,15 @@ export function HeroManager({ initialData }: { initialData: HeroRecord }) {
           <h2 className="text-lg font-semibold text-foreground">Hero</h2>
         </div>
         <p className="mt-2 text-sm text-muted">No hero section yet for this portfolio.</p>
-        <button
-          onClick={beginCreate}
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Create hero section
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={beginCreate}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Create hero section
+          </button>
+        )}
       </div>
     );
   }
@@ -101,11 +103,12 @@ export function HeroManager({ initialData }: { initialData: HeroRecord }) {
     <div className="border border-border bg-panel rounded-lg p-6">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold text-foreground">Hero</h2>
-        {!isEditing ? (
+        {!isEditing && !isReadOnly ? (
           <button
             onClick={beginEdit}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors"
           >
+            <Save className="h-4 w-4" />
             Edit
           </button>
         ) : (

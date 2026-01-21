@@ -1,11 +1,13 @@
 import { Container } from "@/components/container";
 import { getPersonInfoForAdmin } from "@/app/actions/contact";
+import { getAdminReadScope } from "@/lib/auth";
 import { ContactManager } from "@/components/admin/contact-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminContactPage() {
   const personInfo = await getPersonInfoForAdmin();
+  const scope = await getAdminReadScope();
 
   return (
     <Container>
@@ -15,7 +17,7 @@ export default async function AdminContactPage() {
           <p className="text-muted">Manage your contact details, email, and LinkedIn</p>
         </div>
 
-        <ContactManager initialData={personInfo} />
+        <ContactManager initialData={personInfo} isReadOnly={scope.isImpersonating} />
       </div>
     </Container>
   );

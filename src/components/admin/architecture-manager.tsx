@@ -14,7 +14,7 @@ import {
 
 type ArchitectureContent = Awaited<ReturnType<typeof getArchitectureContent>>;
 
-export function ArchitectureManager({ initialData }: { initialData: ArchitectureContent | null }) {
+export function ArchitectureManager({ initialData, isReadOnly = false }: { initialData: ArchitectureContent | null; isReadOnly?: boolean }) {
   const [architecture, setArchitecture] = useState(initialData);
   const [editingPillar, setEditingPillar] = useState<string | null>(null);
   const [editingPoint, setEditingPoint] = useState<{ pillarId: string; pointId: string } | null>(null);
@@ -188,7 +188,7 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
 
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold text-foreground">Architecture Pillars</h2>
-        {!isCreatingPillar && (
+        {!isCreatingPillar && !isReadOnly && (
           <button
             onClick={handleCreatePillar}
             className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
@@ -237,20 +237,22 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
                     <h3 className="font-semibold text-foreground">{pillar.title}</h3>
                     <span className="text-xs text-muted">({pillar.points.length} points)</span>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditingPillar(pillar.id)}
-                      className="p-2 text-muted hover:text-foreground transition-colors"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeletePillar(pillar.id)}
-                      className="p-2 text-red-500 hover:text-red-600 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {!isReadOnly && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditingPillar(pillar.id)}
+                        className="p-2 text-muted hover:text-foreground transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePillar(pillar.id)}
+                        className="p-2 text-red-500 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -259,7 +261,7 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
               <div className="mt-4 space-y-2 pl-6">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="text-sm font-medium text-foreground">Points</h4>
-                  {editingPoint?.pillarId !== pillar.id && (
+                  {editingPoint?.pillarId !== pillar.id && !isReadOnly && (
                     <button
                       onClick={() => handleCreatePoint(pillar.id)}
                       className="flex items-center gap-1 px-2 py-1 text-xs bg-panel2 text-foreground rounded hover:bg-panel transition-colors"
@@ -291,20 +293,22 @@ export function ArchitectureManager({ initialData }: { initialData: Architecture
                     ) : (
                       <>
                         <p className="text-sm text-muted flex-1">{point.text}</p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setEditingPoint({ pillarId: pillar.id, pointId: point.id })}
-                            className="p-1 text-muted hover:text-foreground transition-colors"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={() => handleDeletePoint(pillar.id, point.id)}
-                            className="p-1 text-red-500 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
+                        {!isReadOnly && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEditingPoint({ pillarId: pillar.id, pointId: point.id })}
+                              className="p-1 text-muted hover:text-foreground transition-colors"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePoint(pillar.id, point.id)}
+                              className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
                       </>
                     )}
                     </div>

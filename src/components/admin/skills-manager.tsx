@@ -14,7 +14,7 @@ import {
 
 type SkillGroup = Awaited<ReturnType<typeof getSkillGroups>>[0];
 
-export function SkillsManager({ initialData }: { initialData: SkillGroup[] }) {
+export function SkillsManager({ initialData, isReadOnly = false }: { initialData: SkillGroup[]; isReadOnly?: boolean }) {
   const [skillGroups, setSkillGroups] = useState(initialData);
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [editingSkill, setEditingSkill] = useState<{ groupId: string; skillId: string } | null>(null);
@@ -217,22 +217,24 @@ export function SkillsManager({ initialData }: { initialData: SkillGroup[] }) {
                 )}
                 {loading === group.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setEditingGroup(group.id)}
-                  className="text-muted hover:text-foreground transition-colors"
-                  disabled={loading === group.id}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteGroup(group.id)}
-                  className="text-red-500 hover:text-red-400 transition-colors"
-                  disabled={loading === group.id}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              {!isReadOnly && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEditingGroup(group.id)}
+                    className="text-muted hover:text-foreground transition-colors"
+                    disabled={loading === group.id}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteGroup(group.id)}
+                    className="text-red-500 hover:text-red-400 transition-colors"
+                    disabled={loading === group.id}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {expandedGroups.has(group.id) && (
@@ -263,42 +265,46 @@ export function SkillsManager({ initialData }: { initialData: SkillGroup[] }) {
                         <span className="text-foreground">{skill.name}</span>
                       )}
                       {loading === skill.id && <Loader2 className="h-3 w-3 animate-spin text-muted" />}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditingSkill({ groupId: group.id, skillId: skill.id })}
-                          className="text-muted hover:text-foreground transition-colors"
-                          disabled={loading === skill.id}
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSkill(group.id, skill.id)}
-                          className="text-red-500 hover:text-red-400 transition-colors"
-                          disabled={loading === skill.id}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingSkill({ groupId: group.id, skillId: skill.id })}
+                            className="text-muted hover:text-foreground transition-colors"
+                            disabled={loading === skill.id}
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSkill(group.id, skill.id)}
+                            className="text-red-500 hover:text-red-400 transition-colors"
+                            disabled={loading === skill.id}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
-                {creatingSkillGroupId === group.id ? (
-                  <SkillForm
-                    onSave={(name) => handleCreateSkill(group.id, name)}
-                    onCancel={() => {
-                      setCreatingSkillGroupId(null);
-                      setError(null);
-                    }}
-                    loading={loading === `create-skill-${group.id}`}
-                  />
-                ) : (
-                  <button
-                    onClick={() => setCreatingSkillGroupId(group.id)}
-                    className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Skill
-                  </button>
+                {!isReadOnly && (
+                  creatingSkillGroupId === group.id ? (
+                    <SkillForm
+                      onSave={(name) => handleCreateSkill(group.id, name)}
+                      onCancel={() => {
+                        setCreatingSkillGroupId(null);
+                        setError(null);
+                      }}
+                      loading={loading === `create-skill-${group.id}`}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => setCreatingSkillGroupId(group.id)}
+                      className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Skill
+                    </button>
+                  )
                 )}
               </div>
             )}

@@ -7,7 +7,7 @@ import { uploadCV } from "@/app/actions/upload";
 
 type PersonInfo = Awaited<ReturnType<typeof getPersonInfo>>;
 
-export function ContactManager({ initialData }: { initialData: PersonInfo | null }) {
+export function ContactManager({ initialData, isReadOnly = false }: { initialData: PersonInfo | null; isReadOnly?: boolean }) {
   const [personInfo, setPersonInfo] = useState(initialData);
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -90,12 +90,15 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
           <h2 className="text-lg font-semibold text-foreground">Profile</h2>
         </div>
         <p className="text-sm text-muted">No profile yet for this portfolio.</p>
-        <button
-          onClick={() => setIsEditing(true)}
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
-        >
-          Create profile
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Create profile
+          </button>
+        )}
       </div>
     );
   }
@@ -104,11 +107,12 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
     <div className="border border-border bg-panel rounded-lg p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-foreground">Contact Information</h2>
-        {!isEditing && (
+        {!isEditing && !isReadOnly && (
           <button
             onClick={() => setIsEditing(true)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel"
           >
+            <Save className="h-4 w-4" />
             Edit
           </button>
         )}

@@ -1,11 +1,13 @@
 import { Container } from "@/components/container";
 import { getAboutContentForAdmin } from "@/app/actions/about";
+import { getAdminReadScope } from "@/lib/auth";
 import { AboutManager } from "@/components/admin/about-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminAboutPage() {
   const aboutContent = await getAboutContentForAdmin();
+  const scope = await getAdminReadScope();
 
   return (
     <Container>
@@ -15,7 +17,7 @@ export default async function AdminAboutPage() {
           <p className="text-muted">Manage your about section content and principles</p>
         </div>
 
-        <AboutManager initialData={aboutContent} />
+        <AboutManager initialData={aboutContent} isReadOnly={scope.isImpersonating} />
       </div>
     </Container>
   );

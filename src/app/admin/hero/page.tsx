@@ -28,7 +28,7 @@ export default async function AdminHeroPage() {
             </p>
           </div>
         ) : (
-          <HeroManager initialData={heroContent} />
+          <HeroManager initialData={heroContent} isReadOnly={scope.isImpersonating} />
         )}
       </div>
     </Container>
