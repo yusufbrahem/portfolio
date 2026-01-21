@@ -7,16 +7,27 @@ export default async function AdminAccountPage() {
   const session = await requireAuth();
   const scope = await getAdminReadScope();
 
-  // Account email/name always shows YOUR account (not impersonated user's account)
+  // When impersonating, show the impersonated user's account info
+  // Otherwise, show YOUR account info
+  let userId = session.user.id;
+  let portfolioId = session.user.portfolioId;
+
+  if (scope.isImpersonating && scope.portfolioId) {
+    // Get the user who owns the impersonated portfolio
+    const impersonatedPortfolio = await prisma.portfolio.findUnique({
+      where: { id: scope.portfolioId },
+      select: { userId: true, id: true },
+    });
+    if (impersonatedPortfolio) {
+      userId = impersonatedPortfolio.userId;
+      portfolioId = impersonatedPortfolio.id;
+    }
+  }
+
   const me = await prisma.adminUser.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: { email: true, name: true },
   });
-
-  // Portfolio slug/avatar: show impersonated portfolio if impersonating, otherwise YOUR portfolio
-  const portfolioId = scope.isImpersonating && scope.portfolioId 
-    ? scope.portfolioId 
-    : session.user.portfolioId;
 
   const portfolio = portfolioId
     ? await prisma.portfolio.findUnique({
