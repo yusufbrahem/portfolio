@@ -100,7 +100,17 @@ export async function uploadAvatar(formData: FormData) {
     data: { avatarUrl },
   });
 
+  // Get portfolio slug to revalidate the public portfolio page
+  const portfolio = await prisma.portfolio.findUnique({
+    where: { id: portfolioId },
+    select: { slug: true },
+  });
+
   revalidatePath("/admin/contact");
+  // Revalidate public portfolio page if slug exists
+  if (portfolio?.slug) {
+    revalidatePath(`/portfolio/${portfolio.slug}`);
+  }
 
   return { success: true, avatarUrl };
 }
