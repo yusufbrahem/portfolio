@@ -15,24 +15,20 @@ export async function getPersonInfo(portfolioId?: string | null) {
 }
 
 // Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all
+// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
 export async function getPersonInfoForAdmin() {
   const session = await requireAuth();
-  const currentPortfolioId = session.user.portfolioId;
+  const { getAdminReadScope } = await import("@/lib/auth");
+  const scope = await getAdminReadScope();
+  const portfolioId = scope.portfolioId || session.user.portfolioId;
   
-  // Super admin can see any portfolio's person info
-  if (session.user.role === "super_admin") {
-    // Return first available (for now, in future could allow selection)
-    return await prisma.personInfo.findFirst();
-  }
-  
-  // Regular users: only their portfolio
-  if (!currentPortfolioId) {
-    return null; // No portfolio = no person info
+  // If no portfolio ID (super admin not impersonating and no own portfolio), return null
+  if (!portfolioId) {
+    return null;
   }
   
   return await prisma.personInfo.findFirst({
-    where: { portfolioId: currentPortfolioId },
+    where: { portfolioId },
   });
 }
 

@@ -20,30 +20,20 @@ export async function getAboutContent(portfolioId?: string | null) {
 }
 
 // Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all
+// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
 export async function getAboutContentForAdmin() {
   const session = await requireAuth();
-  const currentPortfolioId = session.user.portfolioId;
+  const { getAdminReadScope } = await import("@/lib/auth");
+  const scope = await getAdminReadScope();
+  const portfolioId = scope.portfolioId || session.user.portfolioId;
   
-  // Super admin can see any portfolio's about content
-  if (session.user.role === "super_admin") {
-    // Return first available (for now, in future could allow selection)
-    return await prisma.aboutContent.findFirst({
-      include: {
-        principles: {
-          orderBy: { order: "asc" },
-        },
-      },
-    });
-  }
-  
-  // Regular users: only their portfolio
-  if (!currentPortfolioId) {
-    return null; // No portfolio = no about content
+  // If no portfolio ID (super admin not impersonating and no own portfolio), return null
+  if (!portfolioId) {
+    return null;
   }
   
   return await prisma.aboutContent.findFirst({
-    where: { portfolioId: currentPortfolioId },
+    where: { portfolioId },
     include: {
       principles: {
         orderBy: { order: "asc" },

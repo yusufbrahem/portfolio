@@ -1,22 +1,26 @@
 import { Container } from "@/components/container";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AccountForm } from "./ui";
 
 export default async function AdminAccountPage() {
   const session = await requireAuth();
+  const scope = await getAdminReadScope();
 
+  // Account page always shows YOUR account (not impersonated user's account)
+  // But we check impersonation to show a warning if needed
   const me = await prisma.adminUser.findUnique({
     where: { id: session.user.id },
     select: { email: true, name: true },
   });
 
+  // Always use the super admin's own portfolio (not impersonated)
   const portfolio = await prisma.portfolio.findUnique({
     where: { userId: session.user.id },
     select: { slug: true, id: true },
   });
 
-  // Get avatar URL from PersonInfo (include updatedAt for cache-busting)
+  // Get avatar URL from PersonInfo of YOUR portfolio (not impersonated)
   const personInfo = portfolio?.id
     ? await prisma.personInfo.findUnique({
         where: { portfolioId: portfolio.id },
