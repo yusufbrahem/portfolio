@@ -1,6 +1,6 @@
 import { Container } from "@/components/container";
 import Link from "next/link";
-import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail, Users } from "lucide-react";
+import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail, Users, CircleUser } from "lucide-react";
 import { headers } from "next/headers";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -178,6 +178,13 @@ export default async function AdminLayout({
             >
               <Mail className="h-4 w-4" />
               Contact
+            </Link>
+            <Link
+              href="/admin/account"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+            >
+              <CircleUser className="h-4 w-4" />
+              Account
             </Link>
             {session.user.role === "super_admin" && (
               <Link
