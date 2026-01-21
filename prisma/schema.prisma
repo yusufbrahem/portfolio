@@ -174,10 +174,25 @@ model ArchitecturePoint {
 }
 
 model AdminUser {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   // bcrypt hashed password
-  name         String?  // Optional display name
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    // bcrypt hashed password
+  name         String?   // Optional display name
+  role         String    @default("user") // "super_admin" | "user"
+  portfolio    Portfolio? // One portfolio per user (1-1 relationship)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Portfolio {
+  id          String    @id @default(uuid())
+  userId      String    @unique // One portfolio per user
+  user        AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug        String?   // URL-friendly identifier (e.g., "john-doe")
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([slug])
 }
