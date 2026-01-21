@@ -54,6 +54,21 @@ export default async function PortfolioPage({ params }: PageProps) {
   const heroHeadline = hero?.headline ?? "";
   const heroSubheadline = hero?.subheadline ?? "";
   const heroHighlights: string[] = (hero?.highlights as string[]) ?? [];
+  const heroBadges = heroHighlights.slice(0, 3);
+  const heroBullets = heroHighlights.slice(3);
+
+  // Derive "Current" and "Focus" from user-owned data (no hardcoded strings)
+  const currentRole = experience?.roles?.[0]
+    ? `${experience.roles[0].title}${experience.roles[0].company ? ` at ${experience.roles[0].company}` : ""}`
+    : null;
+  const focus =
+    skills && skills.length > 0
+      ? skills
+          .slice(0, 2)
+          .flatMap((g) => g.items)
+          .slice(0, 6)
+          .join(" • ")
+      : null;
 
   return (
     <div>
@@ -64,27 +79,18 @@ export default async function PortfolioPage({ params }: PageProps) {
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
           <div className="space-y-7 lg:col-span-7">
             <div className="flex flex-wrap gap-2">
-              <Pill>
-                <ShieldCheck
-                  className="h-4 w-4 text-accent"
-                  aria-hidden="true"
-                />
-                <span className="ml-2">Security-first backend</span>
-              </Pill>
-              <Pill>
-                <Landmark
-                  className="h-4 w-4 text-accent"
-                  aria-hidden="true"
-                />
-                <span className="ml-2">Banking & fintech</span>
-              </Pill>
-              <Pill>
-                <Activity
-                  className="h-4 w-4 text-accent"
-                  aria-hidden="true"
-                />
-                <span className="ml-2">Production reliability</span>
-              </Pill>
+              {heroBadges.map((label, idx) => (
+                <Pill key={label}>
+                  {idx === 0 ? (
+                    <ShieldCheck className="h-4 w-4 text-accent" aria-hidden="true" />
+                  ) : idx === 1 ? (
+                    <Landmark className="h-4 w-4 text-accent" aria-hidden="true" />
+                  ) : (
+                    <Activity className="h-4 w-4 text-accent" aria-hidden="true" />
+                  )}
+                  <span className="ml-2">{label}</span>
+                </Pill>
+              ))}
             </div>
 
             <Motion delay={0.05}>
@@ -111,7 +117,7 @@ export default async function PortfolioPage({ params }: PageProps) {
             </Motion>
 
             <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
-              {heroHighlights.map((h: string) => (
+              {heroBullets.map((h: string) => (
                 <li key={h} className="flex gap-2">
                   <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
                   <span>{h}</span>
@@ -144,22 +150,22 @@ export default async function PortfolioPage({ params }: PageProps) {
                     </div>
 
                     <div className="grid gap-3">
-                      <div className="rounded-[var(--radius)] border border-border bg-panel2 p-4">
-                        <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
-                          Current
-                        </p>
-                        <p className="mt-1 text-sm leading-relaxed text-foreground">
-                          Banking Consultant at Proxym Qatar (Client: QIIB)
-                        </p>
-                      </div>
-                      <div className="rounded-[var(--radius)] border border-border bg-panel2 p-4">
-                        <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
-                          Focus
-                        </p>
-                        <p className="mt-1 text-sm leading-relaxed text-foreground">
-                          Secure APIs • Identity (OAuth2/OIDC, Keycloak) • Transaction systems
-                        </p>
-                      </div>
+                      {currentRole ? (
+                        <div className="rounded-[var(--radius)] border border-border bg-panel2 p-4">
+                          <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
+                            Current
+                          </p>
+                          <p className="mt-1 text-sm leading-relaxed text-foreground">{currentRole}</p>
+                        </div>
+                      ) : null}
+                      {focus ? (
+                        <div className="rounded-[var(--radius)] border border-border bg-panel2 p-4">
+                          <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
+                            Focus
+                          </p>
+                          <p className="mt-1 text-sm leading-relaxed text-foreground">{focus}</p>
+                        </div>
+                      ) : null}
                       <div className="rounded-[var(--radius)] border border-border bg-panel2 p-4">
                         <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
                           Location
