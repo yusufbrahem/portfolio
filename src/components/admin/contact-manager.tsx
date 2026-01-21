@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Upload, Loader2 } from "lucide-react";
+import { Save, Upload, Loader2, Plus } from "lucide-react";
 import { updatePersonInfo, type getPersonInfo } from "@/app/actions/contact";
 import { uploadCV } from "@/app/actions/upload";
 
