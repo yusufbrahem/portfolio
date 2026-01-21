@@ -70,9 +70,15 @@ export default async function PortfolioPage({ params }: PageProps) {
           .join(" • ")
       : null;
 
+  // Build cache-busted avatar URL
+  const avatarUrl = (person as any).avatarUrl;
+  const avatarSrc = avatarUrl
+    ? `${avatarUrl}?t=${new Date((person as any).updatedAt).getTime()}`
+    : "/profile.png";
+
   return (
     <div>
-      <PortfolioHeader slug={slug} name={person.name} avatarSrc={(person as any).avatarUrl || "/profile.png"} />
+      <PortfolioHeader slug={slug} name={person.name} avatarSrc={avatarSrc} />
       <ScrollToTopButton />
       {/* Hero Section */}
       <Container className="py-14 sm:py-20">
@@ -130,7 +136,7 @@ export default async function PortfolioPage({ params }: PageProps) {
             <div className="grid gap-5">
               <Motion delay={0.08}>
                 <Avatar
-                  src={(person as any).avatarUrl || "/profile.png"}
+                  src={avatarSrc}
                   alt={`${person.name} headshot`}
                   priority
                   className="mx-auto aspect-square w-[260px] sm:w-[300px] lg:w-full"

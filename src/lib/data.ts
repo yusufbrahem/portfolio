@@ -34,6 +34,19 @@ export async function getPortfolioBySlug(slug: string) {
 export async function getPersonInfo(portfolioId: string) {
   const info = await prisma.personInfo.findUnique({
     where: { portfolioId },
+    select: {
+      id: true,
+      portfolioId: true,
+      name: true,
+      role: true,
+      location: true,
+      email: true,
+      linkedIn: true,
+      cvUrl: true,
+      avatarUrl: true,
+      updatedAt: true, // Include for cache-busting
+      createdAt: true,
+    },
   });
   if (!info) notFound();
   return info;
