@@ -63,7 +63,18 @@ export async function setImpersonatedPortfolioId(portfolioId: string | null) {
 
   const store = await cookies();
   if (!portfolioId) {
+    // Fully clear impersonation cookie with explicit path and maxAge=0
     store.delete(IMPERSONATE_PORTFOLIO_COOKIE);
+    // Also set with maxAge=0 to ensure it's cleared across all paths
+    store.set({
+      name: IMPERSONATE_PORTFOLIO_COOKIE,
+      value: "",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/admin",
+      maxAge: 0,
+    });
     return { success: true, portfolioId: null };
   }
 
@@ -183,4 +194,63 @@ export async function getUsersWithPortfolios() {
   });
 
   return users;
+}
+
+/**
+ * Super admin: delete a user and cascade delete their portfolio + all data.
+ */
+export async function deleteUser(userId: string) {
+  const session = await requireSuperAdmin();
+
+  // Verify user exists and is not the current super admin
+  const user = await prisma.adminUser.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Prevent deleting yourself (safety check)
+  if (user.id === session.user.id) {
+    throw new Error("Cannot delete your own account");
+  }
+
+  // Cascade delete: user -> portfolio -> all related data (handled by Prisma onDelete: Cascade)
+  await prisma.adminUser.delete({
+    where: { id: userId },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Super admin: toggle portfolio publish status.
+ */
+export async function togglePortfolioPublish(portfolioId: string, isPublished: boolean) {
+  await requireSuperAdmin();
+
+  // Verify portfolio exists
+  try {
+    // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
+    const portfolio = await prisma.portfolio.findUnique({
+      where: { id: portfolioId },
+      select: { id: true },
+    });
+
+    if (!portfolio) {
+      throw new Error("Portfolio not found");
+    }
+
+    // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
+    await prisma.portfolio.update({
+      where: { id: portfolioId },
+      data: { isPublished },
+    });
+
+    return { success: true, isPublished };
+  } catch (e) {
+    throw new Error("Portfolio not found");
+  }
 }

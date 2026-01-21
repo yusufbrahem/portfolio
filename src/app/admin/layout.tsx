@@ -33,19 +33,34 @@ export default async function AdminLayout({
     activePortfolioLabel = "All portfolios";
   } else if (scope.portfolioId) {
     try {
-      // Prefer slug if available for human readability
+      // Prefer slug if available, fallback to user email, never show raw UUID
       // @ts-expect-error - Prisma Client may be stale in editor until TS server refresh; DB is aligned.
       const p = await prisma.portfolio.findUnique({
         where: { id: scope.portfolioId },
-        select: { id: true, slug: true },
+        select: { id: true, slug: true, user: { select: { email: true } } },
       });
-      activePortfolioLabel = p?.slug ? `${p.slug} (${p.id})` : scope.portfolioId;
+      if (p?.slug) {
+        activePortfolioLabel = p.slug;
+      } else if (p?.user?.email) {
+        activePortfolioLabel = p.user.email.split("@")[0] || p.user.email;
+      } else {
+        activePortfolioLabel = "Portfolio";
+      }
     } catch {
-      activePortfolioLabel = scope.portfolioId;
+      activePortfolioLabel = "Portfolio";
     }
   } else if (session.user.portfolioId) {
-    // Regular user fallback
-    activePortfolioLabel = session.user.portfolioId;
+    // Regular user fallback - try to get slug or use email
+    try {
+      // @ts-expect-error - Prisma Client may be stale in editor until TS server refresh; DB is aligned.
+      const p = await prisma.portfolio.findUnique({
+        where: { id: session.user.portfolioId },
+        select: { slug: true },
+      });
+      activePortfolioLabel = p?.slug || session.user.email.split("@")[0] || "Portfolio";
+    } catch {
+      activePortfolioLabel = session.user.email.split("@")[0] || "Portfolio";
+    }
   }
   
   // For all other admin pages, both middleware and layout have verified auth

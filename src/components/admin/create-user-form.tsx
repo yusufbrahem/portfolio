@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createUser } from "@/app/actions/super-admin";
+import { createUser, setImpersonatedPortfolioId } from "@/app/actions/super-admin";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function CreateUserForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<"user" | "super_admin">("user");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -13,18 +17,21 @@ export function CreateUserForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const name = formData.get("name") as string;
-    const role = (formData.get("role") as "user" | "super_admin") || "user";
 
     startTransition(async () => {
       try {
         await createUser({ email, password, name: name || undefined, role });
-        // Reset form
-        e.currentTarget.reset();
+        // Auto-stop impersonation if active (after creating user, super admin should see all)
+        try {
+          await setImpersonatedPortfolioId(null);
+        } catch {
+          // Ignore errors from clearing impersonation
+        }
+        // Reset form using controlled state
+        setEmail("");
+        setPassword("");
+        setName("");
+        setRole("user");
         // Refresh the page to show new user
         router.refresh();
       } catch (err) {
@@ -48,6 +55,8 @@ export function CreateUserForm() {
             id="email"
             name="email"
             type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             disabled={isPending}
             className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
@@ -61,6 +70,8 @@ export function CreateUserForm() {
             id="password"
             name="password"
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
             disabled={isPending}
@@ -75,6 +86,8 @@ export function CreateUserForm() {
             id="name"
             name="name"
             type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             disabled={isPending}
             className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
           />
@@ -86,9 +99,10 @@ export function CreateUserForm() {
           <select
             id="role"
             name="role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as "user" | "super_admin")}
             disabled={isPending}
             className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
-            defaultValue="user"
           >
             <option value="user">User</option>
             <option value="super_admin">Super Admin</option>

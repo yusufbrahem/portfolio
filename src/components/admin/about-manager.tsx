@@ -98,7 +98,23 @@ export function AboutManager({ initialData }: { initialData: AboutContent | null
   };
 
   if (!aboutContent) {
-    return <div className="text-muted">No about content found. Please create one.</div>;
+    return (
+      <div className="border border-border bg-panel rounded-lg p-6">
+        <p className="text-sm text-muted">No about content yet.</p>
+        <button
+          onClick={() => {
+            // Create a local draft; updateAboutContent() will create via upsert.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setAboutContent({ id: "", title: "", paragraphs: "[]", principles: [] } as any);
+            setEditingContent(true);
+          }}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Create section
+        </button>
+      </div>
+    );
   }
 
   return (

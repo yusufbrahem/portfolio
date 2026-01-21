@@ -30,63 +30,31 @@ export async function getPortfolioBySlug(slug: string) {
   return portfolio;
 }
 
-// Public read - no auth required
-// Accepts optional portfolioId for future public portfolio pages
-// If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
-export async function getPersonInfo(portfolioId?: string | null) {
-  const where = portfolioId ? { portfolioId } : {};
-  
-  const info = await prisma.personInfo.findFirst({
-    where,
+// Public read - portfolio scoped (no auth required)
+export async function getPersonInfo(portfolioId: string) {
+  const info = await prisma.personInfo.findUnique({
+    where: { portfolioId },
   });
-  
-  if (!info) {
-    // Fallback to default if not in DB
-    return {
-      name: "Youssef Brahem",
-      role: "Senior Backend & Fintech Engineer",
-      location: "Doha, Qatar",
-      email: "yusufbrahem1@gmail.com",
-      linkedIn: "https://www.linkedin.com/in/youssef-brahem-8ab717159/",
-      cvUrl: null,
-    };
-  }
+  if (!info) notFound();
   return info;
 }
 
 // Public read - no auth required
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
-export async function getHeroContent(portfolioId?: string | null) {
-  const where = portfolioId ? { portfolioId } : {};
-  
-  const hero = await prisma.heroContent.findFirst({
-    where,
+export async function getHeroContent(portfolioId: string) {
+  const hero = await prisma.heroContent.findUnique({
+    where: { portfolioId },
   });
-  
-  if (!hero) {
-    return {
-      headline: "Senior Backend & Fintech Engineer building secure banking platforms.",
-      subheadline:
-        "5+ years delivering transaction systems, payment integrations, and identity-driven APIs in banking and fintech.",
-      highlights: [
-        "Secure REST APIs and service-to-service authorization",
-        "Transaction processing, payments, reconciliation, and auditability",
-        "Bank-grade observability, resilience, and operational readiness",
-      ],
-    };
-  }
-  return {
-    ...hero,
-    highlights: JSON.parse(hero.highlights || "[]"),
-  };
+  if (!hero) return null;
+  return { ...hero, highlights: JSON.parse(hero.highlights || "[]") };
 }
 
 // Public read - no auth required
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
-export async function getSkills(portfolioId?: string | null) {
-  const where = portfolioId ? { portfolioId } : {};
+export async function getSkills(portfolioId: string) {
+  const where = { portfolioId };
   
   const groups = await prisma.skillGroup.findMany({
     where,
@@ -107,8 +75,8 @@ export async function getSkills(portfolioId?: string | null) {
 // Public read - no auth required
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
-export async function getExperience(portfolioId?: string | null) {
-  const where = portfolioId ? { portfolioId } : {};
+export async function getExperience(portfolioId: string) {
+  const where = { portfolioId };
   
   const roles = await prisma.experience.findMany({
     where,
@@ -140,8 +108,8 @@ export async function getExperience(portfolioId?: string | null) {
 // Public read - no auth required
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
-export async function getProjects(portfolioId?: string | null) {
-  const where = portfolioId ? { portfolioId } : {};
+export async function getProjects(portfolioId: string) {
+  const where = { portfolioId };
   
   const projects = await prisma.project.findMany({
     where,
@@ -167,11 +135,9 @@ export async function getProjects(portfolioId?: string | null) {
 // Public read - no auth required
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
-export async function getAboutContent(portfolioId?: string | null) {
-  const where = portfolioId ? { portfolioId } : {};
-  
-  const about = await prisma.aboutContent.findFirst({
-    where,
+export async function getAboutContent(portfolioId: string) {
+  const about = await prisma.aboutContent.findUnique({
+    where: { portfolioId },
     include: {
       principles: {
         orderBy: { order: "asc" },
@@ -180,13 +146,7 @@ export async function getAboutContent(portfolioId?: string | null) {
   });
 
   if (!about) {
-    return {
-      title: "Backend engineering for banking-grade security and reliability",
-      paragraphs: [
-        "I'm a Senior Backend Engineer based in Doha, Qatar.",
-      ],
-      principles: [],
-    };
+    return null;
   }
 
   return {
@@ -202,11 +162,9 @@ export async function getAboutContent(portfolioId?: string | null) {
 // Public read - no auth required
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
-export async function getArchitectureContent(portfolioId?: string | null) {
-  const where = portfolioId ? { portfolioId } : {};
-  
-  const architecture = await prisma.architectureContent.findFirst({
-    where,
+export async function getArchitectureContent(portfolioId: string) {
+  const architecture = await prisma.architectureContent.findUnique({
+    where: { portfolioId },
     include: {
       pillars: {
         include: {
@@ -220,9 +178,7 @@ export async function getArchitectureContent(portfolioId?: string | null) {
   });
 
   if (!architecture) {
-    return {
-      pillars: [],
-    };
+    return null;
   }
 
   return {

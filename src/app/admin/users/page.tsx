@@ -1,10 +1,12 @@
 import { Container } from "@/components/container";
 import { requireAuth, getImpersonatedPortfolioId } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getUsersWithPortfolios, setImpersonatedPortfolioId } from "@/app/actions/super-admin";
-import { Users, Eye, EyeOff } from "lucide-react";
+import { getUsersWithPortfolios, setImpersonatedPortfolioId, togglePortfolioPublish } from "@/app/actions/super-admin";
+import { Users, Eye, EyeOff, ExternalLink, Globe, Lock } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { CreateUserForm } from "@/components/admin/create-user-form";
+import { DeleteUserButton } from "@/components/admin/delete-user-button";
+import Link from "next/link";
 
 export default async function AdminUsersPage() {
   // Require authentication and super_admin role
@@ -81,8 +83,12 @@ export default async function AdminUsersPage() {
                         <td className="px-4 py-3 text-sm text-muted">
                           {user.portfolio ? (
                             <div>
-                              <div className="text-foreground">{user.portfolio.slug || user.portfolio.id}</div>
-                              <div className="text-xs text-muted-disabled">{user.portfolio.id}</div>
+                              <div className="text-foreground">
+                                {user.portfolio.slug || user.email.split("@")[0] || "Portfolio"}
+                              </div>
+                              {user.portfolio.slug && (
+                                <div className="text-xs text-muted-disabled">{user.email}</div>
+                              )}
                             </div>
                           ) : (
                             <span className="text-muted-disabled">No portfolio</span>
@@ -90,58 +96,98 @@ export default async function AdminUsersPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {user.portfolio ? (
-                            <span
-                              className={`px-2 py-1 rounded text-xs font-semibold ${
-                                user.portfolio.isPublished
-                                  ? "bg-green-500/20 text-green-400"
-                                  : "bg-yellow-500/20 text-yellow-400"
-                              }`}
-                            >
-                              {user.portfolio.isPublished ? "Published" : "Draft"}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-semibold ${
+                                  user.portfolio.isPublished
+                                    ? "bg-green-500/20 text-green-400"
+                                    : "bg-yellow-500/20 text-yellow-400"
+                                }`}
+                              >
+                                {user.portfolio.isPublished ? "Published" : "Draft"}
+                              </span>
+                              {user.portfolio.slug && (
+                                <form
+                                  action={async () => {
+                                    "use server";
+                                    await togglePortfolioPublish(user.portfolio!.id, !user.portfolio!.isPublished);
+                                    revalidatePath("/admin/users");
+                                  }}
+                                  className="inline"
+                                >
+                                  <button
+                                    type="submit"
+                                    className="text-xs text-muted hover:text-foreground transition-colors"
+                                    title={user.portfolio!.isPublished ? "Unpublish" : "Publish"}
+                                  >
+                                    {user.portfolio!.isPublished ? (
+                                      <Lock className="h-3 w-3" />
+                                    ) : (
+                                      <Globe className="h-3 w-3" />
+                                    )}
+                                  </button>
+                                </form>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-muted-disabled">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {user.portfolio ? (
-                            <form
-                              action={async () => {
-                                "use server";
-                                if (isCurrentlyImpersonating) {
-                                  await setImpersonatedPortfolioId(null);
-                                } else {
-                                  await setImpersonatedPortfolioId(user.portfolio!.id);
-                                }
-                                revalidatePath("/admin/users");
-                                revalidatePath("/admin");
-                                redirect("/admin/users");
-                              }}
-                            >
-                              <button
-                                type="submit"
-                                className={`px-3 py-1 rounded text-xs font-semibold transition-colors flex items-center gap-1 ${
-                                  isCurrentlyImpersonating
-                                    ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
-                                    : "bg-accent/20 text-accent hover:bg-accent/30"
-                                }`}
-                              >
-                                {isCurrentlyImpersonating ? (
-                                  <>
-                                    <EyeOff className="h-3 w-3" />
-                                    Stop Impersonating
-                                  </>
-                                ) : (
-                                  <>
-                                    <Eye className="h-3 w-3" />
-                                    Impersonate
-                                  </>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {user.portfolio ? (
+                              <>
+                                {user.portfolio.slug && (
+                                  <Link
+                                    href={`/portfolio/${user.portfolio.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-1 rounded text-xs font-semibold bg-muted/20 text-muted hover:bg-muted/30 transition-colors flex items-center gap-1"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    View
+                                  </Link>
                                 )}
-                              </button>
-                            </form>
-                          ) : (
-                            <span className="text-muted-disabled text-xs">—</span>
-                          )}
+                                <form
+                                  action={async () => {
+                                    "use server";
+                                    if (isCurrentlyImpersonating) {
+                                      await setImpersonatedPortfolioId(null);
+                                    } else {
+                                      await setImpersonatedPortfolioId(user.portfolio!.id);
+                                    }
+                                    revalidatePath("/admin/users");
+                                    revalidatePath("/admin");
+                                    redirect("/admin/users");
+                                  }}
+                                  className="inline"
+                                >
+                                  <button
+                                    type="submit"
+                                    className={`px-2 py-1 rounded text-xs font-semibold transition-colors flex items-center gap-1 ${
+                                      isCurrentlyImpersonating
+                                        ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
+                                        : "bg-accent/20 text-accent hover:bg-accent/30"
+                                    }`}
+                                  >
+                                    {isCurrentlyImpersonating ? (
+                                      <>
+                                        <EyeOff className="h-3 w-3" />
+                                        Stop
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Eye className="h-3 w-3" />
+                                        Impersonate
+                                      </>
+                                    )}
+                                  </button>
+                                </form>
+                              </>
+                            ) : null}
+                            {user.id !== session.user.id && <DeleteUserButton userId={user.id} />}
+                            {!user.portfolio && <span className="text-muted-disabled text-xs">—</span>}
+                          </div>
                         </td>
                       </tr>
                     );

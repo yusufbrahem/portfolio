@@ -4,6 +4,7 @@ import { Motion } from "@/components/motion";
 import { Avatar } from "@/components/avatar";
 import { Card, Pill, PrimaryButton, SecondaryButton } from "@/components/ui";
 import { Section } from "@/components/section";
+import { PortfolioHeader } from "@/components/portfolio/portfolio-header";
 import {
   getPortfolioBySlug,
   getPersonInfo,
@@ -49,8 +50,13 @@ export default async function PortfolioPage({ params }: PageProps) {
     getArchitectureContent(portfolio.id),
   ]);
 
+  const heroHeadline = hero?.headline ?? "";
+  const heroSubheadline = hero?.subheadline ?? "";
+  const heroHighlights: string[] = (hero?.highlights as string[]) ?? [];
+
   return (
     <div>
+      <PortfolioHeader slug={slug} name={person.name} />
       {/* Hero Section */}
       <Container className="py-14 sm:py-20">
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
@@ -81,12 +87,12 @@ export default async function PortfolioPage({ params }: PageProps) {
 
             <Motion delay={0.05}>
               <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                {hero.headline}
+                {heroHeadline}
               </h1>
             </Motion>
 
             <p className="max-w-2xl text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed">
-              {hero.subheadline}
+              {heroSubheadline}
             </p>
 
             <Motion delay={0.15}>
@@ -103,7 +109,7 @@ export default async function PortfolioPage({ params }: PageProps) {
             </Motion>
 
             <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
-              {hero.highlights.map((h: string) => (
+              {heroHighlights.map((h: string) => (
                 <li key={h} className="flex gap-2">
                   <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
                   <span>{h}</span>
@@ -169,7 +175,7 @@ export default async function PortfolioPage({ params }: PageProps) {
 
       {/* Skills Section */}
       {skills && skills.length > 0 && (
-        <Container>
+        <Container id="skills">
           <Section eyebrow="Skills" title="Senior backend toolkit for regulated fintech environments" description="A practical, production-focused skill set spanning secure APIs, identity governance, and transaction-grade persistence.">
             <div className="grid gap-5 lg:grid-cols-2">
               {skills.map((group, idx) => (
@@ -193,7 +199,7 @@ export default async function PortfolioPage({ params }: PageProps) {
 
       {/* Projects Section */}
       {projects && projects.length > 0 && (
-        <Container>
+        <Container id="projects">
           <Section eyebrow="Projects" title="Banking-grade delivery, anonymized with measurable relevance" description="Examples of the systems and patterns I've shipped in regulated environments—identity, transactions, and operational resilience.">
             <div className="grid gap-6 lg:grid-cols-3">
               {projects.map((p, idx) => (
@@ -230,7 +236,7 @@ export default async function PortfolioPage({ params }: PageProps) {
 
       {/* Experience Section */}
       {experience && experience.roles && experience.roles.length > 0 && (
-        <Container>
+        <Container id="experience">
           <Section eyebrow="Experience" title="Banking and fintech delivery—security, transactions, reliability" description={experience.intro}>
             <div className="space-y-6">
               {experience.roles.map((role, idx) => (
@@ -271,7 +277,7 @@ export default async function PortfolioPage({ params }: PageProps) {
 
       {/* About Section */}
       {about && (
-        <Container>
+        <Container id="about">
           <Section eyebrow="About" title={about.title} description={about.paragraphs[0]}>
             <div className="grid gap-6 lg:grid-cols-12">
               <div className="space-y-4 lg:col-span-7">
@@ -304,7 +310,7 @@ export default async function PortfolioPage({ params }: PageProps) {
 
       {/* Architecture Section */}
       {architecture && architecture.pillars && architecture.pillars.length > 0 && (
-        <Container>
+        <Container id="architecture">
           <Section eyebrow="Architecture" title="Security, transactions, and scalability—built for regulated environments" description="A concise view of the patterns I apply to reduce risk and keep systems predictable under load.">
             <div className="grid gap-6 lg:grid-cols-3">
               {architecture.pillars.map((p, idx) => (

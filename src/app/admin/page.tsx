@@ -2,19 +2,55 @@ import { Container } from "@/components/container";
 import Link from "next/link";
 import { Code, FolderOpen, Briefcase, User, Building2, Mail, Home } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getAdminReadScope } from "@/lib/auth";
+import { getHeroContentForAdmin } from "@/app/actions/hero";
+import { HeroManager } from "@/components/admin/hero-manager";
 
 export default async function AdminDashboard() {
   // Require authentication before accessing any data
-  await requireAuth();
+  const session = await requireAuth();
   
-  const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo] = await Promise.all([
-    prisma.skill.count(),
-    prisma.project.count(),
-    prisma.experience.count(),
-    prisma.aboutContent.findFirst(),
-    prisma.architectureContent.findFirst(),
-    prisma.personInfo.findFirst(),
+  // Get active portfolio scope (supports super-admin impersonation)
+  const scope = await getAdminReadScope();
+  const portfolioId = scope.portfolioId;
+
+  // Build where clause: if portfolioId is set, filter by it; otherwise super admin sees all
+  const whereClause = portfolioId ? { portfolioId } : (session.user.role === "super_admin" ? {} : { portfolioId: session.user.portfolioId || "none" });
+
+  const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo, heroContent] = await Promise.all([
+    // Skills count: filter by portfolioId through skillGroup
+    prisma.skill.count({
+      where: {
+        skillGroup: whereClause,
+      },
+    }),
+    // Projects count: direct portfolioId filter
+    prisma.project.count({
+      where: whereClause,
+    }),
+    // Experience count: direct portfolioId filter
+    prisma.experience.count({
+      where: whereClause,
+    }),
+    // About content: use findUnique if portfolioId, otherwise findFirst for regular users
+    portfolioId
+      ? prisma.aboutContent.findUnique({ where: { portfolioId } })
+      : session.user.role === "super_admin"
+      ? null // Super admin without impersonation: no single portfolio to show
+      : prisma.aboutContent.findFirst({ where: { portfolioId: session.user.portfolioId || "none" } }),
+    // Architecture content: same logic
+    portfolioId
+      ? prisma.architectureContent.findUnique({ where: { portfolioId } })
+      : session.user.role === "super_admin"
+      ? null
+      : prisma.architectureContent.findFirst({ where: { portfolioId: session.user.portfolioId || "none" } }),
+    // Person info: same logic
+    portfolioId
+      ? prisma.personInfo.findUnique({ where: { portfolioId } })
+      : session.user.role === "super_admin"
+      ? null
+      : prisma.personInfo.findFirst({ where: { portfolioId: session.user.portfolioId || "none" } }),
+    getHeroContentForAdmin(),
   ]);
 
   const principlesCount = aboutContent
@@ -104,6 +140,20 @@ export default async function AdminDashboard() {
               {personInfo ? "Configured" : "Not configured"}
             </p>
           </Link>
+        </div>
+
+        <div className="pt-2">
+          {session.user.role === "super_admin" && !portfolioId ? (
+            <div className="border border-border bg-panel rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-foreground">Hero</h2>
+              <p className="mt-2 text-sm text-muted">
+                To edit hero content as a super admin, impersonate a portfolio first (read-only mode prevents writes).
+                Stop impersonation to write, then switch to the target user to edit their hero.
+              </p>
+            </div>
+          ) : (
+            <HeroManager initialData={heroContent} />
+          )}
         </div>
       </div>
     </Container>

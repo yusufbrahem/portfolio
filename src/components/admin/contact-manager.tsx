@@ -9,7 +9,7 @@ type PersonInfo = Awaited<ReturnType<typeof getPersonInfo>>;
 
 export function ContactManager({ initialData }: { initialData: PersonInfo | null }) {
   const [personInfo, setPersonInfo] = useState(initialData);
-  const [isEditing, setIsEditing] = useState(!initialData);
+  const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   
@@ -81,6 +81,23 @@ export function ContactManager({ initialData }: { initialData: PersonInfo | null
       e.target.value = "";
     }
   };
+
+  if (!personInfo && !isEditing) {
+    return (
+      <div className="border border-border bg-panel rounded-lg p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-foreground">Profile</h2>
+        </div>
+        <p className="text-sm text-muted">No profile yet for this portfolio.</p>
+        <button
+          onClick={() => setIsEditing(true)}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
+        >
+          Create profile
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-border bg-panel rounded-lg p-6">
