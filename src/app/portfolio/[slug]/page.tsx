@@ -5,6 +5,7 @@ import { Avatar } from "@/components/avatar";
 import { Card, Pill, PrimaryButton, SecondaryButton } from "@/components/ui";
 import { Section } from "@/components/section";
 import { PortfolioHeader } from "@/components/portfolio/portfolio-header";
+import { ScrollToTopButton } from "@/components/portfolio/scroll-to-top";
 import {
   getPortfolioBySlug,
   getPersonInfo,
@@ -57,6 +58,7 @@ export default async function PortfolioPage({ params }: PageProps) {
   return (
     <div>
       <PortfolioHeader slug={slug} name={person.name} avatarSrc={(person as any).avatarUrl || "/profile.png"} />
+      <ScrollToTopButton />
       {/* Hero Section */}
       <Container className="py-14 sm:py-20">
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
