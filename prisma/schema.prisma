@@ -115,7 +115,7 @@ model ProjectTag {
 
 model AboutContent {
   id          String           @id @default(uuid())
-  portfolioId String           // Portfolio that owns this about content
+  portfolioId String           @unique // Portfolio that owns this about content (1-1)
   portfolio   Portfolio        @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   title       String
   paragraphs  String
@@ -140,7 +140,7 @@ model AboutPrinciple {
 
 model PersonInfo {
   id          String    @id @default(uuid())
-  portfolioId String    // Portfolio that owns this person info
+  portfolioId String    @unique // Portfolio that owns this person info (1-1)
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   name        String
   role        String
@@ -156,7 +156,7 @@ model PersonInfo {
 
 model HeroContent {
   id          String    @id @default(uuid())
-  portfolioId String    // Portfolio that owns this hero content
+  portfolioId String    @unique // Portfolio that owns this hero content (1-1)
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   headline    String
   subheadline String
@@ -169,7 +169,7 @@ model HeroContent {
 
 model ArchitectureContent {
   id          String               @id @default(uuid())
-  portfolioId String               // Portfolio that owns this architecture content
+  portfolioId String               @unique // Portfolio that owns this architecture content (1-1)
   portfolio   Portfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt

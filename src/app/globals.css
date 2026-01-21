@@ -86,3 +86,10 @@ body {
     color: #000000 !important;
   }
 }
+
+/* Admin UI clarity: visually indicate READ-ONLY when super admin is impersonating.
+   IMPORTANT: styling only (server actions already block writes). */
+[data-admin-readonly="true"] button[type="submit"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -1,9 +1,10 @@
 import { Container } from "@/components/container";
 import Link from "next/link";
-import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail } from "lucide-react";
+import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail, Users } from "lucide-react";
 import { headers } from "next/headers";
-import { auth } from "@/auth";
+import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminLayout({
   children,
@@ -21,9 +22,30 @@ export default async function AdminLayout({
   
   // Defense in depth: Verify authentication again at layout level
   // Middleware protects routes, but this adds an extra layer
-  const session = await auth();
-  if (!session) {
-    redirect("/admin/login");
+  const session = await requireAuth();
+
+  // Resolve active admin read scope (supports super-admin impersonation)
+  const scope = await getAdminReadScope();
+  const isReadOnly = scope.isImpersonating;
+
+  let activePortfolioLabel: string = "—";
+  if (session.user.role === "super_admin" && !scope.portfolioId) {
+    activePortfolioLabel = "All portfolios";
+  } else if (scope.portfolioId) {
+    try {
+      // Prefer slug if available for human readability
+      // @ts-expect-error - Prisma Client may be stale in editor until TS server refresh; DB is aligned.
+      const p = await prisma.portfolio.findUnique({
+        where: { id: scope.portfolioId },
+        select: { id: true, slug: true },
+      });
+      activePortfolioLabel = p?.slug ? `${p.slug} (${p.id})` : scope.portfolioId;
+    } catch {
+      activePortfolioLabel = scope.portfolioId;
+    }
+  } else if (session.user.portfolioId) {
+    // Regular user fallback
+    activePortfolioLabel = session.user.portfolioId;
   }
   
   // For all other admin pages, both middleware and layout have verified auth
@@ -31,12 +53,40 @@ export default async function AdminLayout({
 
   // Render admin UI for authenticated users
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-admin-readonly={isReadOnly ? "true" : "false"}>
       <header className="border-b border-border bg-panel">
         <Container className="py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-foreground">Admin Panel</h1>
-            <div className="flex items-center gap-4">
+          {isReadOnly ? (
+            <div className="mb-3 rounded-lg border border-border bg-panel2 px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">
+                READ-ONLY — impersonation active
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                You are viewing another portfolio’s data. Writes are blocked until impersonation is cleared.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">Admin Panel</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                <span>
+                  <span className="text-muted-disabled">User:</span>{" "}
+                  <span className="text-foreground">{session.user.email}</span>
+                </span>
+                <span>
+                  <span className="text-muted-disabled">Role:</span>{" "}
+                  <span className="text-foreground">{session.user.role}</span>
+                </span>
+                <span>
+                  <span className="text-muted-disabled">Portfolio:</span>{" "}
+                  <span className="text-foreground">{activePortfolioLabel}</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 pt-1">
               <Link
                 href="/"
                 className="text-sm text-muted hover:text-foreground flex items-center gap-2"
@@ -114,6 +164,15 @@ export default async function AdminLayout({
               <Mail className="h-4 w-4" />
               Contact
             </Link>
+            {session.user.role === "super_admin" && (
+              <Link
+                href="/admin/users"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+              >
+                <Users className="h-4 w-4" />
+                Users
+              </Link>
+            )}
           </nav>
         </aside>
 
