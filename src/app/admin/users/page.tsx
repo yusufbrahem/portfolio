@@ -68,9 +68,9 @@ export default async function AdminUsersPage() {
                     const isCurrentlyImpersonating = currentImpersonation === user.portfolio?.id;
                     const avatarUrl = (user.portfolio as any)?.personInfo?.avatarUrl;
                     const avatarUpdatedAt = (user.portfolio as any)?.personInfo?.updatedAt;
-                    const avatarSrc = avatarUrl
-                      ? `${avatarUrl}?t=${avatarUpdatedAt ? new Date(avatarUpdatedAt).getTime() : Date.now()}`
-                      : null;
+                    const avatarSrc = avatarUrl && avatarUpdatedAt
+                      ? `${avatarUrl}?t=${new Date(avatarUpdatedAt).getTime()}`
+                      : avatarUrl || null;
                     return (
                       <tr key={user.id} className="border-b border-border hover:bg-panel2">
                         <td className="px-4 py-3">
