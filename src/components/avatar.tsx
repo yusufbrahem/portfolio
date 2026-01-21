@@ -18,6 +18,10 @@ export function Avatar({
 }) {
   const [error, setError] = useState(false);
 
+  // For user-uploaded images (in /uploads/), use regular img tag to support cache-busting query strings
+  // For static assets, use Next.js Image component
+  const isUserUploaded = src.startsWith("/uploads/");
+
   return (
     <div
       className={cn(
@@ -31,6 +35,15 @@ export function Avatar({
           <User className="h-16 w-16 text-muted" aria-hidden="true" />
           <span className="sr-only">Profile photo placeholder</span>
         </div>
+      ) : isUserUploaded ? (
+        // Use regular img tag for user-uploaded images to support cache-busting query strings
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={alt}
+          className="h-full w-full object-cover"
+          onError={() => setError(true)}
+        />
       ) : (
         <Image
           src={src}
