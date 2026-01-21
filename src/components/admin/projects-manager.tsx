@@ -100,7 +100,8 @@ export function ProjectsManager({ initialData, isReadOnly = false }: { initialDa
         {!isCreating && (
           <button
             onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
+            disabled={isReadOnly}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-4 w-4" />
             Add Project
@@ -145,26 +146,23 @@ export function ProjectsManager({ initialData, isReadOnly = false }: { initialDa
                 <h3 className="font-semibold text-foreground mb-1">{project.title}</h3>
                 <p className="text-sm text-muted">{project.summary}</p>
               </div>
-              {!isReadOnly && (
-                <div className="flex items-center gap-2">
-                  {loading === project.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
-                  <button
-                    onClick={() => setEditingId(project.id)}
-                    className="text-muted hover:text-foreground transition-colors"
-                    disabled={loading === project.id}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(project.id)}
-                    className="text-red-500 hover:text-red-400 transition-colors"
-                    disabled={loading === project.id}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              {isReadOnly && loading === project.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
+              <div className="flex items-center gap-2">
+                {loading === project.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
+                <button
+                  onClick={() => setEditingId(project.id)}
+                  className="text-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading === project.id || isReadOnly}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(project.id)}
+                  className="text-red-500 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading === project.id || isReadOnly}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <div>

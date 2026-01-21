@@ -101,10 +101,11 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold text-foreground">Experience Entries</h2>
-        {!isCreating && !isReadOnly && (
+        {!isCreating && (
           <button
             onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
+            disabled={isReadOnly}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-4 w-4" />
             Add Experience
@@ -150,26 +151,23 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
                 <p className="text-sm text-muted">{exp.company}</p>
                 <p className="text-xs text-muted-disabled">{exp.location} • {exp.period}</p>
               </div>
-              {!isReadOnly && (
-                <div className="flex items-center gap-2">
-                  {loading === exp.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
-                  <button
-                    onClick={() => setEditingId(exp.id)}
-                    className="text-muted hover:text-foreground transition-colors"
-                    disabled={loading === exp.id}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(exp.id)}
-                    className="text-red-500 hover:text-red-400 transition-colors"
-                    disabled={loading === exp.id}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              {isReadOnly && loading === exp.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
+              <div className="flex items-center gap-2">
+                {loading === exp.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
+                <button
+                  onClick={() => setEditingId(exp.id)}
+                  className="text-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading === exp.id || isReadOnly}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(exp.id)}
+                  className="text-red-500 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading === exp.id || isReadOnly}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <div>

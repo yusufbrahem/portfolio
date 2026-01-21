@@ -86,15 +86,14 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
           <h2 className="text-lg font-semibold text-foreground">Hero</h2>
         </div>
         <p className="mt-2 text-sm text-muted">No hero section yet for this portfolio.</p>
-        {!isReadOnly && (
-          <button
-            onClick={beginCreate}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Create hero section
-          </button>
-        )}
+        <button
+          onClick={beginCreate}
+          disabled={isReadOnly}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus className="h-4 w-4" />
+          Create hero section
+        </button>
       </div>
     );
   }
@@ -103,10 +102,11 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
     <div className="border border-border bg-panel rounded-lg p-6">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold text-foreground">Hero</h2>
-        {!isEditing && !isReadOnly ? (
+        {!isEditing ? (
           <button
             onClick={beginEdit}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors"
+            disabled={isReadOnly}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="h-4 w-4" />
             Edit
@@ -136,7 +136,8 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
               type="text"
               value={form.headline}
               onChange={(e) => setForm({ ...form, headline: e.target.value })}
-              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
+              disabled={isReadOnly}
+              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -145,7 +146,8 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
             <textarea
               value={form.subheadline}
               onChange={(e) => setForm({ ...form, subheadline: e.target.value })}
-              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg min-h-[96px]"
+              disabled={isReadOnly}
+              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg min-h-[96px] disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -156,13 +158,15 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
             <textarea
               value={form.highlights}
               onChange={(e) => setForm({ ...form, highlights: e.target.value })}
-              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg min-h-[120px]"
+              disabled={isReadOnly}
+              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg min-h-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder={"Secure APIs\nIdentity & access\nTransaction integrity"}
             />
           </div>
           <button
             onClick={save}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
+            disabled={isReadOnly}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="h-4 w-4" />
             Save hero

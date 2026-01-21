@@ -101,20 +101,19 @@ export function AboutManager({ initialData, isReadOnly = false }: { initialData:
     return (
       <div className="border border-border bg-panel rounded-lg p-6">
         <p className="text-sm text-muted">No about content yet.</p>
-        {!isReadOnly && (
-          <button
-            onClick={() => {
-              // Create a local draft; updateAboutContent() will create via upsert.
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setAboutContent({ id: "", title: "", paragraphs: "[]", principles: [] } as any);
-              setEditingContent(true);
-            }}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Create section
-          </button>
-        )}
+        <button
+          onClick={() => {
+            // Create a local draft; updateAboutContent() will create via upsert.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setAboutContent({ id: "", title: "", paragraphs: "[]", principles: [] } as any);
+            setEditingContent(true);
+          }}
+          disabled={isReadOnly}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus className="h-4 w-4" />
+          Create section
+        </button>
       </div>
     );
   }
@@ -131,10 +130,11 @@ export function AboutManager({ initialData, isReadOnly = false }: { initialData:
       <div className="border border-border bg-panel rounded-lg p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-foreground">About Content</h2>
-          {!editingContent && !isReadOnly && (
+          {!editingContent && (
             <button
               onClick={() => setEditingContent(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors"
+              disabled={isReadOnly}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Edit2 className="h-4 w-4" />
               Edit
@@ -167,10 +167,11 @@ export function AboutManager({ initialData, isReadOnly = false }: { initialData:
       <div className="border border-border bg-panel rounded-lg p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-foreground">Principles</h2>
-          {!isCreatingPrinciple && !isReadOnly && (
+          {!isCreatingPrinciple && (
             <button
               onClick={handleCreatePrinciple}
-              className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors"
+              disabled={isReadOnly}
+              className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="h-4 w-4" />
               Add Principle
@@ -212,22 +213,22 @@ export function AboutManager({ initialData, isReadOnly = false }: { initialData:
                     <h4 className="font-semibold text-foreground mb-1">{principle.title}</h4>
                     <p className="text-sm text-muted">{principle.description}</p>
                   </div>
-                  {!isReadOnly && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingPrinciple(principle.id)}
-                        className="p-2 text-muted hover:text-foreground transition-colors"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeletePrinciple(principle.id)}
-                        className="p-2 text-red-500 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditingPrinciple(principle.id)}
+                      disabled={isReadOnly}
+                      className="p-2 text-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeletePrinciple(principle.id)}
+                      disabled={isReadOnly}
+                      className="p-2 text-red-500 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
