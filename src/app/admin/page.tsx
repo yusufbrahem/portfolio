@@ -44,12 +44,12 @@ export default async function AdminDashboard() {
       : session.user.role === "super_admin"
       ? null
       : prisma.architectureContent.findFirst({ where: { portfolioId: session.user.portfolioId || "none" } }),
-    // Person info: same logic
+    // Person info: same logic (include updatedAt for cache-busting)
     portfolioId
-      ? prisma.personInfo.findUnique({ where: { portfolioId } })
+      ? prisma.personInfo.findUnique({ where: { portfolioId }, select: { id: true, name: true, role: true, location: true, avatarUrl: true, updatedAt: true } })
       : session.user.role === "super_admin"
       ? null
-      : prisma.personInfo.findFirst({ where: { portfolioId: session.user.portfolioId || "none" } }),
+      : prisma.personInfo.findFirst({ where: { portfolioId: session.user.portfolioId || "none" }, select: { id: true, name: true, role: true, location: true, avatarUrl: true, updatedAt: true } }),
     getHeroContentForAdmin(),
   ]);
 

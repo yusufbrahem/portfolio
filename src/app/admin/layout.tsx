@@ -52,9 +52,11 @@ export default async function AdminLayout({
       if (p?.id) {
         const personInfo = await prisma.personInfo.findUnique({
           where: { portfolioId: p.id },
-          select: { avatarUrl: true },
+          select: { avatarUrl: true, updatedAt: true },
         });
-        avatarUrl = (personInfo as any)?.avatarUrl || null;
+        const url = (personInfo as any)?.avatarUrl;
+        // Add cache-busting query parameter using updatedAt timestamp
+        avatarUrl = url ? `${url}?t=${new Date((personInfo as any).updatedAt).getTime()}` : null;
       }
     } catch {
       activePortfolioLabel = "Portfolio";
@@ -72,9 +74,11 @@ export default async function AdminLayout({
       if (p?.id) {
         const personInfo = await prisma.personInfo.findUnique({
           where: { portfolioId: p.id },
-          select: { avatarUrl: true },
+          select: { avatarUrl: true, updatedAt: true },
         });
-        avatarUrl = (personInfo as any)?.avatarUrl || null;
+        const url = (personInfo as any)?.avatarUrl;
+        // Add cache-busting query parameter using updatedAt timestamp
+        avatarUrl = url ? `${url}?t=${new Date((personInfo as any).updatedAt).getTime()}` : null;
       }
     } catch {
       activePortfolioLabel = session.user.email.split("@")[0] || "Portfolio";

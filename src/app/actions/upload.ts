@@ -106,7 +106,11 @@ export async function uploadAvatar(formData: FormData) {
     select: { slug: true },
   });
 
+  // Revalidate all paths that display the avatar
   revalidatePath("/admin/contact");
+  revalidatePath("/admin/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/layout", "layout"); // Revalidate layout
   // Revalidate public portfolio page if slug exists
   if (portfolio?.slug) {
     revalidatePath(`/portfolio/${portfolio.slug}`);

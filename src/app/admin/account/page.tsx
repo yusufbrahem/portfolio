@@ -16,11 +16,11 @@ export default async function AdminAccountPage() {
     select: { slug: true, id: true },
   });
 
-  // Get avatar URL from PersonInfo
+  // Get avatar URL from PersonInfo (include updatedAt for cache-busting)
   const personInfo = portfolio?.id
     ? await prisma.personInfo.findUnique({
         where: { portfolioId: portfolio.id },
-        select: { avatarUrl: true },
+        select: { avatarUrl: true, updatedAt: true },
       })
     : null;
 
@@ -37,6 +37,7 @@ export default async function AdminAccountPage() {
           initialName={me?.name || ""}
           initialSlug={portfolio?.slug || ""}
           initialAvatarUrl={(personInfo as any)?.avatarUrl || null}
+          initialAvatarUpdatedAt={(personInfo as any)?.updatedAt || null}
         />
       </div>
     </Container>

@@ -12,11 +12,13 @@ export function AccountForm({
   initialName,
   initialSlug,
   initialAvatarUrl,
+  initialAvatarUpdatedAt,
 }: {
   initialEmail: string;
   initialName: string;
   initialSlug: string;
   initialAvatarUrl: string | null;
+  initialAvatarUpdatedAt: Date | null;
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState(initialName);
@@ -41,7 +43,12 @@ export function AccountForm({
       fd.append("file", file);
       const result = await uploadAvatar(fd);
       setAvatarUrl(result.avatarUrl);
-      router.refresh(); // Refresh to update layout header
+      // Update timestamp to force cache refresh
+      const newTimestamp = new Date();
+      // Force refresh all pages that show the avatar
+      router.refresh();
+      // Also update the displayed image immediately with new timestamp
+      window.location.reload(); // Full reload to clear all caches
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Failed to upload avatar");
     } finally {
@@ -81,14 +88,18 @@ export function AccountForm({
       {/* Avatar Upload Section */}
       <div className="border border-border bg-panel rounded-lg p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Profile Photo</h2>
-        <div className="flex items-center gap-6">
-          <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-border bg-panel2 flex items-center justify-center">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Profile avatar" className="h-full w-full object-cover" />
-            ) : (
-              <ImageIcon className="h-12 w-12 text-muted" />
-            )}
-          </div>
+          <div className="flex items-center gap-6">
+            <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-border bg-panel2 flex items-center justify-center">
+              {avatarUrl ? (
+                <img 
+                  src={`${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${initialAvatarUpdatedAt ? new Date(initialAvatarUpdatedAt).getTime() : Date.now()}`} 
+                  alt="Profile avatar" 
+                  className="h-full w-full object-cover" 
+                />
+              ) : (
+                <ImageIcon className="h-12 w-12 text-muted" />
+              )}
+            </div>
           <div className="flex-1">
             <label className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-background text-foreground rounded-lg hover:bg-panel2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
               {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
