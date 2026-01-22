@@ -1,5 +1,4 @@
 import { Container } from "@/components/container";
-import { PortfolioHeader } from "@/components/portfolio/portfolio-header";
 import { getSession } from "@/lib/auth";
 import Link from "next/link";
 import { FileX, Clock, XCircle, CheckCircle, ArrowRight } from "lucide-react";
@@ -66,9 +65,7 @@ export async function NotPublishedPage({ portfolio }: NotPublishedPageProps) {
   const Icon = config.icon;
 
   return (
-    <div>
-      <PortfolioHeader slug={portfolio.slug || ""} name="" avatarSrc="/profile.png" />
-      <Container className="py-24 sm:py-32">
+    <Container className="py-24 sm:py-32">
         <div className="mx-auto max-w-2xl text-center">
           <div className="mb-6 flex justify-center">
             <div className={`rounded-full bg-panel p-4 ${config.color}`}>
@@ -108,6 +105,5 @@ export async function NotPublishedPage({ portfolio }: NotPublishedPageProps) {
           )}
         </div>
       </Container>
-    </div>
   );
 }

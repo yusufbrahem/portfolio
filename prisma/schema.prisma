@@ -203,14 +203,16 @@ model ArchitecturePoint {
 }
 
 model AdminUser {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String    // bcrypt hashed password
-  name         String?   // Optional display name
-  role         String    @default("user") // "super_admin" | "user"
-  portfolio    Portfolio? // One portfolio per user (1-1 relationship)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String    // bcrypt hashed password
+  name                String?   // Optional display name
+  role                String    @default("user") // "super_admin" | "user"
+  onboardingCompleted Boolean   @default(false) // Track if user has completed onboarding
+  onboardingStep      Int       @default(0) // 0 = not started, 1-5 = current step, 6 = completed
+  portfolio           Portfolio? // One portfolio per user (1-1 relationship)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 enum PortfolioStatus {

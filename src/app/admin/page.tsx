@@ -6,6 +6,8 @@ import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { getHeroContentForAdmin } from "@/app/actions/hero";
 import { HeroManager } from "@/components/admin/hero-manager";
 import { redirect } from "next/navigation";
+import { needsOnboarding } from "@/lib/onboarding";
+import { PublicationRequest } from "@/components/admin/publication-request";
 
 export default async function AdminDashboard() {
   // Require authentication before accessing any data
@@ -20,10 +22,27 @@ export default async function AdminDashboard() {
     redirect("/admin/users?message=Super admin accounts are for platform management only.");
   }
 
+  // Check if user needs onboarding (only for normal users, not when impersonating)
+  // Only redirect if onboarding is not completed
+  if (session.user.role !== "super_admin" && !scope.isImpersonating) {
+    const user = await prisma.adminUser.findUnique({
+      where: { id: session.user.id },
+      select: { onboardingCompleted: true, onboardingStep: true },
+    });
+
+    // Only redirect if onboarding is not completed (step !== 6)
+    if (!user?.onboardingCompleted && user?.onboardingStep !== 6) {
+      const needsOnboardingCheck = await needsOnboarding();
+      if (needsOnboardingCheck) {
+        redirect("/admin/onboarding");
+      }
+    }
+  }
+
   // Build where clause: if portfolioId is set, filter by it; otherwise super admin sees all
   const whereClause = portfolioId ? { portfolioId } : (session.user.role === "super_admin" ? {} : { portfolioId: session.user.portfolioId || "none" });
 
-  const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo, heroContent] = await Promise.all([
+  const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo, heroContent, portfolio] = await Promise.all([
     // Skills count: filter by portfolioId through skillGroup
     prisma.skill.count({
       where: {
@@ -57,6 +76,18 @@ export default async function AdminDashboard() {
       ? null
       : prisma.personInfo.findFirst({ where: { portfolioId: session.user.portfolioId || "none" }, select: { id: true, name: true, role: true, location: true, avatarUrl: true, updatedAt: true } }),
     getHeroContentForAdmin(),
+    // Get portfolio status for publication request
+    portfolioId
+      ? prisma.portfolio.findUnique({ 
+          where: { id: portfolioId }, 
+          select: { status: true, rejectionReason: true } 
+        })
+      : session.user.portfolioId
+      ? prisma.portfolio.findUnique({ 
+          where: { id: session.user.portfolioId }, 
+          select: { status: true, rejectionReason: true } 
+        })
+      : null,
   ]);
 
   const principlesCount = aboutContent
@@ -73,6 +104,15 @@ export default async function AdminDashboard() {
           <h1 className="text-2xl font-semibold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted">Manage your portfolio content</p>
         </div>
+
+        {/* Publication Request Section */}
+        {portfolio && (
+          <PublicationRequest 
+            currentStatus={portfolio.status as "DRAFT" | "READY_FOR_REVIEW" | "REJECTED" | "PUBLISHED" | null}
+            rejectionReason={portfolio.rejectionReason}
+            showFullCard={true}
+          />
+        )}
 
         {/* Profile Overview Card */}
         {personInfo && (

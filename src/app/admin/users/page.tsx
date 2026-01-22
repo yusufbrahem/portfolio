@@ -2,11 +2,13 @@ import { Container } from "@/components/container";
 import { requireAuth, getImpersonatedPortfolioId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getUsersWithPortfolios, setImpersonatedPortfolioId, togglePortfolioPublish } from "@/app/actions/super-admin";
-import { Users, Eye, EyeOff, ExternalLink, Globe, Lock } from "lucide-react";
+import { getPendingReviewPortfolios, getPendingReviewCount } from "@/app/actions/portfolio-review";
+import { Users, Eye, EyeOff, ExternalLink, Globe, Lock, Clock, CheckCircle, XCircle, FileX } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { CreateUserForm } from "@/components/admin/create-user-form";
 import { DeleteUserButton } from "@/components/admin/delete-user-button";
 import { ResetPasswordButton } from "@/components/admin/reset-password-button";
+import { PortfolioReviewCard } from "@/components/admin/portfolio-review-card";
 import Link from "next/link";
 
 export default async function AdminUsersPage() {
@@ -20,8 +22,12 @@ export default async function AdminUsersPage() {
   // Get current impersonation state
   const currentImpersonation = await getImpersonatedPortfolioId();
 
-  // Fetch users with their portfolios
-  const users = await getUsersWithPortfolios();
+  // Fetch users with their portfolios and pending reviews
+  const [users, pendingReviews, pendingCount] = await Promise.all([
+    getUsersWithPortfolios(),
+    getPendingReviewPortfolios(),
+    getPendingReviewCount(),
+  ]);
 
   return (
     <Container>
@@ -32,6 +38,25 @@ export default async function AdminUsersPage() {
             <p className="text-muted">Manage users and impersonate portfolios (read-only)</p>
           </div>
         </div>
+
+        {/* Pending Reviews Section */}
+        {pendingCount > 0 && (
+          <div className="border border-yellow-500/20 bg-yellow-500/5 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-yellow-500" />
+                <h2 className="text-lg font-semibold text-foreground">
+                  Pending Reviews ({pendingCount})
+                </h2>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {pendingReviews.map((portfolio) => (
+                <PortfolioReviewCard key={portfolio.id} portfolio={portfolio} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Create User Form */}
         <CreateUserForm />
@@ -120,35 +145,20 @@ export default async function AdminUsersPage() {
                             <div className="flex items-center gap-1.5">
                               <span
                                 className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                                  user.portfolio.isPublished
+                                  (user.portfolio as any).status === "PUBLISHED"
                                     ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                    : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                                    : (user.portfolio as any).status === "READY_FOR_REVIEW"
+                                    ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                                    : (user.portfolio as any).status === "REJECTED"
+                                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                                    : "bg-muted/10 text-muted border border-border/50"
                                 }`}
                               >
-                                {user.portfolio.isPublished ? "Published" : "Draft"}
+                                {(user.portfolio as any).status === "PUBLISHED" && "Published"}
+                                {(user.portfolio as any).status === "READY_FOR_REVIEW" && "Pending"}
+                                {(user.portfolio as any).status === "REJECTED" && "Rejected"}
+                                {(!(user.portfolio as any).status || (user.portfolio as any).status === "DRAFT") && "Draft"}
                               </span>
-                              {user.portfolio.slug && (
-                                <form
-                                  action={async () => {
-                                    "use server";
-                                    await togglePortfolioPublish(user.portfolio!.id, !user.portfolio!.isPublished);
-                                    revalidatePath("/admin/users");
-                                  }}
-                                  className="inline"
-                                >
-                                  <button
-                                    type="submit"
-                                    className="text-xs text-muted hover:text-foreground transition-colors p-0.5"
-                                    title={user.portfolio!.isPublished ? "Unpublish" : "Publish"}
-                                  >
-                                    {user.portfolio!.isPublished ? (
-                                      <Lock className="h-3 w-3" />
-                                    ) : (
-                                      <Globe className="h-3 w-3" />
-                                    )}
-                                  </button>
-                                </form>
-                              )}
                             </div>
                           ) : (
                             <span className="text-muted-disabled text-xs">—</span>

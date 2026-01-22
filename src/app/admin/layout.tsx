@@ -6,6 +6,7 @@ import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/logo";
+import { getPendingReviewCount } from "@/app/actions/portfolio-review";
 
 export default async function AdminLayout({
   children,
@@ -28,6 +29,16 @@ export default async function AdminLayout({
   // Resolve active admin read scope (supports super-admin impersonation)
   const scope = await getAdminReadScope();
   const isReadOnly = scope.isImpersonating;
+
+  // Get pending review count for super admin
+  let pendingReviewCount = 0;
+  if (session.user.role === "super_admin" && !scope.portfolioId) {
+    try {
+      pendingReviewCount = await getPendingReviewCount();
+    } catch {
+      // Ignore errors
+    }
+  }
 
   let activePortfolioLabel: string = "—";
   let avatarUrl: string | null = null;
@@ -170,10 +181,15 @@ export default async function AdminLayout({
               <>
                 <Link
                   href="/admin/users"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg relative"
                 >
                   <Users className="h-4 w-4" />
                   Users
+                  {pendingReviewCount > 0 && (
+                    <span className="ml-auto bg-yellow-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                      {pendingReviewCount > 9 ? "9+" : pendingReviewCount}
+                    </span>
+                  )}
                 </Link>
               </>
             ) : (
@@ -245,10 +261,15 @@ export default async function AdminLayout({
                 {session.user.role === "super_admin" && (
                   <Link
                     href="/admin/users"
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg relative"
                   >
                     <Users className="h-4 w-4" />
                     Users
+                    {pendingReviewCount > 0 && (
+                      <span className="ml-auto bg-yellow-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                        {pendingReviewCount > 9 ? "9+" : pendingReviewCount}
+                      </span>
+                    )}
                   </Link>
                 )}
               </>

@@ -9,7 +9,10 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-function normalizeSlug(input: string) {
+function normalizeSlug(input: string | null | undefined) {
+  if (!input || typeof input !== "string") {
+    throw new Error("Slug is required");
+  }
   const v = input
     .trim()
     .toLowerCase()
