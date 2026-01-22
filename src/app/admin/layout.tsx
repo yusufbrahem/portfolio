@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { Logo } from "@/components/logo";
 
 export default async function AdminLayout({
   children,
@@ -93,6 +94,9 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-background" data-admin-readonly={isReadOnly ? "true" : "false"}>
       <header className="border-b border-border bg-panel">
         <Container className="py-4">
+          <div className="mb-4">
+            <Logo className="text-sm" />
+          </div>
           {isReadOnly ? (
             <div className="mb-3 rounded-lg border border-border bg-panel2 px-4 py-3">
               <p className="text-sm font-semibold text-foreground">

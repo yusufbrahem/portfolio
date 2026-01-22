@@ -21,33 +21,31 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://youssef-brahem.vercel.app",
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://folio.dev",
   ),
   title: {
-    default: "Youssef Brahem — Senior Backend & Fintech Engineer",
-    template: "%s — Youssef Brahem",
+    default: "Folio — Create and share your professional portfolio",
+    template: "%s — Folio",
   },
   description:
-    "Senior Backend Engineer (banking & fintech). Java, Spring Boot, secure REST APIs, OAuth2/OIDC, Keycloak, transaction processing, payment systems, and scalable banking platforms.",
-  applicationName: "Youssef Brahem Portfolio",
-  authors: [{ name: "Youssef Brahem" }],
-  creator: "Youssef Brahem",
+    "Create and share your professional portfolio. Build a beautiful, customizable portfolio to showcase your work, skills, and experience. No coding required.",
+  applicationName: "Folio",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
-    title: "Youssef Brahem — Senior Backend & Fintech Engineer",
+    title: "Folio — Create and share your professional portfolio",
     description:
-      "Senior Backend Engineer (banking & fintech). Java, Spring Boot, OAuth2/OIDC, Keycloak, transaction processing, payment systems, and scalable banking platforms.",
+      "Create and share your professional portfolio. Build a beautiful, customizable portfolio to showcase your work, skills, and experience.",
     url: "/",
-    siteName: "Youssef Brahem",
+    siteName: "Folio",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Youssef Brahem — Senior Backend & Fintech Engineer",
+    title: "Folio — Create and share your professional portfolio",
     description:
-      "Senior Backend Engineer (banking & fintech). Java, Spring Boot, OAuth2/OIDC, Keycloak, transaction processing, payment systems, and scalable banking platforms.",
+      "Create and share your professional portfolio. Build a beautiful, customizable portfolio to showcase your work, skills, and experience.",
   },
   robots: {
     index: true,
