@@ -53,11 +53,11 @@ export function ResetPasswordButton({ userId, userEmail }: { userId: string; use
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="px-2 py-1 rounded text-xs font-semibold bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors flex items-center gap-1"
+        className="px-2 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all flex items-center gap-1"
         title="Reset password"
       >
         <Key className="h-3 w-3" />
-        Reset Password
+        <span className="hidden sm:inline">Reset</span>
       </button>
     );
   }
