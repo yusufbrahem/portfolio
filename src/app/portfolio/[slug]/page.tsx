@@ -91,11 +91,11 @@ export default async function PortfolioPage({ params }: PageProps) {
           .join(" • ")
       : null;
 
-  // Build cache-busted avatar URL
+  // Build cache-busted avatar URL (only if user uploaded one)
   const avatarUrl = (person as any).avatarUrl;
   const avatarSrc = avatarUrl
     ? `${avatarUrl}?t=${new Date((person as any).updatedAt).getTime()}`
-    : "/profile.png";
+    : null;
 
   return (
     <div>
@@ -156,12 +156,20 @@ export default async function PortfolioPage({ params }: PageProps) {
           <div className="lg:col-span-5">
             <div className="grid gap-5">
               <Motion delay={0.08}>
-                <Avatar
-                  src={avatarSrc}
-                  alt={`${person.name} headshot`}
-                  priority
-                  className="mx-auto aspect-square w-[260px] sm:w-[300px] lg:w-full"
-                />
+                {avatarSrc ? (
+                  <Avatar
+                    src={avatarSrc}
+                    alt={`${person.name} headshot`}
+                    priority
+                    className="mx-auto aspect-square w-[260px] sm:w-[300px] lg:w-full"
+                  />
+                ) : (
+                  <div className="mx-auto aspect-square w-[260px] sm:w-[300px] lg:w-full rounded-2xl border border-border bg-panel flex items-center justify-center">
+                    <div className="text-6xl font-bold text-muted">
+                      {person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                  </div>
+                )}
               </Motion>
               <Motion delay={0.12}>
                 <Card className="p-6">

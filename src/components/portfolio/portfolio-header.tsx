@@ -5,11 +5,11 @@ import { Avatar } from "@/components/avatar";
 export function PortfolioHeader({
   slug,
   name,
-  avatarSrc = "/profile.png",
+  avatarSrc,
 }: {
   slug: string;
   name: string;
-  avatarSrc?: string;
+  avatarSrc?: string | null;
 }) {
   const base = `/portfolio/${slug}`;
   const nav = [
@@ -29,7 +29,13 @@ export function PortfolioHeader({
             href={base}
             className="flex items-center gap-3 text-sm font-semibold text-foreground hover:text-accent transition-colors"
           >
-            <Avatar src={avatarSrc} alt={`${name} avatar`} className="h-8 w-8" />
+            {avatarSrc ? (
+              <Avatar src={avatarSrc} alt={`${name} avatar`} className="h-8 w-8" />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-panel border border-border flex items-center justify-center text-xs font-semibold text-muted">
+                {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <span>{name}</span>
           </Link>
 

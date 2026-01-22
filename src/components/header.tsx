@@ -19,10 +19,10 @@ export async function Header() {
     } else if (session.user.portfolioId) {
       const portfolio = await prisma.portfolio.findUnique({
         where: { id: session.user.portfolioId },
-        select: { slug: true, isPublished: true },
+        select: { slug: true, status: true },
       });
       portfolioSlug = portfolio?.slug || null;
-      isPublished = portfolio?.isPublished || false;
+      isPublished = portfolio?.status === "PUBLISHED";
     }
   }
 

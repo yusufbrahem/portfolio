@@ -11,7 +11,7 @@ export function Avatar({
   className,
   priority,
 }: {
-  src: string;
+  src: string | null | undefined;
   alt: string;
   className?: string;
   priority?: boolean;
@@ -20,7 +20,7 @@ export function Avatar({
 
   // For user-uploaded images (in /uploads/), use regular img tag to support cache-busting query strings
   // For static assets, use Next.js Image component
-  const isUserUploaded = src.startsWith("/uploads/");
+  const isUserUploaded = src?.startsWith("/uploads/") ?? false;
 
   return (
     <div
