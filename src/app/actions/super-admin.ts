@@ -2,7 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import { requireSuperAdmin } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
+import { requireSuperAdmin, assertNotImpersonatingForWrite } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
 const IMPERSONATE_PORTFOLIO_COOKIE = "admin_impersonate_portfolio_id";
@@ -229,6 +230,44 @@ export async function deleteUser(userId: string) {
   });
 
   return { success: true };
+}
+
+/**
+ * Super admin: reset a user's password.
+ * Does NOT require current password - super admin can reset any user's password.
+ * Blocks during impersonation.
+ */
+export async function resetUserPassword(userId: string, newPassword: string) {
+  const session = await requireSuperAdmin();
+  await assertNotImpersonatingForWrite(); // Block password resets during impersonation
+
+  // Validate password length
+  if (newPassword.length < 8) {
+    throw new Error("New password must be at least 8 characters long");
+  }
+
+  // Verify target user exists
+  const targetUser = await prisma.adminUser.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true },
+  });
+
+  if (!targetUser) {
+    throw new Error("User not found");
+  }
+
+  // Hash new password
+  const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+  // Update password
+  await prisma.adminUser.update({
+    where: { id: userId },
+    data: { passwordHash: newPasswordHash },
+  });
+
+  revalidatePath("/admin/users");
+
+  return { success: true, email: targetUser.email };
 }
 
 /**

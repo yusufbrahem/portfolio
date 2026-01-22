@@ -2,6 +2,7 @@ import { Container } from "@/components/container";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AccountForm } from "./ui";
+import { ChangePasswordForm } from "./change-password-form";
 import { redirect } from "next/navigation";
 
 export default async function AdminAccountPage() {
@@ -66,6 +67,8 @@ export default async function AdminAccountPage() {
           initialAvatarUrl={(personInfo as any)?.avatarUrl || null}
           initialAvatarUpdatedAt={(personInfo as any)?.updatedAt || null}
         />
+
+        <ChangePasswordForm isImpersonating={scope.isImpersonating} />
       </div>
     </Container>
   );

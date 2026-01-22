@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -122,4 +123,47 @@ export async function updateMyPortfolioSlug(data: { slug: string }) {
   revalidatePath("/admin/users");
 
   return { slug: nextSlug };
+}
+
+/**
+ * Change the current user's password.
+ * Requires authentication and blocks during impersonation.
+ */
+export async function changeMyPassword(data: { currentPassword: string; newPassword: string }) {
+  const session = await requireAuth();
+  await assertNotImpersonatingForWrite(); // Block password changes during impersonation
+
+  // Validate password length
+  if (data.newPassword.length < 8) {
+    throw new Error("New password must be at least 8 characters long");
+  }
+
+  // Get current user with password hash
+  const user = await prisma.adminUser.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, passwordHash: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Verify current password
+  const isValid = await bcrypt.compare(data.currentPassword, user.passwordHash);
+  if (!isValid) {
+    throw new Error("Current password is incorrect");
+  }
+
+  // Hash new password
+  const newPasswordHash = await bcrypt.hash(data.newPassword, 10);
+
+  // Update password
+  await prisma.adminUser.update({
+    where: { id: user.id },
+    data: { passwordHash: newPasswordHash },
+  });
+
+  revalidatePath("/admin/account");
+
+  return { success: true };
 }

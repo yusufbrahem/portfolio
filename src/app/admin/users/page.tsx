@@ -6,6 +6,7 @@ import { Users, Eye, EyeOff, ExternalLink, Globe, Lock } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { CreateUserForm } from "@/components/admin/create-user-form";
 import { DeleteUserButton } from "@/components/admin/delete-user-button";
+import { ResetPasswordButton } from "@/components/admin/reset-password-button";
 import Link from "next/link";
 
 export default async function AdminUsersPage() {
@@ -205,6 +206,7 @@ export default async function AdminUsersPage() {
                                 </form>
                               </>
                             ) : null}
+                            <ResetPasswordButton userId={user.id} userEmail={user.email} />
                             {user.id !== session.user.id && <DeleteUserButton userId={user.id} />}
                             {!user.portfolio && <span className="text-muted-disabled text-xs">—</span>}
                           </div>
