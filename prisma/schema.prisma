@@ -213,12 +213,21 @@ model AdminUser {
   updatedAt    DateTime  @updatedAt
 }
 
+enum PortfolioStatus {
+  DRAFT
+  READY_FOR_REVIEW
+  REJECTED
+  PUBLISHED
+}
+
 model Portfolio {
   id                String                @id @default(uuid())
   userId            String                @unique // One portfolio per user
   user              AdminUser             @relation(fields: [userId], references: [id], onDelete: Cascade)
   slug              String?               // URL-friendly identifier (e.g., "john-doe")
-  isPublished       Boolean               @default(false)
+  isPublished       Boolean               @default(false) // Deprecated: use status instead
+  status            PortfolioStatus       @default(DRAFT) // Portfolio lifecycle status
+  rejectionReason   String?               // Reason for rejection (if status is REJECTED)
   skillGroups       SkillGroup[]          // Portfolio-specific skill groups
   experiences       Experience[]          // Portfolio-specific experience entries
   projects          Project[]             // Portfolio-specific projects
@@ -231,4 +240,5 @@ model Portfolio {
 
   @@index([userId])
   @@index([slug])
+  @@index([status])
 }

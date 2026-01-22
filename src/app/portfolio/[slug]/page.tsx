@@ -16,6 +16,8 @@ import {
   getAboutContent,
   getArchitectureContent,
 } from "@/lib/data";
+import { NotPublishedPage } from "@/components/portfolio/not-published-page";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,15 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
   const portfolio = await getPortfolioBySlug(slug);
+  
+  // Only generate metadata for published portfolios
+  if (!portfolio || portfolio.status !== "PUBLISHED") {
+    return {
+      title: "Portfolio Not Available",
+      description: "This portfolio is not available.",
+    };
+  }
+  
   const person = await getPersonInfo(portfolio.id);
 
   return {
@@ -37,8 +48,18 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function PortfolioPage({ params }: PageProps) {
   const { slug } = await params;
   
-  // Get portfolio - will throw 404 if not found or not published
+  // Get portfolio - returns null if not found, includes status
   const portfolio = await getPortfolioBySlug(slug);
+
+  // If portfolio not found, show 404
+  if (!portfolio) {
+    notFound();
+  }
+
+  // If portfolio is not PUBLISHED, show friendly not-published page
+  if (portfolio.status !== "PUBLISHED") {
+    return <NotPublishedPage portfolio={portfolio} />;
+  }
 
   // Fetch all portfolio-specific data
   const [person, hero, skills, projects, experience, about, architecture] = await Promise.all([

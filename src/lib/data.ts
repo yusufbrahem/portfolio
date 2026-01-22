@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 
 /**
  * Get portfolio by slug - public access
- * Returns portfolio if published, throws 404 if not found or not published
+ * Returns portfolio with status, never throws 404 (returns null if not found)
+ * Caller should handle status to show appropriate content
  */
 export async function getPortfolioBySlug(slug: string) {
   const portfolio = await prisma.portfolio.findUnique({
@@ -14,6 +15,9 @@ export async function getPortfolioBySlug(slug: string) {
       id: true,
       slug: true,
       isPublished: true,
+      status: true,
+      rejectionReason: true,
+      userId: true,
       user: {
         select: {
           name: true,
@@ -22,10 +26,6 @@ export async function getPortfolioBySlug(slug: string) {
       },
     },
   });
-
-  if (!portfolio || !portfolio.isPublished) {
-    notFound();
-  }
 
   return portfolio;
 }
