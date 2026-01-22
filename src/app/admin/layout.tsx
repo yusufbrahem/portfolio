@@ -160,77 +160,94 @@ export default async function AdminLayout({
       <div className="flex">
         <aside className="w-64 border-r border-border bg-panel min-h-[calc(100vh-73px)]">
           <nav className="p-4 space-y-2">
-            <Link
-              href="/admin"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <Settings className="h-4 w-4" />
-              Dashboard
-            </Link>
-            <Link
-              href="/admin/skills"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <Code className="h-4 w-4" />
-              Skills
-            </Link>
-            <Link
-              href="/admin/projects"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <FolderOpen className="h-4 w-4" />
-              Projects
-            </Link>
-            <Link
-              href="/admin/experience"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <Briefcase className="h-4 w-4" />
-              Experience
-            </Link>
-            <Link
-              href="/admin/about"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <User className="h-4 w-4" />
-              About
-            </Link>
-            <Link
-              href="/admin/hero"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <Sparkles className="h-4 w-4" />
-              Hero
-            </Link>
-            <Link
-              href="/admin/architecture"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <Building2 className="h-4 w-4" />
-              Architecture
-            </Link>
-            <Link
-              href="/admin/contact"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <Mail className="h-4 w-4" />
-              Contact
-            </Link>
-            <Link
-              href="/admin/account"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-            >
-              <CircleUser className="h-4 w-4" />
-              Account
-            </Link>
-            {session.user.role === "super_admin" && (
-              <Link
-                href="/admin/users"
-                className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-              >
-                <Users className="h-4 w-4" />
-                Users
-              </Link>
+            {/* PLATFORM HARDENING: Super admin (not impersonating) sees ONLY Users management */}
+            {session.user.role === "super_admin" && !scope.portfolioId ? (
+              // Super admin not impersonating: platform-only UI
+              <>
+                <Link
+                  href="/admin/users"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <Users className="h-4 w-4" />
+                  Users
+                </Link>
+              </>
+            ) : (
+              // Regular users OR super admin impersonating: full portfolio management UI
+              <>
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <Settings className="h-4 w-4" />
+                  Dashboard
+                </Link>
+                <Link
+                  href="/admin/skills"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <Code className="h-4 w-4" />
+                  Skills
+                </Link>
+                <Link
+                  href="/admin/projects"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                  Projects
+                </Link>
+                <Link
+                  href="/admin/experience"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Experience
+                </Link>
+                <Link
+                  href="/admin/about"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <User className="h-4 w-4" />
+                  About
+                </Link>
+                <Link
+                  href="/admin/hero"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Hero
+                </Link>
+                <Link
+                  href="/admin/architecture"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Architecture
+                </Link>
+                <Link
+                  href="/admin/contact"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <Mail className="h-4 w-4" />
+                  Contact
+                </Link>
+                <Link
+                  href="/admin/account"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <CircleUser className="h-4 w-4" />
+                  Account
+                </Link>
+                {session.user.role === "super_admin" && (
+                  <Link
+                    href="/admin/users"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                  >
+                    <Users className="h-4 w-4" />
+                    Users
+                  </Link>
+                )}
+              </>
             )}
           </nav>
         </aside>

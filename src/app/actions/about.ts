@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -47,6 +47,7 @@ export async function updateAboutContent(data: {
   paragraphs: string[];
 }) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
   

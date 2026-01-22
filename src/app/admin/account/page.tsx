@@ -2,10 +2,17 @@ import { Container } from "@/components/container";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AccountForm } from "./ui";
+import { redirect } from "next/navigation";
 
 export default async function AdminAccountPage() {
   const session = await requireAuth();
   const scope = await getAdminReadScope();
+  
+  // PLATFORM HARDENING: Super admin (not impersonating) cannot access account page
+  // (Account page is for portfolio management, super admin should use Users page)
+  if (session.user.role === "super_admin" && !scope.portfolioId) {
+    redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
 
   // When impersonating, show the impersonated user's account info
   // Otherwise, show YOUR account info

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -82,6 +82,7 @@ export async function getMyPortfolioSlug() {
 
 export async function updateMyPortfolioSlug(data: { slug: string }) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
 
   const portfolio = await prisma.portfolio.findUnique({

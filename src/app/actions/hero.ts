@@ -24,6 +24,7 @@ export async function updateHeroContent(data: {
   highlights: string[];
 }) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
 
   const portfolioId = session.user.portfolioId;

@@ -2,11 +2,17 @@ import { Container } from "@/components/container";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { getHeroContentForAdmin } from "@/app/actions/hero";
 import { HeroManager } from "@/components/admin/hero-manager";
+import { redirect } from "next/navigation";
 
 export default async function AdminHeroPage() {
   const session = await requireAuth();
   const scope = await getAdminReadScope();
   const portfolioId = scope.portfolioId;
+  
+  // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
+  if (session.user.role === "super_admin" && !portfolioId) {
+    redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
 
   const heroContent = await getHeroContentForAdmin();
 

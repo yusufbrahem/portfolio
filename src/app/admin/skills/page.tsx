@@ -1,11 +1,19 @@
 import { Container } from "@/components/container";
 import { getSkillGroupsForAdmin } from "@/app/actions/skills";
-import { getAdminReadScope } from "@/lib/auth";
+import { getAdminReadScope, requireAuth } from "@/lib/auth";
 import { SkillsManager } from "@/components/admin/skills-manager";
+import { redirect } from "next/navigation";
 
 export default async function AdminSkillsPage() {
-  const skillGroups = await getSkillGroupsForAdmin();
+  const session = await requireAuth();
   const scope = await getAdminReadScope();
+  
+  // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
+  if (session.user.role === "super_admin" && !scope.portfolioId) {
+    redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
+  
+  const skillGroups = await getSkillGroupsForAdmin();
 
   return (
     <Container>

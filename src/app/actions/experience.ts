@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -106,6 +106,7 @@ export async function createExperience(data: {
   tech: string[];
 }) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
   
@@ -153,6 +154,7 @@ export async function updateExperience(
   },
 ) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
   // Verify resource exists and user has access
@@ -205,6 +207,7 @@ export async function updateExperience(
 
 export async function deleteExperience(id: string) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
   // Verify resource exists and user has access

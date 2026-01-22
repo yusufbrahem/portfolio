@@ -81,6 +81,20 @@ export async function assertNotImpersonatingForWrite(): Promise<void> {
 }
 
 /**
+ * Block ALL portfolio write operations for super_admin.
+ * Super admin accounts are platform-only and cannot edit portfolio content.
+ * This applies even when NOT impersonating.
+ * 
+ * PLATFORM HARDENING: Super admin is locked to platform management only.
+ */
+export async function assertNotSuperAdminForPortfolioWrite(): Promise<void> {
+  const session = await requireAuth();
+  if (session.user.role === "super_admin") {
+    throw new Error("Super admin accounts are for platform management only. Portfolio editing is disabled.");
+  }
+}
+
+/**
  * Get the current user ID from session
  * Throws if not authenticated
  */

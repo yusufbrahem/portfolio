@@ -1,12 +1,19 @@
 import { Container } from "@/components/container";
 import { getArchitectureContentForAdmin, ensureArchitectureContent } from "@/app/actions/architecture";
-import { getAdminReadScope, assertNotImpersonatingForWrite } from "@/lib/auth";
+import { getAdminReadScope, assertNotImpersonatingForWrite, requireAuth } from "@/lib/auth";
 import { ArchitectureManager } from "@/components/admin/architecture-manager";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminArchitecturePage() {
+  const session = await requireAuth();
   const scope = await getAdminReadScope();
+  
+  // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
+  if (session.user.role === "super_admin" && !scope.portfolioId) {
+    redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
   let architectureContent = await getArchitectureContentForAdmin();
   
   // Ensure architecture content exists (only if not impersonating)

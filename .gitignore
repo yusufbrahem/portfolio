@@ -65,3 +65,6 @@ public/uploads/
 
 # temporary/unused files
 temp/
+
+# migration credentials (contains sensitive data)
+MIGRATION_CREDENTIALS.txt

@@ -1,13 +1,21 @@
 import { Container } from "@/components/container";
 import { getAboutContentForAdmin } from "@/app/actions/about";
-import { getAdminReadScope } from "@/lib/auth";
+import { getAdminReadScope, requireAuth } from "@/lib/auth";
 import { AboutManager } from "@/components/admin/about-manager";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminAboutPage() {
-  const aboutContent = await getAboutContentForAdmin();
+  const session = await requireAuth();
   const scope = await getAdminReadScope();
+  
+  // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
+  if (session.user.role === "super_admin" && !scope.portfolioId) {
+    redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
+  
+  const aboutContent = await getAboutContentForAdmin();
 
   return (
     <Container>

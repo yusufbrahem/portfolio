@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { getHeroContentForAdmin } from "@/app/actions/hero";
 import { HeroManager } from "@/components/admin/hero-manager";
+import { redirect } from "next/navigation";
 
 export default async function AdminDashboard() {
   // Require authentication before accessing any data
@@ -13,6 +14,11 @@ export default async function AdminDashboard() {
   // Get active portfolio scope (supports super-admin impersonation)
   const scope = await getAdminReadScope();
   const portfolioId = scope.portfolioId;
+  
+  // PLATFORM HARDENING: Super admin (not impersonating) cannot access dashboard
+  if (session.user.role === "super_admin" && !portfolioId) {
+    redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
 
   // Build where clause: if portfolioId is set, filter by it; otherwise super admin sees all
   const whereClause = portfolioId ? { portfolioId } : (session.user.role === "super_admin" ? {} : { portfolioId: session.user.portfolioId || "none" });

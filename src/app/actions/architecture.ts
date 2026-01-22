@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -54,6 +54,7 @@ export async function getArchitectureContentForAdmin() {
 
 export async function ensureArchitectureContent() {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
   
@@ -81,6 +82,7 @@ export async function createPillar(data: {
   order: number;
 }) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
   // Verify parent resource exists and user has access
@@ -113,6 +115,7 @@ export async function updatePillar(
   data: { title?: string; order?: number }
 ) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
   // Verify resource exists and get parent portfolioId
@@ -147,6 +150,7 @@ export async function updatePillar(
 
 export async function deletePillar(id: string) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
   // Verify resource exists and get parent portfolioId
@@ -183,6 +187,7 @@ export async function createPoint(data: {
   order: number;
 }) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
   // Verify parent resource exists and get grandparent portfolioId
@@ -219,6 +224,7 @@ export async function updatePoint(
   data: { text?: string; order?: number }
 ) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
   // Verify resource exists and get grandparent portfolioId
@@ -257,6 +263,7 @@ export async function updatePoint(
 
 export async function deletePoint(id: string) {
   const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
   // Verify resource exists and get grandparent portfolioId
