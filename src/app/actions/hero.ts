@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth, assertNotImpersonatingForWrite, getAdminReadScope } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite, getAdminReadScope } from "@/lib/auth";
 
 export async function getHeroContentForAdmin() {
   const session = await requireAuth();

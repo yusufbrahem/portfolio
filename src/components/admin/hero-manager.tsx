@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Save, Plus, X } from "lucide-react";
+import { Save, Plus, X, Sparkles } from "lucide-react";
 import { updateHeroContent } from "@/app/actions/hero";
 
 type HeroRecord = {
@@ -10,10 +10,24 @@ type HeroRecord = {
   highlights: string; // JSON in DB
 } | null;
 
-export function HeroManager({ initialData, isReadOnly = false }: { initialData: HeroRecord; isReadOnly?: boolean }) {
+type PersonInfo = {
+  name: string;
+  role: string;
+} | null;
+
+export function HeroManager({ 
+  initialData, 
+  personInfo,
+  isReadOnly = false 
+}: { 
+  initialData: HeroRecord; 
+  personInfo?: PersonInfo;
+  isReadOnly?: boolean;
+}) {
   const [hero, setHero] = useState<HeroRecord>(initialData);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const parsedHighlights = useMemo(() => {
     if (!hero) return [] as string[];
@@ -31,15 +45,33 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
     highlights: parsedHighlights.join("\n"),
   });
 
+  // Generate smart default headline from PersonInfo
+  const getSmartDefaultHeadline = (): string => {
+    if (!personInfo || !personInfo.name || !personInfo.role) {
+      return "";
+    }
+    return `${personInfo.name} — ${personInfo.role}`;
+  };
+
   const beginCreate = () => {
+    setIsCreating(true);
     setHero({ headline: "", subheadline: "", highlights: "[]" });
-    setForm({ headline: "", subheadline: "", highlights: "" });
+    const defaultHeadline = getSmartDefaultHeadline();
+    setForm({ 
+      headline: defaultHeadline, 
+      subheadline: "", 
+      highlights: "" 
+    });
     setIsEditing(true);
   };
 
   const beginEdit = () => {
+    setIsCreating(false);
+    // If headline is empty, pre-fill with smart default
+    const currentHeadline = hero?.headline || "";
+    const defaultHeadline = !currentHeadline ? getSmartDefaultHeadline() : currentHeadline;
     setForm({
-      headline: hero?.headline || "",
+      headline: defaultHeadline,
       subheadline: hero?.subheadline || "",
       highlights: parsedHighlights.join("\n"),
     });
@@ -49,6 +81,7 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
   const cancel = () => {
     setError(null);
     setIsEditing(false);
+    setIsCreating(false);
     setForm({
       headline: hero?.headline || "",
       subheadline: hero?.subheadline || "",
@@ -74,6 +107,7 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
         highlights: result.highlights || "[]",
       });
       setIsEditing(false);
+      setIsCreating(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save hero content");
     }
@@ -140,6 +174,17 @@ export function HeroManager({ initialData, isReadOnly = false }: { initialData: 
               className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
+            {isCreating && (!personInfo || !personInfo.name || !personInfo.role) && (
+              <p className="mt-1 text-xs text-muted">
+                Add your name and role in Profile settings to auto-generate this headline.
+              </p>
+            )}
+            {((isCreating || !hero?.headline) && personInfo?.name && personInfo?.role && form.headline === getSmartDefaultHeadline()) && (
+              <p className="mt-1.5 text-xs text-muted flex items-center gap-1.5 animate-pulse">
+                <Sparkles className="h-3 w-3 text-accent" />
+                <span>Suggested from your profile</span>
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Subheadline</label>

@@ -3,6 +3,7 @@ import { getPersonInfoForAdmin } from "@/app/actions/contact";
 import { getAdminReadScope, requireAuth } from "@/lib/auth";
 import { ContactManager } from "@/components/admin/contact-manager";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,27 @@ export default async function AdminContactPage() {
   
   const personInfo = await getPersonInfoForAdmin();
 
+  // Get user's name and email for smart defaults
+  let userId = session.user.id;
+  if (scope.isImpersonating && scope.portfolioId) {
+    const impersonatedPortfolio = await prisma.portfolio.findUnique({
+      where: { id: scope.portfolioId },
+      select: { userId: true },
+    });
+    if (impersonatedPortfolio) {
+      userId = impersonatedPortfolio.userId;
+    }
+  }
+
+  const adminUser = await prisma.adminUser.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true },
+  });
+
+  // Use AdminUser name if available, otherwise use session user name, otherwise use email prefix
+  const defaultName = adminUser?.name || session.user.name || adminUser?.email?.split("@")[0] || "";
+  const defaultEmail = adminUser?.email || session.user.email || "";
+
   return (
     <Container>
       <div className="space-y-6">
@@ -25,7 +47,11 @@ export default async function AdminContactPage() {
           <p className="text-muted">Manage your contact details, email, and LinkedIn</p>
         </div>
 
-        <ContactManager initialData={personInfo} isReadOnly={scope.isImpersonating} />
+        <ContactManager 
+          initialData={personInfo} 
+          userDefaults={(defaultName || defaultEmail) ? { name: defaultName, email: defaultEmail } : null}
+          isReadOnly={scope.isImpersonating} 
+        />
       </div>
     </Container>
   );

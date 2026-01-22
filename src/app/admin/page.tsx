@@ -192,7 +192,11 @@ export default async function AdminDashboard() {
               </p>
             </div>
           ) : (
-            <HeroManager initialData={heroContent} isReadOnly={scope.isImpersonating} />
+            <HeroManager 
+              initialData={heroContent} 
+              personInfo={personInfo ? { name: personInfo.name, role: personInfo.role } : null}
+              isReadOnly={scope.isImpersonating} 
+            />
           )}
         </div>
       </div>

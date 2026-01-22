@@ -1,17 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Upload, Loader2, Plus } from "lucide-react";
+import { Save, Upload, Loader2, Plus, Sparkles } from "lucide-react";
 import { updatePersonInfo, type getPersonInfo } from "@/app/actions/contact";
 import { uploadCV } from "@/app/actions/upload";
 
 type PersonInfo = Awaited<ReturnType<typeof getPersonInfo>>;
 
-export function ContactManager({ initialData, isReadOnly = false }: { initialData: PersonInfo | null; isReadOnly?: boolean }) {
+type UserDefaults = {
+  name: string;
+  email: string;
+} | null;
+
+export function ContactManager({ 
+  initialData, 
+  userDefaults,
+  isReadOnly = false 
+}: { 
+  initialData: PersonInfo | null; 
+  userDefaults?: UserDefaults;
+  isReadOnly?: boolean;
+}) {
   const [personInfo, setPersonInfo] = useState(initialData);
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   
   // Extract filename from CV URL if it exists
   const getFilenameFromUrl = (url: string | null | undefined): string | null => {
@@ -24,14 +38,21 @@ export function ContactManager({ initialData, isReadOnly = false }: { initialDat
     getFilenameFromUrl(initialData?.cvUrl)
   );
   
-  const [formData, setFormData] = useState({
-    name: initialData?.name || "",
-    role: initialData?.role || "",
-    location: initialData?.location || "",
-    email: initialData?.email || "",
-    linkedIn: initialData?.linkedIn || "",
-    cvUrl: initialData?.cvUrl || "",
-  });
+  // Get smart defaults: use existing data if available and not empty, otherwise use user defaults
+  const getSmartDefaults = () => {
+    const existingName = initialData?.name?.trim();
+    const existingEmail = initialData?.email?.trim();
+    return {
+      name: existingName || userDefaults?.name || "",
+      email: existingEmail || userDefaults?.email || "",
+      role: initialData?.role || "",
+      location: initialData?.location || "",
+      linkedIn: initialData?.linkedIn || "",
+      cvUrl: initialData?.cvUrl || "",
+    };
+  };
+  
+  const [formData, setFormData] = useState(getSmartDefaults());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +67,7 @@ export function ContactManager({ initialData, isReadOnly = false }: { initialDat
       const result = await updatePersonInfo(formData);
       setPersonInfo(result);
       setIsEditing(false);
+      setIsCreating(false);
       setUploadError(null);
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Failed to save contact information");
@@ -91,7 +113,12 @@ export function ContactManager({ initialData, isReadOnly = false }: { initialDat
         </div>
         <p className="text-sm text-muted">No profile yet for this portfolio.</p>
         <button
-          onClick={() => setIsEditing(true)}
+          onClick={() => {
+            setIsCreating(true);
+            setIsEditing(true);
+            // Pre-fill with smart defaults when creating
+            setFormData(getSmartDefaults());
+          }}
           disabled={isReadOnly}
           className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -108,7 +135,27 @@ export function ContactManager({ initialData, isReadOnly = false }: { initialDat
         <h2 className="text-lg font-semibold text-foreground">Contact Information</h2>
         {!isEditing && (
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={() => {
+              setIsCreating(false);
+              setIsEditing(true);
+              // When editing, if fields are empty, pre-fill with smart defaults
+              const current = {
+                name: personInfo?.name?.trim() || "",
+                email: personInfo?.email?.trim() || "",
+                role: personInfo?.role || "",
+                location: personInfo?.location || "",
+                linkedIn: personInfo?.linkedIn || "",
+                cvUrl: personInfo?.cvUrl || "",
+              };
+              setFormData({
+                name: current.name || userDefaults?.name || "",
+                email: current.email || userDefaults?.email || "",
+                role: current.role || "",
+                location: current.location || "",
+                linkedIn: current.linkedIn || "",
+                cvUrl: current.cvUrl || "",
+              });
+            }}
             disabled={isReadOnly}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -129,6 +176,12 @@ export function ContactManager({ initialData, isReadOnly = false }: { initialDat
               className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
               required
             />
+            {userDefaults && formData.name === userDefaults.name && !initialData?.name?.trim() && (
+              <p className="mt-1.5 text-xs text-muted flex items-center gap-1.5 animate-pulse">
+                <Sparkles className="h-3 w-3 text-accent" />
+                <span>Suggested from your account</span>
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Role</label>
@@ -159,6 +212,12 @@ export function ContactManager({ initialData, isReadOnly = false }: { initialDat
               className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
               required
             />
+            {userDefaults && formData.email === userDefaults.email && !initialData?.email?.trim() && (
+              <p className="mt-1.5 text-xs text-muted flex items-center gap-1.5 animate-pulse">
+                <Sparkles className="h-3 w-3 text-accent" />
+                <span>Suggested from your account</span>
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">LinkedIn URL</label>
@@ -256,20 +315,14 @@ export function ContactManager({ initialData, isReadOnly = false }: { initialDat
               <Save className="h-4 w-4" />
               Save
             </button>
-            {personInfo && (
+            {(personInfo || isCreating) && (
               <button
                 type="button"
                 onClick={() => {
                   setIsEditing(false);
-                  setFormData({
-                    name: personInfo.name,
-                    role: personInfo.role,
-                    location: personInfo.location,
-                    email: personInfo.email,
-                    linkedIn: personInfo.linkedIn,
-                    cvUrl: personInfo.cvUrl || "",
-                  });
-                  setUploadedFileName(null);
+                  setIsCreating(false);
+                  setFormData(getSmartDefaults());
+                  setUploadedFileName(getFilenameFromUrl(initialData?.cvUrl));
                   setUploadError(null);
                 }}
                 className="flex items-center gap-2 px-4 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2"
