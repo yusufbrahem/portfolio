@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { changeMyPassword } from "@/app/actions/account";
+import { getMinPasswordLengthAction } from "@/app/actions/password-validation";
 import { Lock, Loader2 } from "lucide-react";
 
 export function ChangePasswordForm({ isImpersonating }: { isImpersonating: boolean }) {
@@ -10,7 +11,16 @@ export function ChangePasswordForm({ isImpersonating }: { isImpersonating: boole
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [minPasswordLength, setMinPasswordLength] = useState(6); // Default fallback
   const [isPending, startTransition] = useTransition();
+
+  // Fetch minimum password length from server
+  useEffect(() => {
+    getMinPasswordLengthAction().then(setMinPasswordLength).catch(() => {
+      // Fallback to 6 if fetch fails
+      setMinPasswordLength(6);
+    });
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,8 +28,8 @@ export function ChangePasswordForm({ isImpersonating }: { isImpersonating: boole
     setSuccess(null);
 
     // Client-side validation
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters long");
+    if (newPassword.length < minPasswordLength) {
+      setError(`New password must be at least ${minPasswordLength} characters long`);
       return;
     }
 
@@ -86,11 +96,11 @@ export function ChangePasswordForm({ isImpersonating }: { isImpersonating: boole
             disabled={isPending || isImpersonating}
             className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
             required
-            minLength={8}
+            minLength={minPasswordLength}
             autoComplete="new-password"
           />
           <p className="mt-1 text-xs text-muted-disabled">
-            Must be at least 8 characters long.
+            Must be at least {minPasswordLength} characters long.
           </p>
         </div>
 
@@ -106,7 +116,7 @@ export function ChangePasswordForm({ isImpersonating }: { isImpersonating: boole
             disabled={isPending || isImpersonating}
             className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
             required
-            minLength={8}
+            minLength={minPasswordLength}
             autoComplete="new-password"
           />
         </div>

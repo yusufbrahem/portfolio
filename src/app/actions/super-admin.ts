@@ -117,10 +117,9 @@ export async function createUser(data: { email: string; password: string; name?:
     throw new Error("Invalid email address");
   }
 
-  // Validate password length
-  if (!data.password || data.password.length < 6) {
-    throw new Error("Password must be at least 6 characters");
-  }
+  // Validate password length (configurable via MIN_PASSWORD_LENGTH env var)
+  const { validatePasswordLength } = await import("@/lib/password-validation");
+  validatePasswordLength(data.password);
 
   // Check if user already exists
   const existing = await prisma.adminUser.findUnique({
@@ -241,10 +240,9 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   const session = await requireSuperAdmin();
   await assertNotImpersonatingForWrite(); // Block password resets during impersonation
 
-  // Validate password length
-  if (newPassword.length < 8) {
-    throw new Error("New password must be at least 8 characters long");
-  }
+  // Validate password length (configurable via MIN_PASSWORD_LENGTH env var)
+  const { validatePasswordLength } = await import("@/lib/password-validation");
+  validatePasswordLength(newPassword);
 
   // Verify target user exists
   const targetUser = await prisma.adminUser.findUnique({

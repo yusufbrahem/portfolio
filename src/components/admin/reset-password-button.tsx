@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { resetUserPassword } from "@/app/actions/super-admin";
+import { getMinPasswordLengthAction } from "@/app/actions/password-validation";
 import { Key, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -11,8 +12,17 @@ export function ResetPasswordButton({ userId, userEmail }: { userId: string; use
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [minPasswordLength, setMinPasswordLength] = useState(6); // Default fallback
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  // Fetch minimum password length from server
+  useEffect(() => {
+    getMinPasswordLengthAction().then(setMinPasswordLength).catch(() => {
+      // Fallback to 6 if fetch fails
+      setMinPasswordLength(6);
+    });
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,8 +30,8 @@ export function ResetPasswordButton({ userId, userEmail }: { userId: string; use
     setSuccess(null);
 
     // Client-side validation
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long");
+    if (newPassword.length < minPasswordLength) {
+      setError(`Password must be at least ${minPasswordLength} characters long`);
       return;
     }
 
@@ -99,11 +109,11 @@ export function ResetPasswordButton({ userId, userEmail }: { userId: string; use
               disabled={isPending}
               className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
               required
-              minLength={8}
+              minLength={minPasswordLength}
               autoComplete="new-password"
             />
             <p className="mt-1 text-xs text-muted-disabled">
-              Must be at least 8 characters long.
+              Must be at least {minPasswordLength} characters long.
             </p>
           </div>
 
@@ -119,7 +129,7 @@ export function ResetPasswordButton({ userId, userEmail }: { userId: string; use
               disabled={isPending}
               className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
               required
-              minLength={8}
+              minLength={minPasswordLength}
               autoComplete="new-password"
             />
           </div>

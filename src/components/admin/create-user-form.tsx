@@ -1,22 +1,44 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { createUser, setImpersonatedPortfolioId } from "@/app/actions/super-admin";
+import { getMinPasswordLengthAction } from "@/app/actions/password-validation";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function CreateUserForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<"user" | "super_admin">("user");
   const [error, setError] = useState("");
+  const [minPasswordLength, setMinPasswordLength] = useState(6); // Default fallback
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  // Fetch minimum password length from server
+  useEffect(() => {
+    getMinPasswordLengthAction().then(setMinPasswordLength).catch(() => {
+      // Fallback to 6 if fetch fails
+      setMinPasswordLength(6);
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+
+    // Client-side validation
+    if (password.length < minPasswordLength) {
+      setError(`Password must be at least ${minPasswordLength} characters long`);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -30,6 +52,7 @@ export function CreateUserForm() {
         // Reset form using controlled state
         setEmail("");
         setPassword("");
+        setConfirmPassword("");
         setName("");
         setRole("user");
         // Refresh the page to show new user
@@ -73,7 +96,26 @@ export function CreateUserForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={minPasswordLength}
+            disabled={isPending}
+            className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+          />
+          <p className="mt-1 text-xs text-muted-disabled">
+            Must be at least {minPasswordLength} characters long.
+          </p>
+        </div>
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-1">
+            Confirm Password *
+          </label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={minPasswordLength}
             disabled={isPending}
             className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
           />

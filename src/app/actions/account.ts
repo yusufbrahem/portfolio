@@ -133,10 +133,9 @@ export async function changeMyPassword(data: { currentPassword: string; newPassw
   const session = await requireAuth();
   await assertNotImpersonatingForWrite(); // Block password changes during impersonation
 
-  // Validate password length
-  if (data.newPassword.length < 8) {
-    throw new Error("New password must be at least 8 characters long");
-  }
+  // Validate password length (configurable via MIN_PASSWORD_LENGTH env var)
+  const { validatePasswordLength } = await import("@/lib/password-validation");
+  validatePasswordLength(data.newPassword);
 
   // Get current user with password hash
   const user = await prisma.adminUser.findUnique({
