@@ -48,11 +48,16 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
         ...data,
         order,
       });
+      const pillarWithPoints = { ...newPillar, points: [] };
       setArchitecture({
         ...architecture,
-        pillars: [...architecture.pillars, { ...newPillar, points: [] }],
+        pillars: [...architecture.pillars, pillarWithPoints],
       });
       setIsCreatingPillar(false);
+      // Immediately expand the new pillar and show "Add Point" option
+      setExpandedPillars(new Set([...expandedPillars, newPillar.id]));
+      // Automatically trigger "Add Point" for the new pillar
+      setEditingPoint({ pillarId: newPillar.id, pointId: "new" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create pillar");
     }

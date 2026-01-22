@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -38,6 +39,8 @@ export async function updatePersonInfo(data: {
   location: string;
   email: string;
   linkedIn: string;
+  phone?: string | null;
+  contactMessage?: string | null;
   cvUrl?: string | null;
   avatarUrl?: string | null;
 }) {
@@ -47,6 +50,23 @@ export async function updatePersonInfo(data: {
   
   if (!portfolioId) {
     throw new Error("User must have a portfolio to update person info");
+  }
+  
+  // Validate and normalize phone number
+  let normalizedPhone: string | null = null;
+  if (data.phone && data.phone.trim()) {
+    try {
+      if (!isValidPhoneNumber(data.phone)) {
+        throw new Error("Invalid phone number format. Please check the number and country code.");
+      }
+      const parsed = parsePhoneNumber(data.phone);
+      normalizedPhone = parsed.number; // E.164 format
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Invalid phone")) {
+        throw error;
+      }
+      throw new Error("Invalid phone number format. Please check the number and country code.");
+    }
   }
   
   const existing = await prisma.personInfo.findFirst({
@@ -62,11 +82,15 @@ export async function updatePersonInfo(data: {
   
   const result = await prisma.personInfo.upsert({
     where: { id: existing?.id || `person-${portfolioId}` },
-    update: data,
+    update: {
+      ...data,
+      phone: normalizedPhone,
+    },
     create: {
       id: `person-${portfolioId}`,
       portfolioId,
       ...data,
+      phone: normalizedPhone,
     },
   });
   

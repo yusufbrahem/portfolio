@@ -93,3 +93,30 @@ body {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* Custom Phone Input - Enhanced Styling */
+select.phone-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%23D1D5DB' d='M7 10L2 5h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 14px !important;
+  padding-right: 2.75rem !important;
+  transition: all 0.2s ease !important;
+}
+
+select.phone-select:hover:not(:disabled) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%23F9FAFB' d='M7 10L2 5h10z'/%3E%3C/svg%3E") !important;
+}
+
+select.phone-select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%233B82F6' d='M7 10L2 5h10z'/%3E%3C/svg%3E") !important;
+}
+
+select.phone-select option {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  padding: 0.5rem !important;
+}
+
+/* Custom Month Picker - Fully themed, no native styling */
+/* All styles are inline in the component for full control */

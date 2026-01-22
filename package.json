@@ -19,16 +19,20 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
+    "@types/react-datepicker": "^6.2.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "framer-motion": "^12.27.0",
+    "libphonenumber-js": "^1.12.35",
     "lucide-react": "^0.562.0",
     "next": "16.1.3",
     "next-auth": "^5.0.0-beta.30",
     "pg": "^8.17.1",
     "prisma": "^7.2.0",
     "react": "19.2.3",
+    "react-datepicker": "^9.1.0",
     "react-dom": "19.2.3",
+    "react-international-phone": "^4.7.0",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

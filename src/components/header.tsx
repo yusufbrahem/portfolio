@@ -64,6 +64,8 @@ export async function Header() {
                 {portfolioSlug && isPublished && (
                   <Link
                     href={`/portfolio/${portfolioSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-sm text-muted hover:text-foreground transition-colors"
                   >
                     View My Portfolio

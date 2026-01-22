@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit2, X, Save, Loader2 } from "lucide-react";
+import { Plus, Trash2, Edit2, X, Save, Loader2, Calendar } from "lucide-react";
 import {
   createExperience,
   updateExperience,
@@ -9,6 +9,7 @@ import {
   getExperiences,
   type getExperiences as GetExperiences,
 } from "@/app/actions/experience";
+import { CustomMonthPicker } from "@/components/admin/custom-month-picker";
 
 type Experience = Awaited<ReturnType<typeof GetExperiences>>[0];
 
@@ -127,6 +128,7 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
             setError(null);
           }}
           loading={loading === "create"}
+          isReadOnly={isReadOnly}
         />
       )}
 
@@ -142,6 +144,7 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
             experience={exp}
             onSave={(data) => handleUpdate(exp.id, data)}
             onCancel={() => setEditingId(null)}
+            isReadOnly={isReadOnly}
           />
         ) : (
           <div key={exp.id} className="border border-border bg-panel rounded-lg p-4">
@@ -196,28 +199,135 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
   );
 }
 
+// Parse period string to extract dates
+function parsePeriod(period: string): { from: string; to: string | null; isPresent: boolean } {
+  if (!period) return { from: "", to: null, isPresent: false };
+  
+  // Check for "Present" or similar
+  if (period.toLowerCase().includes("present") || period.toLowerCase().includes("current")) {
+    const match = period.match(/(\d{4}-\d{2})/);
+    return { from: match ? match[1] : "", to: null, isPresent: true };
+  }
+  
+  // Try to parse "YYYY-MM to YYYY-MM" or "YYYY-MM - YYYY-MM"
+  const match = period.match(/(\d{4}-\d{2})\s*(?:to|-)\s*(\d{4}-\d{2})/i);
+  if (match) {
+    return { from: match[1], to: match[2], isPresent: false };
+  }
+  
+  // Try to parse single date
+  const singleMatch = period.match(/(\d{4}-\d{2})/);
+  if (singleMatch) {
+    return { from: singleMatch[1], to: null, isPresent: false };
+  }
+  
+  return { from: "", to: null, isPresent: false };
+}
+
+// Format dates to period string
+function formatPeriod(from: string, to: string | null, isPresent: boolean): string {
+  if (!from) return "";
+  if (isPresent || !to) {
+    return `${from} to Present`;
+  }
+  return `${from} to ${to}`;
+}
+
+// Calculate duration in years and months
+function calculateDuration(from: string, to: string | null, isPresent: boolean): string {
+  if (!from) return "";
+  
+  const fromDate = new Date(from + "-01");
+  const toDate = isPresent ? new Date() : (to ? new Date(to + "-01") : new Date());
+  
+  if (toDate < fromDate) return "";
+  
+  let years = toDate.getFullYear() - fromDate.getFullYear();
+  let months = toDate.getMonth() - fromDate.getMonth();
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  if (years === 0 && months === 0) {
+    return "Less than 1 month";
+  }
+  
+  const parts: string[] = [];
+  if (years > 0) {
+    parts.push(`${years} ${years === 1 ? "year" : "years"}`);
+  }
+  if (months > 0) {
+    parts.push(`${months} ${months === 1 ? "month" : "months"}`);
+  }
+  
+  return parts.join(" ");
+}
+
 function ExperienceForm({
   experience,
   onSave,
   onCancel,
   loading,
+  isReadOnly = false,
 }: {
   experience?: Experience;
   onSave: (data: { title: string; company: string; location: string; period: string; bullets: string[]; tech: string[] }) => void;
   onCancel: () => void;
   loading?: boolean;
+  isReadOnly?: boolean;
 }) {
+  const parsedPeriod = parsePeriod(experience?.period || "");
   const [title, setTitle] = useState(experience?.title || "");
   const [company, setCompany] = useState(experience?.company || "");
   const [location, setLocation] = useState(experience?.location || "");
-  const [period, setPeriod] = useState(experience?.period || "");
+  const [fromDate, setFromDate] = useState(parsedPeriod.from);
+  const [toDate, setToDate] = useState(parsedPeriod.to || "");
+  const [isPresent, setIsPresent] = useState(parsedPeriod.isPresent);
+  const [locationType, setLocationType] = useState<"custom" | "remote" | "freelance" | "hybrid">(
+    experience?.location === "Remote" ? "remote" :
+    experience?.location === "Freelance" ? "freelance" :
+    experience?.location === "Hybrid" ? "hybrid" : "custom"
+  );
   const [bullets, setBullets] = useState<string[]>(experience?.bullets.map((b) => b.text) || []);
   const [tech, setTech] = useState<string[]>(experience?.tech.map((t) => t.name) || []);
+  
+  const duration = calculateDuration(fromDate, isPresent ? null : toDate, isPresent);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !company) return;
-    onSave({ title, company, location, period, bullets, tech });
+    
+    // Validate dates
+    if (!fromDate) {
+      alert("Please select a start date");
+      return;
+    }
+    
+    const fromDateObj = new Date(fromDate + "-01");
+    if (fromDateObj > new Date()) {
+      alert("Start date cannot be in the future");
+      return;
+    }
+    
+    if (!isPresent && toDate) {
+      const toDateObj = new Date(toDate + "-01");
+      if (toDateObj < fromDateObj) {
+        alert("End date must be after start date");
+        return;
+      }
+    }
+    
+    // Validate location
+    const finalLocation = location.trim();
+    if (!finalLocation) {
+      alert("Please enter a location or select a location type");
+      return;
+    }
+    
+    const period = formatPeriod(fromDate, isPresent ? null : toDate, isPresent);
+    onSave({ title, company, location: finalLocation, period, bullets, tech });
   };
 
   const addBullet = () => {
@@ -268,25 +378,139 @@ function ExperienceForm({
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 items-start">
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Location</label>
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg"
-          />
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Location <span className="text-red-500">*</span>
+          </label>
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                // If user types, switch to custom mode
+                if (locationType !== "custom") {
+                  setLocationType("custom");
+                }
+              }}
+              placeholder="City, Country"
+              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg h-[2.5rem]"
+              required
+            />
+            <div className="flex gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  if (locationType === "remote") {
+                    setLocationType("custom");
+                    setLocation("");
+                  } else {
+                    setLocationType("remote");
+                    setLocation("Remote");
+                  }
+                }}
+                className={`px-3 py-1 text-xs rounded border transition-colors ${
+                  locationType === "remote"
+                    ? "bg-accent text-foreground border-accent"
+                    : "bg-panel2 text-muted border-border hover:bg-panel"
+                }`}
+              >
+                Remote
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (locationType === "freelance") {
+                    setLocationType("custom");
+                    setLocation("");
+                  } else {
+                    setLocationType("freelance");
+                    setLocation("Freelance");
+                  }
+                }}
+                className={`px-3 py-1 text-xs rounded border transition-colors ${
+                  locationType === "freelance"
+                    ? "bg-accent text-foreground border-accent"
+                    : "bg-panel2 text-muted border-border hover:bg-panel"
+                }`}
+              >
+                Freelance
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (locationType === "hybrid") {
+                    setLocationType("custom");
+                    setLocation("");
+                  } else {
+                    setLocationType("hybrid");
+                    setLocation("Hybrid");
+                  }
+                }}
+                className={`px-3 py-1 text-xs rounded border transition-colors ${
+                  locationType === "hybrid"
+                    ? "bg-accent text-foreground border-accent"
+                    : "bg-panel2 text-muted border-border hover:bg-panel"
+                }`}
+              >
+                Hybrid
+              </button>
+            </div>
+            <p className="text-xs text-muted">Quick options or enter custom location</p>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Period</label>
-          <input
-            type="text"
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg"
-            placeholder="e.g., Current or 2020-2023"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">From</label>
+            <CustomMonthPicker
+              value={fromDate}
+              onChange={(value) => setFromDate(value || "")}
+              placeholder="Select month"
+              required
+              maxDate={new Date()}
+              disabled={isReadOnly}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">To</label>
+            {!isPresent ? (
+              <CustomMonthPicker
+                value={toDate}
+                onChange={(value) => setToDate(value || "")}
+                placeholder="Select month"
+                maxDate={new Date()}
+                minDate={fromDate ? new Date(fromDate + "-01") : undefined}
+                disabled={isReadOnly}
+              />
+            ) : (
+              <div className="px-3 py-2 border border-border bg-panel2 text-muted rounded-lg text-sm flex items-center gap-2 h-[2.5rem]">
+                <Calendar className="h-4 w-4" />
+                Present
+              </div>
+            )}
+          </div>
+          <div className="col-span-2 space-y-2">
+            <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isPresent}
+                onChange={(e) => {
+                  setIsPresent(e.target.checked);
+                  if (e.target.checked) setToDate("");
+                }}
+                disabled={isReadOnly}
+                className="rounded border-border cursor-pointer"
+              />
+              I still work here
+            </label>
+            {duration && (
+              <p className="text-xs text-muted flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Duration: {duration}
+              </p>
+            )}
+          </div>
         </div>
       </div>
       <div>

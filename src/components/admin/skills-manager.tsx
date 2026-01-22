@@ -41,8 +41,13 @@ export function SkillsManager({ initialData, isReadOnly = false }: { initialData
     try {
       const order = skillGroups.length;
       const newGroup = await createSkillGroup({ name: name.trim(), order });
-      setSkillGroups([...skillGroups, { ...newGroup, skills: [] }]);
+      const groupWithSkills = { ...newGroup, skills: [] };
+      setSkillGroups([...skillGroups, groupWithSkills]);
       setIsCreatingGroup(false);
+      // Immediately show skill input for the new group
+      setCreatingSkillGroupId(newGroup.id);
+      // Expand the new group
+      setExpandedGroups(new Set([...expandedGroups, newGroup.id]));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create skill group");
     } finally {

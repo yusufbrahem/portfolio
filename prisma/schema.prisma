@@ -139,18 +139,20 @@ model AboutPrinciple {
 }
 
 model PersonInfo {
-  id          String    @id @default(uuid())
-  portfolioId String    @unique // Portfolio that owns this person info (1-1)
-  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  name        String
-  role        String
-  location    String
-  email       String
-  linkedIn    String
-  avatarUrl   String?   // Public URL to avatar image (per-portfolio)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  cvUrl       String?
+  id             String    @id @default(uuid())
+  portfolioId    String    @unique // Portfolio that owns this person info (1-1)
+  portfolio      Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  name           String
+  role           String
+  location       String
+  email          String
+  linkedIn       String
+  phone          String?   // International phone number (E.164 format)
+  contactMessage String?   // Optional custom contact message
+  avatarUrl      String?   // Public URL to avatar image (per-portfolio)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  cvUrl          String?
 
   @@index([portfolioId])
 }
@@ -230,6 +232,10 @@ model Portfolio {
   isPublished       Boolean               @default(false) // Deprecated: use status instead
   status            PortfolioStatus       @default(DRAFT) // Portfolio lifecycle status
   rejectionReason   String?               // Reason for rejection (if status is REJECTED)
+  skillsIntro       String?               // Custom introduction for Skills section
+  projectsIntro     String?               // Custom introduction for Projects section
+  experienceIntro   String?               // Custom introduction for Experience section
+  architectureIntro  String?               // Custom introduction for Architecture section
   skillGroups       SkillGroup[]          // Portfolio-specific skill groups
   experiences       Experience[]          // Portfolio-specific experience entries
   projects          Project[]             // Portfolio-specific projects

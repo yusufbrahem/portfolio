@@ -219,7 +219,11 @@ export default async function PortfolioPage({ params }: PageProps) {
       {/* Skills Section */}
       {skills && skills.length > 0 && (
         <Container id="skills">
-          <Section eyebrow="Skills" title="Senior backend toolkit for regulated fintech environments" description="A practical, production-focused skill set spanning secure APIs, identity governance, and transaction-grade persistence.">
+          <Section 
+            eyebrow="Skills" 
+            title="Skills and expertise" 
+            description={portfolio.skillsIntro || undefined}
+          >
             <div className="grid gap-5 lg:grid-cols-2">
               {skills.map((group, idx) => (
                 <Motion key={group.group} delay={idx * 0.05}>
@@ -243,7 +247,11 @@ export default async function PortfolioPage({ params }: PageProps) {
       {/* Projects Section */}
       {projects && projects.length > 0 && (
         <Container id="projects">
-          <Section eyebrow="Projects" title="Banking-grade delivery, anonymized with measurable relevance" description="Examples of the systems and patterns I've shipped in regulated environments—identity, transactions, and operational resilience.">
+          <Section 
+            eyebrow="Projects" 
+            title="Projects and work samples" 
+            description={portfolio.projectsIntro || undefined}
+          >
             <div className="grid gap-6 lg:grid-cols-3">
               {projects.map((p, idx) => (
                 <Motion key={p.title} delay={idx * 0.05}>
@@ -280,7 +288,11 @@ export default async function PortfolioPage({ params }: PageProps) {
       {/* Experience Section */}
       {experience && experience.roles && experience.roles.length > 0 && (
         <Container id="experience">
-          <Section eyebrow="Experience" title="Banking and fintech delivery—security, transactions, reliability" description={experience.intro}>
+          <Section 
+            eyebrow="Experience" 
+            title={portfolio.experienceIntro || experience.intro || undefined} 
+            description={portfolio.experienceIntro || experience.intro || undefined}
+          >
             <div className="space-y-6">
               {experience.roles.map((role, idx) => (
                 <Motion key={`${role.title}-${role.company}`} delay={idx * 0.05}>
@@ -354,7 +366,11 @@ export default async function PortfolioPage({ params }: PageProps) {
       {/* Architecture Section */}
       {architecture && architecture.pillars && architecture.pillars.length > 0 && (
         <Container id="architecture">
-          <Section eyebrow="Architecture" title="Security, transactions, and scalability—built for regulated environments" description="A concise view of the patterns I apply to reduce risk and keep systems predictable under load.">
+          <Section 
+            eyebrow="Architecture" 
+            title="Technical architecture and design principles" 
+            description={portfolio.architectureIntro || undefined}
+          >
             <div className="grid gap-6 lg:grid-cols-3">
               {architecture.pillars.map((p, idx) => (
                 <Motion key={p.title} delay={idx * 0.05}>
@@ -380,7 +396,11 @@ export default async function PortfolioPage({ params }: PageProps) {
 
       {/* Contact Section */}
       <Container id="contact">
-        <Section eyebrow="Contact" title="Let's talk about secure banking platforms" description="If you're hiring for backend, fintech, or banking consulting, I'm happy to discuss how I approach delivery, security, and reliability.">
+        <Section 
+          eyebrow="Contact" 
+          title="Get in touch" 
+          description={person.contactMessage || undefined}
+        >
           <div className="grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <Motion>

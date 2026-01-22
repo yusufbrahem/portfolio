@@ -18,6 +18,10 @@ export async function getPortfolioBySlug(slug: string) {
       status: true,
       rejectionReason: true,
       userId: true,
+      skillsIntro: true,
+      projectsIntro: true,
+      experienceIntro: true,
+      architectureIntro: true,
       user: {
         select: {
           name: true,
@@ -42,6 +46,8 @@ export async function getPersonInfo(portfolioId: string) {
       location: true,
       email: true,
       linkedIn: true,
+      phone: true,
+      contactMessage: true,
       cvUrl: true,
       avatarUrl: true,
       updatedAt: true, // Include for cache-busting
@@ -105,8 +111,7 @@ export async function getExperience(portfolioId: string) {
   });
 
   return {
-    intro:
-      "Experience across banking and fintech, with emphasis on secure APIs, transaction platforms, and identity governance.",
+    intro: null, // No hardcoded intro - use generic fallback in UI
     roles: roles.map((role) => ({
       title: role.title,
       company: role.company,
