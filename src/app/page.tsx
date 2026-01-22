@@ -1,9 +1,31 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const session = await getSession();
+
+  let portfolioSlug: string | null = null;
+  let isPublished = false;
+
+  if (session?.user) {
+    // Fetch user's portfolio slug and publish status
+    if (session.user.role === "super_admin") {
+      // Super admin doesn't have a portfolio
+      portfolioSlug = null;
+    } else if (session.user.portfolioId) {
+      const portfolio = await prisma.portfolio.findUnique({
+        where: { id: session.user.portfolioId },
+        select: { slug: true, isPublished: true },
+      });
+      portfolioSlug = portfolio?.slug || null;
+      isPublished = portfolio?.isPublished || false;
+    }
+  }
+
   return (
     <>
       {/* Hero Section */}
@@ -17,18 +39,49 @@ export default async function Home() {
               Build a beautiful, customizable portfolio to showcase your work, skills, and experience. No coding required.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link
-                href="/admin"
-                className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors"
-              >
-                Create your portfolio
-              </Link>
-              <Link
-                href="#features"
-                className="text-base font-semibold text-foreground hover:text-accent transition-colors"
-              >
-                Learn more <span aria-hidden="true">→</span>
-              </Link>
+              {!session ? (
+                // Not logged in
+                <>
+                  <Link
+                    href="/admin"
+                    className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors"
+                  >
+                    Create your portfolio
+                  </Link>
+                  <Link
+                    href="#features"
+                    className="text-base font-semibold text-foreground hover:text-accent transition-colors"
+                  >
+                    Learn more <span aria-hidden="true">→</span>
+                  </Link>
+                </>
+              ) : session.user.role === "super_admin" ? (
+                // Super admin
+                <Link
+                  href="/admin/users"
+                  className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors"
+                >
+                  Go to Admin Panel
+                </Link>
+              ) : (
+                // Normal user
+                <>
+                  <Link
+                    href="/admin"
+                    className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors"
+                  >
+                    Go to Dashboard
+                  </Link>
+                  {portfolioSlug && isPublished && (
+                    <Link
+                      href={`/portfolio/${portfolioSlug}`}
+                      className="text-base font-semibold text-foreground hover:text-accent transition-colors"
+                    >
+                      View My Portfolio <span aria-hidden="true">→</span>
+                    </Link>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </Container>
@@ -97,12 +150,28 @@ export default async function Home() {
               Whether you're an engineer, designer, consultant, or creative professional, create a portfolio that presents your work with clarity and professionalism.
             </p>
             <div className="mt-10">
-              <Link
-                href="/admin"
-                className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors inline-block"
-              >
-                Get started
-              </Link>
+              {!session ? (
+                <Link
+                  href="/admin"
+                  className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors inline-block"
+                >
+                  Get started
+                </Link>
+              ) : session.user.role === "super_admin" ? (
+                <Link
+                  href="/admin/users"
+                  className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors inline-block"
+                >
+                  Go to Admin Panel
+                </Link>
+              ) : (
+                <Link
+                  href="/admin"
+                  className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors inline-block"
+                >
+                  Go to Dashboard
+                </Link>
+              )}
             </div>
           </div>
         </Container>
