@@ -31,15 +31,27 @@ export async function hasSectionData(
     }
     case "contact": {
       const person = await getPersonInfo(portfolioId);
-      // Contact section is visible if ANY meaningful contact data exists:
-      // - Email (always present, but check anyway)
-      // - Phone number
+      // Contact section is visible if ANY visible contact field exists:
+      // - Visible emails (email1 or email2)
+      // - Visible phones (phone1, phone2, or whatsapp)
       // - CV URL
       // - Contact message
       if (!person) return false;
+      
+      // Check visible emails
+      const hasVisibleEmail = 
+        (person.showEmail1 && (person.email1 || person.email)) ||
+        (person.showEmail2 && person.email2);
+      
+      // Check visible phones
+      const hasVisiblePhone =
+        (person.showPhone1 && (person.phone1 || person.phone)) ||
+        (person.showPhone2 && person.phone2) ||
+        (person.showWhatsApp && person.whatsapp);
+      
       return !!(
-        person.email ||
-        person.phone ||
+        hasVisibleEmail ||
+        hasVisiblePhone ||
         person.cvUrl ||
         person.contactMessage
       );

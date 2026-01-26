@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Save, Upload, Loader2, Plus, Sparkles, Edit2, X, FileText, Phone, Mail, MapPin, Briefcase, Link as LinkIcon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Save, Upload, Loader2, Plus, Sparkles, Edit2, X, FileText, Phone, Mail, MapPin, Briefcase, Link as LinkIcon, MessageCircle, Eye, EyeOff } from "lucide-react";
 import { updatePersonInfo, type getPersonInfo } from "@/app/actions/contact";
 import { uploadCV } from "@/app/actions/upload";
 import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
 import { COUNTRIES, getCountryByCode, getCountryByDialCode } from "@/lib/countries";
 import { DEFAULT_SECTION_INTROS } from "@/lib/section-intros";
+import { validateEmail, validatePhone as validatePhoneUtil, formatPhoneToE164, trimAndValidate } from "@/lib/contact-validation";
 
 type PersonInfo = Awaited<ReturnType<typeof getPersonInfo>>;
 
@@ -47,15 +48,30 @@ export function ContactManager({
   const getSmartDefaults = () => {
     const existingName = initialData?.name?.trim();
     const existingEmail = initialData?.email?.trim();
+    // Backward compatibility: use legacy email/phone if new fields don't exist
+    const email1 = initialData?.email1 || initialData?.email || "";
+    const phone1 = initialData?.phone1 || initialData?.phone || "";
     return {
       name: existingName || userDefaults?.name || "",
-      email: existingEmail || userDefaults?.email || "",
+      email: existingEmail || userDefaults?.email || "", // Legacy field
       role: initialData?.role || "",
       location: initialData?.location || "",
       linkedIn: initialData?.linkedIn || "",
-      phone: initialData?.phone || "",
+      phone: phone1, // Legacy field
       contactMessage: initialData?.contactMessage || DEFAULT_SECTION_INTROS.contact,
       cvUrl: initialData?.cvUrl || "",
+      // Extended fields
+      phone1: phone1,
+      phone2: initialData?.phone2 || "",
+      whatsapp: initialData?.whatsapp || "",
+      email1: email1 || userDefaults?.email || "",
+      email2: initialData?.email2 || "",
+      // Visibility
+      showPhone1: initialData?.showPhone1 ?? true,
+      showPhone2: initialData?.showPhone2 ?? true,
+      showWhatsApp: initialData?.showWhatsApp ?? true,
+      showEmail1: initialData?.showEmail1 ?? true,
+      showEmail2: initialData?.showEmail2 ?? true,
     };
   };
   
@@ -87,10 +103,26 @@ export function ContactManager({
     }
   };
 
-  // Phone input state
-  const initialPhoneState = initializePhoneState(initialData?.phone);
+  // Phone input state (for phone1 - legacy)
+  const initialPhoneState = initializePhoneState(initialData?.phone1 || initialData?.phone);
   const [selectedCountry, setSelectedCountry] = useState<string>(initialPhoneState.country);
   const [phoneNumber, setPhoneNumber] = useState<string>(initialPhoneState.number);
+  
+  // Phone2 state
+  const initialPhone2State = initializePhoneState(initialData?.phone2);
+  const [selectedCountry2, setSelectedCountry2] = useState<string>(initialPhone2State.country);
+  const [phoneNumber2, setPhoneNumber2] = useState<string>(initialPhone2State.number);
+  const [phoneError2, setPhoneError2] = useState<string | null>(null);
+  
+  // WhatsApp state
+  const initialWhatsAppState = initializePhoneState(initialData?.whatsapp);
+  const [selectedCountryWhatsApp, setSelectedCountryWhatsApp] = useState<string>(initialWhatsAppState.country);
+  const [whatsappNumber, setWhatsappNumber] = useState<string>(initialWhatsAppState.number);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
+  
+  // Email validation errors
+  const [email1Error, setEmail1Error] = useState<string | null>(null);
+  const [email2Error, setEmail2Error] = useState<string | null>(null);
 
   // Validate phone number
   const validatePhone = (phone: string): string | null => {
@@ -134,7 +166,7 @@ export function ContactManager({
     // Only allow digits, spaces, dashes, parentheses
     const cleaned = value.replace(/[^\d\s\-()]/g, "");
     setPhoneNumber(cleaned);
-    setPhoneError(null);
+    // Don't clear error immediately - let validation handle it
   };
 
   // Build full phone number with country code
@@ -144,10 +176,78 @@ export function ContactManager({
     return `${country.dialCode}${phoneNumber.replace(/\s/g, "")}`;
   };
 
+  // Helper to build full phone number with country code
+  const getFullPhoneNumber2 = (number: string, country: string): string => {
+    if (!number.trim()) return "";
+    const countryObj = getCountryByCode(country);
+    return `${countryObj.dialCode}${number.replace(/\s/g, "")}`;
+  };
+
+  // Debounced validation for phone1
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!phoneNumber.trim()) {
+        setPhoneError(null);
+        return;
+      }
+      const fullPhone = getFullPhoneNumber();
+      if (fullPhone && fullPhone.length > 5) { // Only validate if phone has enough digits
+        const validation = validatePhoneUtil(fullPhone, selectedCountry);
+        setPhoneError(validation.error);
+      } else {
+        setPhoneError(null);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [phoneNumber, selectedCountry]);
+  
+  // Debounced validation for phone2
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!phoneNumber2.trim()) {
+        setPhoneError2(null);
+        return;
+      }
+      const fullPhone = getFullPhoneNumber2(phoneNumber2, selectedCountry2);
+      if (fullPhone && fullPhone.length > 5) { // Only validate if phone has enough digits
+        const validation = validatePhoneUtil(fullPhone, selectedCountry2);
+        setPhoneError2(validation.error);
+      } else {
+        setPhoneError2(null);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [phoneNumber2, selectedCountry2]);
+  
+  // Debounced validation for WhatsApp
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!whatsappNumber.trim()) {
+        setWhatsappError(null);
+        return;
+      }
+      const fullPhone = getFullPhoneNumber2(whatsappNumber, selectedCountryWhatsApp);
+      if (fullPhone && fullPhone.length > 5) { // Only validate if phone has enough digits
+        const validation = validatePhoneUtil(fullPhone, selectedCountryWhatsApp);
+        setWhatsappError(validation.error);
+      } else {
+        setWhatsappError(null);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [whatsappNumber, selectedCountryWhatsApp]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploadError(null);
     setPhoneError(null);
+    setPhoneError2(null);
+    setWhatsappError(null);
+    setEmail1Error(null);
+    setEmail2Error(null);
     
     // Validate LinkedIn URL format
     if (formData.linkedIn && !formData.linkedIn.match(/^https?:\/\/.+/)) {
@@ -155,54 +255,142 @@ export function ContactManager({
       return;
     }
     
-    // Build and validate phone number
-    const fullPhone = getFullPhoneNumber();
-    const phoneValidationError = validatePhone(fullPhone);
-    if (phoneValidationError) {
-      setPhoneError(phoneValidationError);
+    // Validate emails (real-time validation should catch these, but double-check)
+    // Email1 is required if no phone numbers are provided
+    const trimmedEmail1 = formData.email1?.trim() || "";
+    const hasAnyPhone = phoneNumber.trim() || phoneNumber2.trim() || whatsappNumber.trim();
+    
+    if (!trimmedEmail1 && !hasAnyPhone) {
+      setEmail1Error("At least one contact method (email or phone) is required");
       return;
     }
     
-    // Normalize phone to E.164 format before saving
-    let normalizedPhone: string | null = null;
-    if (fullPhone) {
-      try {
-        const parsed = parsePhoneNumber(fullPhone);
-        normalizedPhone = parsed.number; // E.164 format
-      } catch {
-        // If parsing fails but validation passed, use as-is (shouldn't happen)
-        normalizedPhone = fullPhone;
+    if (trimmedEmail1) {
+      const email1Validation = validateEmail(trimmedEmail1);
+      if (!email1Validation.isValid) {
+        setEmail1Error(email1Validation.error || "Invalid email format");
+        return;
       }
+    }
+    
+    if (formData.email2?.trim()) {
+      const email2Validation = validateEmail(formData.email2.trim());
+      if (!email2Validation.isValid) {
+        setEmail2Error(email2Validation.error || "Invalid email format");
+        return;
+      }
+    }
+    
+    // Validate phone numbers
+    const fullPhone1 = getFullPhoneNumber();
+    if (fullPhone1) {
+      const phone1Validation = validatePhoneUtil(fullPhone1, selectedCountry);
+      if (!phone1Validation.isValid) {
+        setPhoneError(phone1Validation.error || "Invalid phone number format");
+        return;
+      }
+    }
+    
+    const fullPhone2 = getFullPhoneNumber2(phoneNumber2, selectedCountry2);
+    if (fullPhone2) {
+      const phone2Validation = validatePhoneUtil(fullPhone2, selectedCountry2);
+      if (!phone2Validation.isValid) {
+        setPhoneError2(phone2Validation.error || "Invalid phone number format");
+        return;
+      }
+    }
+    
+    const fullWhatsApp = getFullPhoneNumber2(whatsappNumber, selectedCountryWhatsApp);
+    if (fullWhatsApp) {
+      const whatsappValidation = validatePhoneUtil(fullWhatsApp, selectedCountryWhatsApp);
+      if (!whatsappValidation.isValid) {
+        setWhatsappError(whatsappValidation.error || "Invalid WhatsApp number format");
+        return;
+      }
+    }
+    
+    // Normalize phones to E.164 format
+    const normalizedPhone1 = fullPhone1 ? formatPhoneToE164(fullPhone1, selectedCountry) : null;
+    const normalizedPhone2 = fullPhone2 ? formatPhoneToE164(fullPhone2, selectedCountry2) : null;
+    const normalizedWhatsApp = fullWhatsApp ? formatPhoneToE164(fullWhatsApp, selectedCountryWhatsApp) : null;
+    
+    // Trim and normalize emails
+    const trimmedEmail1Final = trimmedEmail1 || null;
+    const trimmedEmail2Final = trimAndValidate(formData.email2).trimmed || null;
+    
+    // Final check: at least one contact method must exist
+    if (!trimmedEmail1Final && !normalizedPhone1 && !normalizedPhone2 && !normalizedWhatsApp) {
+      setUploadError("At least one contact method (email or phone) is required");
+      return;
     }
     
     setIsSaving(true);
     try {
       const result = await updatePersonInfo({
-        name: formData.name,
-        role: formData.role,
-        location: formData.location,
-        email: formData.email,
-        linkedIn: formData.linkedIn,
-        phone: normalizedPhone,
-        contactMessage: formData.contactMessage,
-        cvUrl: formData.cvUrl,
+        name: formData.name.trim(),
+        role: formData.role.trim(),
+        location: formData.location.trim(),
+        email: trimmedEmail1Final || formData.email.trim(), // Legacy field
+        linkedIn: formData.linkedIn.trim(),
+        phone: normalizedPhone1, // Legacy field
+        contactMessage: formData.contactMessage?.trim() || null,
+        cvUrl: formData.cvUrl || null,
+        avatarUrl: personInfo?.avatarUrl || null, // Preserve existing avatar
+        // Extended fields
+        phone1: normalizedPhone1,
+        phone2: normalizedPhone2,
+        whatsapp: normalizedWhatsApp,
+        email1: trimmedEmail1Final,
+        email2: trimmedEmail2Final,
+        // Visibility
+        showPhone1: formData.showPhone1,
+        showPhone2: formData.showPhone2,
+        showWhatsApp: formData.showWhatsApp,
+        showEmail1: formData.showEmail1,
+        showEmail2: formData.showEmail2,
       });
       setPersonInfo(result);
       setIsEditing(false);
       setIsCreating(false);
       setUploadError(null);
       setPhoneError(null);
+      setPhoneError2(null);
+      setWhatsappError(null);
+      setEmail1Error(null);
+      setEmail2Error(null);
       // Update form data with saved values to ensure consistency
+      const phone1State = initializePhoneState(result.phone1 || result.phone);
+      const phone2State = initializePhoneState(result.phone2);
+      const whatsappState = initializePhoneState(result.whatsapp);
+      
       setFormData({
         name: result.name,
-        email: result.email,
+        email: result.email1 || result.email || "",
         role: result.role,
         location: result.location,
         linkedIn: result.linkedIn,
-        phone: result.phone || "",
+        phone: result.phone1 || result.phone || "",
         contactMessage: result.contactMessage || "",
         cvUrl: result.cvUrl || "",
+        phone1: result.phone1 || result.phone || "",
+        phone2: result.phone2 || "",
+        whatsapp: result.whatsapp || "",
+        email1: result.email1 || result.email || "",
+        email2: result.email2 || "",
+        showPhone1: result.showPhone1 ?? true,
+        showPhone2: result.showPhone2 ?? true,
+        showWhatsApp: result.showWhatsApp ?? true,
+        showEmail1: result.showEmail1 ?? true,
+        showEmail2: result.showEmail2 ?? true,
       });
+      
+      // Update phone states
+      setSelectedCountry(phone1State.country);
+      setPhoneNumber(phone1State.number);
+      setSelectedCountry2(phone2State.country);
+      setPhoneNumber2(phone2State.number);
+      setSelectedCountryWhatsApp(whatsappState.country);
+      setWhatsappNumber(whatsappState.number);
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Failed to save contact information");
     } finally {
@@ -278,20 +466,37 @@ export function ContactManager({
               setIsCreating(false);
               setIsEditing(true);
               // When editing, pre-fill with current data
+              const phone1State = initializePhoneState(personInfo?.phone1 || personInfo?.phone);
+              const phone2State = initializePhoneState(personInfo?.phone2);
+              const whatsappState = initializePhoneState(personInfo?.whatsapp);
+              
               setFormData({
                 name: personInfo?.name?.trim() || "",
-                email: personInfo?.email?.trim() || "",
+                email: personInfo?.email1 || personInfo?.email?.trim() || "",
                 role: personInfo?.role || "",
                 location: personInfo?.location || "",
                 linkedIn: personInfo?.linkedIn || "",
-                phone: personInfo?.phone || "",
+                phone: personInfo?.phone1 || personInfo?.phone || "",
                 contactMessage: personInfo?.contactMessage || "",
                 cvUrl: personInfo?.cvUrl || "",
+                phone1: personInfo?.phone1 || personInfo?.phone || "",
+                phone2: personInfo?.phone2 || "",
+                whatsapp: personInfo?.whatsapp || "",
+                email1: personInfo?.email1 || personInfo?.email?.trim() || "",
+                email2: personInfo?.email2 || "",
+                showPhone1: personInfo?.showPhone1 ?? true,
+                showPhone2: personInfo?.showPhone2 ?? true,
+                showWhatsApp: personInfo?.showWhatsApp ?? true,
+                showEmail1: personInfo?.showEmail1 ?? true,
+                showEmail2: personInfo?.showEmail2 ?? true,
               });
-              // Initialize phone state
-              const phoneState = initializePhoneState(personInfo?.phone);
-              setSelectedCountry(phoneState.country);
-              setPhoneNumber(phoneState.number);
+              // Initialize phone states
+              setSelectedCountry(phone1State.country);
+              setPhoneNumber(phone1State.number);
+              setSelectedCountry2(phone2State.country);
+              setPhoneNumber2(phone2State.number);
+              setSelectedCountryWhatsApp(whatsappState.country);
+              setWhatsappNumber(whatsappState.number);
             }}
             disabled={isReadOnly}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-panel2 text-foreground rounded-lg hover:bg-panel transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -326,21 +531,95 @@ export function ContactManager({
             </div>
           </div>
 
-          <div className="flex items-start gap-3">
-            <Mail className="h-5 w-5 text-muted mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-xs text-muted mb-1">Email</p>
-              <p className="text-sm font-medium text-foreground">{personInfo.email || "Not provided"}</p>
+          {/* Email 1 (Primary) */}
+          {(personInfo.email1 || personInfo.email) && (
+            <div className="flex items-start gap-3">
+              <Mail className="h-5 w-5 text-muted mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted mb-1">Primary Email</p>
+                  {personInfo.showEmail1 ? (
+                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                  ) : (
+                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground">{personInfo.email1 || personInfo.email}</p>
+              </div>
             </div>
-          </div>
+          )}
+          
+          {/* Email 2 (Secondary) */}
+          {personInfo.email2 && (
+            <div className="flex items-start gap-3">
+              <Mail className="h-5 w-5 text-muted mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted mb-1">Secondary Email</p>
+                  {personInfo.showEmail2 ? (
+                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                  ) : (
+                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground">{personInfo.email2}</p>
+              </div>
+            </div>
+          )}
 
-          <div className="flex items-start gap-3">
-            <Phone className="h-5 w-5 text-muted mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-xs text-muted mb-1">Phone Number</p>
-              <p className="text-sm font-medium text-foreground">{formatPhoneForDisplay(personInfo.phone)}</p>
+          {/* Phone 1 (Primary) */}
+          {(personInfo.phone1 || personInfo.phone) && (
+            <div className="flex items-start gap-3">
+              <Phone className="h-5 w-5 text-muted mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted mb-1">Primary Phone</p>
+                  {personInfo.showPhone1 ? (
+                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                  ) : (
+                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground">{formatPhoneForDisplay(personInfo.phone1 || personInfo.phone)}</p>
+              </div>
             </div>
-          </div>
+          )}
+          
+          {/* Phone 2 (Secondary) */}
+          {personInfo.phone2 && (
+            <div className="flex items-start gap-3">
+              <Phone className="h-5 w-5 text-muted mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted mb-1">Secondary Phone</p>
+                  {personInfo.showPhone2 ? (
+                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                  ) : (
+                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground">{formatPhoneForDisplay(personInfo.phone2)}</p>
+              </div>
+            </div>
+          )}
+          
+          {/* WhatsApp */}
+          {personInfo.whatsapp && (
+            <div className="flex items-start gap-3">
+              <MessageCircle className="h-5 w-5 text-muted mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted mb-1">WhatsApp</p>
+                  {personInfo.showWhatsApp ? (
+                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                  ) : (
+                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground">{formatPhoneForDisplay(personInfo.whatsapp)}</p>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-start gap-3">
             <LinkIcon className="h-5 w-5 text-muted mt-0.5 flex-shrink-0" />
@@ -478,21 +757,132 @@ export function ContactManager({
             disabled={isSaving}
           />
         </div>
+        {/* Email 1 (Primary) */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Email</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-foreground">
+              Primary Email <span className="text-red-400">*</span>
+            </label>
+            <div className="flex items-center gap-2">
+              {formData.showEmail1 ? (
+                <Eye className="h-4 w-4 text-green-400" />
+              ) : (
+                <EyeOff className="h-4 w-4 text-muted" />
+              )}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, showEmail1: !formData.showEmail1 })}
+                disabled={isReadOnly || isSaving}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formData.showEmail1 ? "bg-green-500" : "bg-gray-300"
+                }`}
+                role="switch"
+                aria-checked={formData.showEmail1}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    formData.showEmail1 ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
           <input
             type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            value={formData.email1}
+            onChange={(e) => {
+              const trimmed = e.target.value.trim();
+              setFormData({ ...formData, email1: e.target.value, email: e.target.value }); // Update legacy field too
+              // Real-time validation
+              const hasAnyPhone = phoneNumber.trim() || phoneNumber2.trim() || whatsappNumber.trim();
+              if (!trimmed && !hasAnyPhone) {
+                setEmail1Error("At least one contact method (email or phone) is required");
+              } else if (trimmed) {
+                const validation = validateEmail(trimmed);
+                setEmail1Error(validation.error);
+              } else {
+                setEmail1Error(null);
+              }
+            }}
+            onBlur={(e) => {
+              const trimmed = e.target.value.trim();
+              setFormData({ ...formData, email1: trimmed, email: trimmed });
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+              email1Error
+                ? "border-red-500 bg-red-500/10 focus:ring-red-500 focus:border-red-500"
+                : "border-border bg-background text-foreground focus:ring-accent focus:border-accent"
+            }`}
             required
-            disabled={isSaving}
+            disabled={isSaving || isReadOnly}
           />
-          {userDefaults && formData.email === userDefaults.email && !initialData?.email?.trim() && (
+          {email1Error && (
+            <p className="mt-1 text-xs text-red-400">{email1Error}</p>
+          )}
+          {userDefaults && formData.email1 === userDefaults.email && !initialData?.email1?.trim() && (
             <p className="mt-1.5 text-xs text-muted flex items-center gap-1.5 animate-pulse">
               <Sparkles className="h-3 w-3 text-accent" />
               <span>Suggested from your account</span>
             </p>
+          )}
+        </div>
+        
+        {/* Email 2 (Secondary) */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-foreground">
+              Secondary Email <span className="text-muted text-xs font-normal">(optional)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              {formData.showEmail2 ? (
+                <Eye className="h-4 w-4 text-green-400" />
+              ) : (
+                <EyeOff className="h-4 w-4 text-muted" />
+              )}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, showEmail2: !formData.showEmail2 })}
+                disabled={isReadOnly || isSaving}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formData.showEmail2 ? "bg-green-500" : "bg-gray-300"
+                }`}
+                role="switch"
+                aria-checked={formData.showEmail2}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    formData.showEmail2 ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+          <input
+            type="email"
+            value={formData.email2}
+            onChange={(e) => {
+              setFormData({ ...formData, email2: e.target.value });
+              if (e.target.value.trim()) {
+                const validation = validateEmail(e.target.value.trim());
+                setEmail2Error(validation.error);
+              } else {
+                setEmail2Error(null);
+              }
+            }}
+            onBlur={(e) => {
+              const trimmed = e.target.value.trim();
+              setFormData({ ...formData, email2: trimmed });
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+              email2Error
+                ? "border-red-500 bg-red-500/10 focus:ring-red-500 focus:border-red-500"
+                : "border-border bg-background text-foreground focus:ring-accent focus:border-accent"
+            }`}
+            placeholder="Optional secondary email"
+            disabled={isSaving || isReadOnly}
+          />
+          {email2Error && (
+            <p className="mt-1 text-xs text-red-400">{email2Error}</p>
           )}
         </div>
         <div>
@@ -512,15 +902,53 @@ export function ContactManager({
             disabled={isSaving}
           />
         </div>
+        {/* Phone 1 (Primary) */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Phone Number <span className="text-muted text-xs font-normal">(optional)</span>
-          </label>
-          <div className="flex border border-border bg-background rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-accent focus-within:border-accent transition-all h-[2.5rem] shadow-sm hover:border-border/80">
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-foreground">
+              Primary Phone <span className="text-muted text-xs font-normal">(optional)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              {formData.showPhone1 ? (
+                <Eye className="h-4 w-4 text-green-400" />
+              ) : (
+                <EyeOff className="h-4 w-4 text-muted" />
+              )}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, showPhone1: !formData.showPhone1 })}
+                disabled={isReadOnly || isSaving}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formData.showPhone1 ? "bg-green-500" : "bg-gray-300"
+                }`}
+                role="switch"
+                aria-checked={formData.showPhone1}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    formData.showPhone1 ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+          <div className={`flex border rounded-lg overflow-hidden transition-all h-[2.5rem] shadow-sm hover:border-border/80 ${
+            phoneError
+              ? "border-red-500 focus-within:ring-2 focus-within:ring-red-500"
+              : "border-border bg-background focus-within:ring-2 focus-within:ring-accent focus-within:border-accent"
+          }`}>
             <select
               value={selectedCountry}
-              onChange={(e) => handleCountryChange(e.target.value)}
-              disabled={isSaving}
+              onChange={(e) => {
+                handleCountryChange(e.target.value);
+                // Re-validate on country change
+                const fullPhone = getFullPhoneNumber();
+                if (fullPhone) {
+                  const validation = validatePhoneUtil(fullPhone, e.target.value);
+                  setPhoneError(validation.error);
+                }
+              }}
+              disabled={isSaving || isReadOnly}
               className="phone-select px-4 py-2 border-r border-border bg-panel text-foreground text-sm font-medium cursor-pointer focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px] h-full appearance-none hover:bg-panel2 transition-colors flex-shrink-0"
             >
               {COUNTRIES.map((country) => (
@@ -535,8 +963,28 @@ export function ContactManager({
             <input
               type="tel"
               value={phoneNumber}
-              onChange={(e) => handlePhoneNumberChange(e.target.value)}
-              disabled={isSaving}
+              onChange={(e) => {
+                handlePhoneNumberChange(e.target.value);
+                // Real-time validation
+                const fullPhone = getFullPhoneNumber();
+                if (fullPhone) {
+                  const validation = validatePhoneUtil(fullPhone, selectedCountry);
+                  setPhoneError(validation.error);
+                } else {
+                  setPhoneError(null);
+                }
+                // Update email1 validation if phone is cleared (email1 becomes required)
+                const hasAnyPhone = e.target.value.trim() || phoneNumber2.trim() || whatsappNumber.trim();
+                const trimmedEmail1 = formData.email1?.trim() || "";
+                if (!trimmedEmail1 && !hasAnyPhone) {
+                  setEmail1Error("At least one contact method (email or phone) is required");
+                } else if (trimmedEmail1 && email1Error === "At least one contact method (email or phone) is required") {
+                  // Clear the "required" error if email1 exists
+                  const validation = validateEmail(trimmedEmail1);
+                  setEmail1Error(validation.error);
+                }
+              }}
+              disabled={isSaving || isReadOnly}
               placeholder="Enter phone number"
               className="flex-1 px-4 py-2 border-none bg-transparent text-foreground focus:outline-none disabled:opacity-50 placeholder:text-muted/60 h-full"
             />
@@ -548,6 +996,198 @@ export function ContactManager({
             </p>
           )}
           <p className="mt-1 text-xs text-muted">Stored in international format (E.164)</p>
+        </div>
+        
+        {/* Phone 2 (Secondary) */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-foreground">
+              Secondary Phone <span className="text-muted text-xs font-normal">(optional)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              {formData.showPhone2 ? (
+                <Eye className="h-4 w-4 text-green-400" />
+              ) : (
+                <EyeOff className="h-4 w-4 text-muted" />
+              )}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, showPhone2: !formData.showPhone2 })}
+                disabled={isReadOnly || isSaving}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formData.showPhone2 ? "bg-green-500" : "bg-gray-300"
+                }`}
+                role="switch"
+                aria-checked={formData.showPhone2}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    formData.showPhone2 ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+          <div className={`flex border rounded-lg overflow-hidden transition-all h-[2.5rem] shadow-sm hover:border-border/80 ${
+            phoneError2
+              ? "border-red-500 focus-within:ring-2 focus-within:ring-red-500"
+              : "border-border bg-background focus-within:ring-2 focus-within:ring-accent focus-within:border-accent"
+          }`}>
+            <select
+              value={selectedCountry2}
+              onChange={(e) => {
+                setSelectedCountry2(e.target.value);
+                setPhoneError2(null);
+                const fullPhone = getFullPhoneNumber2(phoneNumber2, e.target.value);
+                if (fullPhone) {
+                  const validation = validatePhoneUtil(fullPhone, e.target.value);
+                  setPhoneError2(validation.error);
+                }
+              }}
+              disabled={isSaving || isReadOnly}
+              className="phone-select px-4 py-2 border-r border-border bg-panel text-foreground text-sm font-medium cursor-pointer focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px] h-full appearance-none hover:bg-panel2 transition-colors flex-shrink-0"
+            >
+              {COUNTRIES.map((country) => (
+                <option key={country.code} value={country.code} className="bg-background text-foreground">
+                  {country.flag} {country.name} {country.dialCode}
+                </option>
+              ))}
+            </select>
+            <div className="flex items-center px-2">
+              <div className="h-5 w-px bg-border/60"></div>
+            </div>
+            <input
+              type="tel"
+              value={phoneNumber2}
+              onChange={(e) => {
+                const cleaned = e.target.value.replace(/[^\d\s\-()]/g, "");
+                setPhoneNumber2(cleaned);
+                setPhoneError2(null);
+                const fullPhone = getFullPhoneNumber2(cleaned, selectedCountry2);
+                if (fullPhone) {
+                  const validation = validatePhoneUtil(fullPhone, selectedCountry2);
+                  setPhoneError2(validation.error);
+                }
+                // Update email1 validation if phone is cleared (email1 becomes required)
+                const hasAnyPhone = phoneNumber.trim() || cleaned.trim() || whatsappNumber.trim();
+                const trimmedEmail1 = formData.email1?.trim() || "";
+                if (!trimmedEmail1 && !hasAnyPhone) {
+                  setEmail1Error("At least one contact method (email or phone) is required");
+                } else if (trimmedEmail1 && email1Error === "At least one contact method (email or phone) is required") {
+                  const validation = validateEmail(trimmedEmail1);
+                  setEmail1Error(validation.error);
+                }
+              }}
+              disabled={isSaving || isReadOnly}
+              placeholder="Enter secondary phone number"
+              className="flex-1 px-4 py-2 border-none bg-transparent text-foreground focus:outline-none disabled:opacity-50 placeholder:text-muted/60 h-full"
+            />
+          </div>
+          {phoneError2 && (
+            <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1.5">
+              <X className="h-3 w-3" />
+              {phoneError2}
+            </p>
+          )}
+        </div>
+        
+        {/* WhatsApp */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-foreground">
+              WhatsApp <span className="text-muted text-xs font-normal">(optional)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              {formData.showWhatsApp ? (
+                <Eye className="h-4 w-4 text-green-400" />
+              ) : (
+                <EyeOff className="h-4 w-4 text-muted" />
+              )}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, showWhatsApp: !formData.showWhatsApp })}
+                disabled={isReadOnly || isSaving}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formData.showWhatsApp ? "bg-green-500" : "bg-gray-300"
+                }`}
+                role="switch"
+                aria-checked={formData.showWhatsApp}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    formData.showWhatsApp ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+          <div className={`flex border rounded-lg overflow-hidden transition-all h-[2.5rem] shadow-sm hover:border-border/80 ${
+            whatsappError
+              ? "border-red-500 focus-within:ring-2 focus-within:ring-red-500"
+              : "border-border bg-background focus-within:ring-2 focus-within:ring-accent focus-within:border-accent"
+          }`}>
+            <select
+              value={selectedCountryWhatsApp}
+              onChange={(e) => {
+                setSelectedCountryWhatsApp(e.target.value);
+                setWhatsappError(null);
+                const fullPhone = getFullPhoneNumber2(whatsappNumber, e.target.value);
+                if (fullPhone) {
+                  const validation = validatePhoneUtil(fullPhone, e.target.value);
+                  setWhatsappError(validation.error);
+                }
+              }}
+              disabled={isSaving || isReadOnly}
+              className="phone-select px-4 py-2 border-r border-border bg-panel text-foreground text-sm font-medium cursor-pointer focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px] h-full appearance-none hover:bg-panel2 transition-colors flex-shrink-0"
+            >
+              {COUNTRIES.map((country) => (
+                <option key={country.code} value={country.code} className="bg-background text-foreground">
+                  {country.flag} {country.name} {country.dialCode}
+                </option>
+              ))}
+            </select>
+            <div className="flex items-center px-2">
+              <div className="h-5 w-px bg-border/60"></div>
+            </div>
+            <input
+              type="tel"
+              value={whatsappNumber}
+              onChange={(e) => {
+                const cleaned = e.target.value.replace(/[^\d\s\-()]/g, "");
+                setWhatsappNumber(cleaned);
+                // Real-time validation with debouncing
+                const timeoutId = setTimeout(() => {
+                  const fullPhone = getFullPhoneNumber2(cleaned, selectedCountryWhatsApp);
+                  if (fullPhone && fullPhone.length > 5) { // Only validate if phone has enough digits
+                    const validation = validatePhoneUtil(fullPhone, selectedCountryWhatsApp);
+                    setWhatsappError(validation.error);
+                  } else if (!cleaned.trim()) {
+                    setWhatsappError(null);
+                  }
+                  // Update email1 validation if phone is cleared (email1 becomes required)
+                  const hasAnyPhone = phoneNumber.trim() || phoneNumber2.trim() || cleaned.trim();
+                  const trimmedEmail1 = formData.email1?.trim() || "";
+                  if (!trimmedEmail1 && !hasAnyPhone) {
+                    setEmail1Error("At least one contact method (email or phone) is required");
+                  } else if (trimmedEmail1 && email1Error === "At least one contact method (email or phone) is required") {
+                    const validation = validateEmail(trimmedEmail1);
+                    setEmail1Error(validation.error);
+                  }
+                }, 500); // Debounce validation by 500ms
+                
+                return () => clearTimeout(timeoutId);
+              }}
+              disabled={isSaving || isReadOnly}
+              placeholder="Enter WhatsApp number"
+              className="flex-1 px-4 py-2 border-none bg-transparent text-foreground focus:outline-none disabled:opacity-50 placeholder:text-muted/60 h-full"
+            />
+          </div>
+          {whatsappError && (
+            <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1.5">
+              <X className="h-3 w-3" />
+              {whatsappError}
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">Contact Message</label>
@@ -634,7 +1274,15 @@ export function ContactManager({
         <div className="flex items-center gap-2 pt-2">
           <button
             type="submit"
-            disabled={isSaving || !!phoneError}
+            disabled={
+              isSaving || 
+              !!phoneError || 
+              !!phoneError2 || 
+              !!whatsappError || 
+              !!email1Error || 
+              !!email2Error ||
+              !formData.email1?.trim() // At least email1 is required
+            }
             className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? (

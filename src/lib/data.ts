@@ -51,14 +51,26 @@ export async function getPersonInfo(portfolioId: string) {
       name: true,
       role: true,
       location: true,
-      email: true,
+      email: true, // Legacy field
       linkedIn: true,
-      phone: true,
+      phone: true, // Legacy field
       contactMessage: true,
       cvUrl: true,
       avatarUrl: true,
       updatedAt: true, // Include for cache-busting
       createdAt: true,
+      // Extended contact fields
+      phone1: true,
+      phone2: true,
+      whatsapp: true,
+      email1: true,
+      email2: true,
+      // Visibility controls
+      showPhone1: true,
+      showPhone2: true,
+      showWhatsApp: true,
+      showEmail1: true,
+      showEmail2: true,
     },
   });
   if (!info) notFound();
@@ -187,6 +199,7 @@ export async function getAboutContent(portfolioId: string) {
     title: about.title,
     paragraphs: JSON.parse(about.paragraphs || "[]"),
     principles: about.principles.map((p) => ({
+      id: p.id,
       title: p.title,
       description: p.description,
     })),

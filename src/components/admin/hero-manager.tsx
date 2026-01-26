@@ -225,8 +225,8 @@ export function HeroManager({
           <p className="text-sm text-muted">{hero?.subheadline}</p>
           <p className="text-sm text-muted-disabled">Highlights</p>
           <ul className="list-disc pl-5 text-sm text-muted">
-            {parsedHighlights.map((h) => (
-              <li key={h}>{h}</li>
+            {parsedHighlights.map((h, idx) => (
+              <li key={`highlight-${idx}`}>{h}</li>
             ))}
           </ul>
         </div>

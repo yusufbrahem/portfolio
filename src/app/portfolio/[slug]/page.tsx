@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck, Landmark, Activity, Mail, Linkedin, MapPin, Phone } from "lucide-react";
+import { ArrowRight, ShieldCheck, Landmark, Activity, Mail, Linkedin, MapPin, Phone, MessageCircle } from "lucide-react";
 import { Container } from "@/components/container";
 import { Motion } from "@/components/motion";
 import { Avatar } from "@/components/avatar";
@@ -215,8 +215,8 @@ export default async function PortfolioPage({ params }: PageProps) {
             </Motion>
 
             <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
-              {heroBullets.map((h: string) => (
-                <li key={h} className="flex gap-2">
+              {heroBullets.map((h: string, idx: number) => (
+                <li key={`hero-bullet-${idx}`} className="flex gap-2">
                   <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
                   <span>{h}</span>
                 </li>
@@ -405,31 +405,62 @@ export default async function PortfolioPage({ params }: PageProps) {
       {aboutVisible && about && (
         <Container id="about">
           <Section eyebrow="About" title={about.title} description={about.paragraphs[0]}>
-            <div className="grid gap-6 lg:grid-cols-12">
-              <div className="space-y-4 lg:col-span-7">
-                {about.paragraphs.slice(1).map((p: string, idx: number) => (
-                  <Motion key={idx}>
-                    <p className="text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed">{p}</p>
-                  </Motion>
-                ))}
-              </div>
-              <div className="lg:col-span-5">
-                <div className="grid gap-4">
-                  {about.principles.map((x, idx) => (
-                    <Motion key={x.title} delay={idx * 0.05}>
-                      <Card className="p-5">
-                        <p className="text-sm font-semibold text-foreground">
-                          {x.title}
-                        </p>
-                        <p className="mt-2 text-sm leading-relaxed text-muted">
-                          {x.description}
-                        </p>
-                      </Card>
-                    </Motion>
-                  ))}
+            {(() => {
+              const additionalParagraphs = about.paragraphs.slice(1);
+              const hasAdditionalParagraphs = additionalParagraphs.length > 0;
+              const hasPrinciples = about.principles && about.principles.length > 0;
+              
+              // If no additional paragraphs, render single column layout
+              if (!hasAdditionalParagraphs) {
+                return (
+                  <div className="grid gap-4">
+                    {hasPrinciples && about.principles.map((x, idx) => (
+                      <Motion key={x.id} delay={idx * 0.05}>
+                        <Card className="p-5">
+                          <p className="text-sm font-semibold text-foreground">
+                            {x.title}
+                          </p>
+                          <p className="mt-2 text-sm leading-relaxed text-muted">
+                            {x.description}
+                          </p>
+                        </Card>
+                      </Motion>
+                    ))}
+                  </div>
+                );
+              }
+              
+              // If we have additional paragraphs, render two-column layout
+              return (
+                <div className="grid gap-6 lg:grid-cols-12">
+                  <div className="space-y-4 lg:col-span-7">
+                    {additionalParagraphs.map((p: string, idx: number) => (
+                      <Motion key={idx}>
+                        <p className="text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed">{p}</p>
+                      </Motion>
+                    ))}
+                  </div>
+                  {hasPrinciples && (
+                    <div className="lg:col-span-5">
+                      <div className="grid gap-4">
+                        {about.principles.map((x, idx) => (
+                          <Motion key={x.id} delay={idx * 0.05}>
+                            <Card className="p-5">
+                              <p className="text-sm font-semibold text-foreground">
+                                {x.title}
+                              </p>
+                              <p className="mt-2 text-sm leading-relaxed text-muted">
+                                {x.description}
+                              </p>
+                            </Card>
+                          </Motion>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              );
+            })()}
           </Section>
         </Container>
       )}
@@ -478,22 +509,44 @@ export default async function PortfolioPage({ params }: PageProps) {
               <Motion>
                 <Card className="p-6">
                   <div className="space-y-5">
-                    <div className="flex items-start gap-3">
-                      <Mail className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">
-                          Email
-                        </p>
-                        <a
-                          className="text-sm text-muted hover:underline"
-                          href={`mailto:${person.email}`}
-                        >
-                          {person.email}
-                        </a>
+                    {/* Email 1 (Primary) - Show if visible */}
+                    {person.showEmail1 && (person.email1 || person.email) && (
+                      <div className="flex items-start gap-3">
+                        <Mail className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            Email
+                          </p>
+                          <a
+                            className="text-sm text-muted hover:underline"
+                            href={`mailto:${person.email1 || person.email}`}
+                          >
+                            {person.email1 || person.email}
+                          </a>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    
+                    {/* Email 2 (Secondary) - Show if visible */}
+                    {person.showEmail2 && person.email2 && (
+                      <div className="flex items-start gap-3">
+                        <Mail className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            Email (Secondary)
+                          </p>
+                          <a
+                            className="text-sm text-muted hover:underline"
+                            href={`mailto:${person.email2}`}
+                          >
+                            {person.email2}
+                          </a>
+                        </div>
+                      </div>
+                    )}
 
-                    {person.phone && (
+                    {/* Phone 1 (Primary) - Show if visible */}
+                    {person.showPhone1 && (person.phone1 || person.phone) && (
                       <div className="flex items-start gap-3">
                         <Phone className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
                         <div>
@@ -502,9 +555,47 @@ export default async function PortfolioPage({ params }: PageProps) {
                           </p>
                           <a
                             className="text-sm text-muted hover:underline"
-                            href={`tel:${person.phone}`}
+                            href={`tel:${person.phone1 || person.phone}`}
                           >
-                            {person.phone}
+                            {person.phone1 || person.phone}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Phone 2 (Secondary) - Show if visible */}
+                    {person.showPhone2 && person.phone2 && (
+                      <div className="flex items-start gap-3">
+                        <Phone className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            Phone (Secondary)
+                          </p>
+                          <a
+                            className="text-sm text-muted hover:underline"
+                            href={`tel:${person.phone2}`}
+                          >
+                            {person.phone2}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* WhatsApp - Show if visible */}
+                    {person.showWhatsApp && person.whatsapp && (
+                      <div className="flex items-start gap-3">
+                        <MessageCircle className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            WhatsApp
+                          </p>
+                          <a
+                            className="text-sm text-muted hover:underline"
+                            href={`https://wa.me/${person.whatsapp.replace(/[^\d]/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {person.whatsapp}
                           </a>
                         </div>
                       </div>
@@ -540,9 +631,12 @@ export default async function PortfolioPage({ params }: PageProps) {
                     </div>
 
                     <div className="pt-2">
-                      <PrimaryButton href={`mailto:${person.email}`}>
-                        Email {person.name}
-                      </PrimaryButton>
+                      {/* Use primary email for contact button */}
+                      {(person.showEmail1 && (person.email1 || person.email)) && (
+                        <PrimaryButton href={`mailto:${person.email1 || person.email}`}>
+                          Email {person.name}
+                        </PrimaryButton>
+                      )}
                     </div>
                   </div>
                 </Card>

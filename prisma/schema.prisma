@@ -151,11 +151,23 @@ model PersonInfo {
   name           String
   role           String
   location       String
-  email          String
+  email          String    // Legacy: kept for backward compatibility, maps to email1
   linkedIn       String
-  phone          String?   // International phone number (E.164 format)
+  phone          String?   // Legacy: kept for backward compatibility, maps to phone1
   contactMessage String?   // Optional custom contact message
   avatarUrl      String?   // Public URL to avatar image (per-portfolio)
+  // Extended contact fields
+  phone1         String?   // Primary phone number (E.164 format)
+  phone2         String?   // Secondary phone number (E.164 format)
+  whatsapp       String?   // WhatsApp number (E.164 format)
+  email1         String?   // Primary email
+  email2         String?   // Secondary email
+  // Visibility controls for each contact field
+  showPhone1     Boolean   @default(true) // Visibility toggle for phone1
+  showPhone2     Boolean   @default(true) // Visibility toggle for phone2
+  showWhatsApp   Boolean   @default(true) // Visibility toggle for WhatsApp
+  showEmail1     Boolean   @default(true) // Visibility toggle for email1
+  showEmail2     Boolean   @default(true) // Visibility toggle for email2
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   cvUrl          String?
