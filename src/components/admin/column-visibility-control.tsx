@@ -27,7 +27,7 @@ const COLUMN_CONFIGS: ColumnConfig[] = [
   { id: "email", label: "Email", defaultVisible: true },
   { id: "name", label: "Name", defaultVisible: true },
   { id: "role", label: "Role", defaultVisible: true },
-  { id: "portfolio", label: "Portfolio", defaultVisible: true },
+  { id: "portfolio", label: "Portfolio", defaultVisible: false },
   { id: "status", label: "Status", defaultVisible: true },
   { id: "created", label: "Created", defaultVisible: true },
   { id: "requested", label: "Requested", defaultVisible: true },
@@ -118,27 +118,8 @@ export function ColumnVisibilityControl({
 }
 
 export function useColumnVisibility() {
+  // Always start with defaults to avoid hydration mismatch
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(() => {
-    if (typeof window === "undefined") {
-      // Server-side: return defaults
-      return new Set(
-        COLUMN_CONFIGS
-          .filter(col => col.defaultVisible)
-          .map(col => col.id)
-      );
-    }
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as ColumnId[];
-        return new Set(parsed);
-      }
-    } catch {
-      // Ignore parse errors
-    }
-
-    // Return defaults
     return new Set(
       COLUMN_CONFIGS
         .filter(col => col.defaultVisible)
@@ -146,15 +127,32 @@ export function useColumnVisibility() {
     );
   });
 
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Load from localStorage after hydration
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    setIsHydrated(true);
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as ColumnId[];
+        setVisibleColumns(new Set(parsed));
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []);
+
+  // Save to localStorage when columns change (only after hydration)
+  useEffect(() => {
+    if (isHydrated && typeof window !== "undefined") {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(visibleColumns)));
       } catch {
         // Ignore storage errors
       }
     }
-  }, [visibleColumns]);
+  }, [visibleColumns, isHydrated]);
 
   return [visibleColumns, setVisibleColumns] as const;
 }
