@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
 import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -62,6 +63,48 @@ export async function updatePersonInfo(data: {
   
   if (!portfolioId) {
     throw new Error("User must have a portfolio to update person info");
+  }
+  
+  // Server-side length validation
+  const nameValidation = validateTextLength(data.name, TEXT_LIMITS.NAME, "Name");
+  if (!nameValidation.isValid) {
+    throw new Error(nameValidation.error || "Name exceeds maximum length");
+  }
+  
+  const roleValidation = validateTextLength(data.role, TEXT_LIMITS.TITLE, "Role");
+  if (!roleValidation.isValid) {
+    throw new Error(roleValidation.error || "Role exceeds maximum length");
+  }
+  
+  const locationValidation = validateTextLength(data.location, TEXT_LIMITS.LABEL, "Location");
+  if (!locationValidation.isValid) {
+    throw new Error(locationValidation.error || "Location exceeds maximum length");
+  }
+  
+  const linkedInValidation = validateTextLength(data.linkedIn, TEXT_LIMITS.URL, "LinkedIn URL");
+  if (!linkedInValidation.isValid) {
+    throw new Error(linkedInValidation.error || "LinkedIn URL exceeds maximum length");
+  }
+  
+  if (data.contactMessage) {
+    const contactMessageValidation = validateTextLength(data.contactMessage, TEXT_LIMITS.CONTACT_MESSAGE, "Contact message");
+    if (!contactMessageValidation.isValid) {
+      throw new Error(contactMessageValidation.error || "Contact message exceeds maximum length");
+    }
+  }
+  
+  if (data.email1) {
+    const email1Validation = validateTextLength(data.email1, TEXT_LIMITS.URL, "Email");
+    if (!email1Validation.isValid) {
+      throw new Error(email1Validation.error || "Email exceeds maximum length");
+    }
+  }
+  
+  if (data.email2) {
+    const email2Validation = validateTextLength(data.email2, TEXT_LIMITS.URL, "Email");
+    if (!email2Validation.isValid) {
+      throw new Error(email2Validation.error || "Email exceeds maximum length");
+    }
   }
   
   // Validate and normalize phone numbers (legacy and new fields)

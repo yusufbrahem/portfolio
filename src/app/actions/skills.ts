@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -54,6 +55,12 @@ export async function createSkillGroup(data: { name: string; order: number }) {
     throw new Error("User must have a portfolio to create skill groups");
   }
   
+  // Server-side length validation
+  const nameValidation = validateTextLength(data.name, TEXT_LIMITS.NAME, "Skill group name");
+  if (!nameValidation.isValid) {
+    throw new Error(nameValidation.error || "Skill group name exceeds maximum length");
+  }
+  
   // Ownership check: ensure user owns this portfolio
   // Super admin can create in any portfolio, but for now they create in their own
   const result = await prisma.skillGroup.create({
@@ -86,6 +93,14 @@ export async function updateSkillGroup(id: string, data: { name?: string; order?
   if (session.user.role !== "super_admin") {
     if (!session.user.portfolioId || existing.portfolioId !== session.user.portfolioId) {
       throw new Error("Access denied");
+    }
+  }
+  
+  // Server-side length validation
+  if (data.name !== undefined) {
+    const nameValidation = validateTextLength(data.name, TEXT_LIMITS.NAME, "Skill group name");
+    if (!nameValidation.isValid) {
+      throw new Error(nameValidation.error || "Skill group name exceeds maximum length");
     }
   }
   
@@ -149,6 +164,12 @@ export async function createSkill(data: { skillGroupId: string; name: string; or
     }
   }
   
+  // Server-side length validation
+  const nameValidation = validateTextLength(data.name, TEXT_LIMITS.TAG, "Skill name");
+  if (!nameValidation.isValid) {
+    throw new Error(nameValidation.error || "Skill name exceeds maximum length");
+  }
+  
   const result = await prisma.skill.create({
     data,
   });
@@ -199,6 +220,14 @@ export async function updateSkill(id: string, data: { name?: string; order?: num
   if (session.user.role !== "super_admin") {
     if (!session.user.portfolioId || existing.skillGroup.portfolioId !== session.user.portfolioId) {
       throw new Error("Access denied");
+    }
+  }
+  
+  // Server-side length validation
+  if (data.name !== undefined) {
+    const nameValidation = validateTextLength(data.name, TEXT_LIMITS.TAG, "Skill name");
+    if (!nameValidation.isValid) {
+      throw new Error(nameValidation.error || "Skill name exceeds maximum length");
     }
   }
   

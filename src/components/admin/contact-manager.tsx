@@ -8,6 +8,8 @@ import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
 import { COUNTRIES, getCountryByCode, getCountryByDialCode } from "@/lib/countries";
 import { DEFAULT_SECTION_INTROS } from "@/lib/section-intros";
 import { validateEmail, validatePhone as validatePhoneUtil, formatPhoneToE164, trimAndValidate } from "@/lib/contact-validation";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
+import { CharCounter } from "@/components/ui/char-counter";
 
 type PersonInfo = Awaited<ReturnType<typeof getPersonInfo>>;
 
@@ -123,6 +125,13 @@ export function ContactManager({
   // Email validation errors
   const [email1Error, setEmail1Error] = useState<string | null>(null);
   const [email2Error, setEmail2Error] = useState<string | null>(null);
+  
+  // Length validation errors
+  const [nameLengthError, setNameLengthError] = useState<string | null>(null);
+  const [roleLengthError, setRoleLengthError] = useState<string | null>(null);
+  const [locationLengthError, setLocationLengthError] = useState<string | null>(null);
+  const [contactMessageLengthError, setContactMessageLengthError] = useState<string | null>(null);
+  const [linkedInLengthError, setLinkedInLengthError] = useState<string | null>(null);
 
   // Validate phone number
   const validatePhone = (phone: string): string | null => {
@@ -248,6 +257,44 @@ export function ContactManager({
     setWhatsappError(null);
     setEmail1Error(null);
     setEmail2Error(null);
+    setNameLengthError(null);
+    setRoleLengthError(null);
+    setLocationLengthError(null);
+    setLinkedInLengthError(null);
+    setContactMessageLengthError(null);
+    
+    // Validate text lengths
+    const nameValidation = validateTextLength(formData.name, TEXT_LIMITS.NAME, "Name");
+    if (!nameValidation.isValid) {
+      setNameLengthError(nameValidation.error);
+      return;
+    }
+    
+    const roleValidation = validateTextLength(formData.role, TEXT_LIMITS.TITLE, "Role");
+    if (!roleValidation.isValid) {
+      setRoleLengthError(roleValidation.error);
+      return;
+    }
+    
+    const locationValidation = validateTextLength(formData.location, TEXT_LIMITS.LABEL, "Location");
+    if (!locationValidation.isValid) {
+      setLocationLengthError(locationValidation.error);
+      return;
+    }
+    
+    const linkedInValidation = validateTextLength(formData.linkedIn, TEXT_LIMITS.URL, "LinkedIn URL");
+    if (!linkedInValidation.isValid) {
+      setLinkedInLengthError(linkedInValidation.error);
+      return;
+    }
+    
+    if (formData.contactMessage) {
+      const contactMessageValidation = validateTextLength(formData.contactMessage, TEXT_LIMITS.CONTACT_MESSAGE, "Contact message");
+      if (!contactMessageValidation.isValid) {
+        setContactMessageLengthError(contactMessageValidation.error);
+        return;
+      }
+    }
     
     // Validate LinkedIn URL format
     if (formData.linkedIn && !formData.linkedIn.match(/^https?:\/\/.+/)) {
@@ -723,11 +770,25 @@ export function ContactManager({
           <input
             type="text"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            maxLength={TEXT_LIMITS.NAME}
+            onChange={(e) => {
+              const value = e.target.value;
+              setFormData({ ...formData, name: value });
+              const validation = validateTextLength(value, TEXT_LIMITS.NAME, "Name");
+              setNameLengthError(validation.error);
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+              nameLengthError
+                ? "border-red-500 bg-red-500/10 focus:ring-red-500 focus:border-red-500"
+                : "border-border bg-background text-foreground focus:ring-accent focus:border-accent"
+            }`}
             required
             disabled={isSaving}
           />
+          <CharCounter current={formData.name.length} max={TEXT_LIMITS.NAME} />
+          {nameLengthError && (
+            <p className="mt-1 text-xs text-red-400">{nameLengthError}</p>
+          )}
           {userDefaults && formData.name === userDefaults.name && !initialData?.name?.trim() && (
             <p className="mt-1.5 text-xs text-muted flex items-center gap-1.5 animate-pulse">
               <Sparkles className="h-3 w-3 text-accent" />
@@ -740,22 +801,50 @@ export function ContactManager({
           <input
             type="text"
             value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            maxLength={TEXT_LIMITS.TITLE}
+            onChange={(e) => {
+              const value = e.target.value;
+              setFormData({ ...formData, role: value });
+              const validation = validateTextLength(value, TEXT_LIMITS.TITLE, "Role");
+              setRoleLengthError(validation.error);
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+              roleLengthError
+                ? "border-red-500 bg-red-500/10 focus:ring-red-500 focus:border-red-500"
+                : "border-border bg-background text-foreground focus:ring-accent focus:border-accent"
+            }`}
             required
             disabled={isSaving}
           />
+          <CharCounter current={formData.role.length} max={TEXT_LIMITS.TITLE} />
+          {roleLengthError && (
+            <p className="mt-1 text-xs text-red-400">{roleLengthError}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">Location</label>
           <input
             type="text"
             value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            maxLength={TEXT_LIMITS.LABEL}
+            onChange={(e) => {
+              const value = e.target.value;
+              setFormData({ ...formData, location: value });
+              const validation = validateTextLength(value, TEXT_LIMITS.LABEL, "Location");
+              setLocationLengthError(validation.error);
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+              locationLengthError
+                ? "border-red-500 bg-red-500/10 focus:ring-red-500 focus:border-red-500"
+                : "border-border bg-background text-foreground focus:ring-accent focus:border-accent"
+            }`}
             required
             disabled={isSaving}
           />
+          <CharCounter current={formData.location.length} max={TEXT_LIMITS.LABEL} />
+          {locationLengthError && (
+            <p className="mt-1 text-xs text-red-400">{locationLengthError}</p>
+          )}
         </div>
         {/* Email 1 (Primary) */}
         <div>
@@ -890,17 +979,29 @@ export function ContactManager({
           <input
             type="url"
             value={formData.linkedIn}
+            maxLength={TEXT_LIMITS.URL}
             onChange={(e) => {
-              setFormData({ ...formData, linkedIn: e.target.value });
+              const value = e.target.value;
+              setFormData({ ...formData, linkedIn: value });
               setUploadError(null); // Clear error when user types
+              const validation = validateTextLength(value, TEXT_LIMITS.URL, "LinkedIn URL");
+              setLinkedInLengthError(validation.error);
             }}
-            className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+              linkedInLengthError
+                ? "border-red-500 bg-red-500/10 focus:ring-red-500 focus:border-red-500"
+                : "border-border bg-background text-foreground focus:ring-accent focus:border-accent"
+            }`}
             placeholder="https://www.linkedin.com/in/..."
             required
             pattern="https?://.+"
             title="Please enter a valid URL starting with http:// or https://"
             disabled={isSaving}
           />
+          <CharCounter current={formData.linkedIn.length} max={TEXT_LIMITS.URL} />
+          {linkedInLengthError && (
+            <p className="mt-1 text-xs text-red-400">{linkedInLengthError}</p>
+          )}
         </div>
         {/* Phone 1 (Primary) */}
         <div>
@@ -1193,11 +1294,25 @@ export function ContactManager({
           <label className="block text-sm font-medium text-foreground mb-2">Contact Message</label>
           <textarea
             value={formData.contactMessage || ""}
-            onChange={(e) => setFormData({ ...formData, contactMessage: e.target.value })}
-            className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            maxLength={TEXT_LIMITS.CONTACT_MESSAGE}
+            onChange={(e) => {
+              const value = e.target.value;
+              setFormData({ ...formData, contactMessage: value });
+              const validation = validateTextLength(value, TEXT_LIMITS.CONTACT_MESSAGE, "Contact message");
+              setContactMessageLengthError(validation.error);
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+              contactMessageLengthError
+                ? "border-red-500 bg-red-500/10 focus:ring-red-500 focus:border-red-500"
+                : "border-border bg-background text-foreground focus:ring-accent focus:border-accent"
+            }`}
             rows={3}
             disabled={isSaving}
           />
+          <CharCounter current={(formData.contactMessage || "").length} max={TEXT_LIMITS.CONTACT_MESSAGE} />
+          {contactMessageLengthError && (
+            <p className="mt-1 text-xs text-red-400">{contactMessageLengthError}</p>
+          )}
           <p className="mt-1 text-xs text-muted">Edit or replace the default contact message.</p>
           <p className="mt-1 text-xs text-muted">Optional. If left empty, a generic message will be shown.</p>
         </div>
@@ -1281,7 +1396,12 @@ export function ContactManager({
               !!whatsappError || 
               !!email1Error || 
               !!email2Error ||
-              !formData.email1?.trim() // At least email1 is required
+              !!nameLengthError ||
+              !!roleLengthError ||
+              !!locationLengthError ||
+              !!linkedInLengthError ||
+              !!contactMessageLengthError ||
+              (!formData.email1?.trim() && !phoneNumber.trim() && !phoneNumber2.trim() && !whatsappNumber.trim()) // At least one contact method required
             }
             className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

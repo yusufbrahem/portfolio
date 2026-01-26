@@ -120,3 +120,19 @@ select.phone-select option {
 
 /* Custom Month Picker - Fully themed, no native styling */
 /* All styles are inline in the component for full control */
+
+/* Global text overflow protection - applies to all user-entered content */
+.text-safe {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  max-width: 100%;
+}
+
+/* Apply to all card content by default */
+[class*="Card"] *,
+.card-content * {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}

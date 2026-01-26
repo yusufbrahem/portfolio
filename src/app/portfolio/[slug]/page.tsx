@@ -192,12 +192,12 @@ export default async function PortfolioPage({ params }: PageProps) {
             </div>
 
             <Motion delay={0.05}>
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl text-safe">
                 {heroHeadline}
               </h1>
             </Motion>
 
-            <p className="max-w-2xl text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed">
+            <p className="max-w-2xl text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed text-safe">
               {heroSubheadline}
             </p>
 
@@ -261,7 +261,7 @@ export default async function PortfolioPage({ params }: PageProps) {
                           <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
                             Current
                           </p>
-                          <p className="mt-1 text-sm leading-relaxed text-foreground">{currentRole}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-foreground text-safe">{currentRole}</p>
                         </div>
                       ) : null}
                       {focus ? (
@@ -269,14 +269,14 @@ export default async function PortfolioPage({ params }: PageProps) {
                           <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
                             Focus
                           </p>
-                          <p className="mt-1 text-sm leading-relaxed text-foreground">{focus}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-foreground text-safe">{focus}</p>
                         </div>
                       ) : null}
                       <div className="rounded-[var(--radius)] border border-border bg-panel2 p-4">
                         <p className="text-xs font-semibold tracking-[0.2em] text-muted-disabled uppercase">
                           Location
                         </p>
-                        <p className="mt-1 text-sm leading-relaxed text-foreground">{person.location}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-foreground text-safe">{person.location}</p>
                       </div>
                     </div>
                   </div>
@@ -299,7 +299,7 @@ export default async function PortfolioPage({ params }: PageProps) {
               {skills.map((group, idx) => (
                 <Motion key={group.group} delay={idx * 0.05}>
                   <Card className="p-6">
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-sm font-semibold text-foreground text-safe">
                       {group.group}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -328,17 +328,17 @@ export default async function PortfolioPage({ params }: PageProps) {
                 <Motion key={p.title} delay={idx * 0.05}>
                   <Card className="flex h-full flex-col p-6">
                     <div className="space-y-2">
-                      <p className="text-base font-semibold text-foreground">
+                      <p className="text-base font-semibold text-foreground text-safe">
                         {p.title}
                       </p>
-                      <p className="text-sm leading-relaxed text-muted">{p.summary}</p>
+                      <p className="text-sm leading-relaxed text-muted text-safe">{p.summary}</p>
                     </div>
 
                     <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
                       {p.bullets.map((b) => (
                         <li key={b} className="flex gap-2">
-                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
-                          <span>{b}</span>
+                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
+                          <span className="text-safe">{b}</span>
                         </li>
                       ))}
                     </ul>
@@ -369,16 +369,16 @@ export default async function PortfolioPage({ params }: PageProps) {
                 <Motion key={`${role.title}-${role.company}`} delay={idx * 0.05}>
                   <Card className="p-6">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="text-base font-semibold text-foreground">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-base font-semibold text-foreground text-safe">
                           {role.title}
                         </p>
-                        <p className="text-sm text-muted">{role.company}</p>
-                        <p className="mt-1 text-xs text-muted-disabled">
+                        <p className="text-sm text-muted text-safe">{role.company}</p>
+                        <p className="mt-1 text-xs text-muted-disabled text-safe">
                           {role.location} • {role.period}
                         </p>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 flex-shrink-0">
                         {role.tech.map((t) => (
                           <Pill key={t}>{t}</Pill>
                         ))}
@@ -388,8 +388,8 @@ export default async function PortfolioPage({ params }: PageProps) {
                     <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
                       {role.bullets.map((b) => (
                         <li key={b} className="flex gap-2">
-                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
-                          <span>{b}</span>
+                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
+                          <span className="text-safe">{b}</span>
                         </li>
                       ))}
                     </ul>
@@ -417,10 +417,10 @@ export default async function PortfolioPage({ params }: PageProps) {
                     {hasPrinciples && about.principles.map((x, idx) => (
                       <Motion key={x.id} delay={idx * 0.05}>
                         <Card className="p-5">
-                          <p className="text-sm font-semibold text-foreground">
+                          <p className="text-sm font-semibold text-foreground text-safe">
                             {x.title}
                           </p>
-                          <p className="mt-2 text-sm leading-relaxed text-muted">
+                          <p className="mt-2 text-sm leading-relaxed text-muted text-safe">
                             {x.description}
                           </p>
                         </Card>
@@ -436,7 +436,7 @@ export default async function PortfolioPage({ params }: PageProps) {
                   <div className="space-y-4 lg:col-span-7">
                     {additionalParagraphs.map((p: string, idx: number) => (
                       <Motion key={idx}>
-                        <p className="text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed">{p}</p>
+                        <p className="text-base leading-relaxed text-muted sm:text-lg sm:leading-relaxed text-safe">{p}</p>
                       </Motion>
                     ))}
                   </div>
@@ -477,14 +477,14 @@ export default async function PortfolioPage({ params }: PageProps) {
               {architecture.pillars.map((p, idx) => (
                 <Motion key={p.title} delay={idx * 0.05}>
                   <Card className="h-full p-6">
-                    <p className="text-base font-semibold text-foreground">
+                    <p className="text-base font-semibold text-foreground text-safe">
                       {p.title}
                     </p>
                     <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
                       {p.points.map((x) => (
                         <li key={x} className="flex gap-2">
-                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
-                          <span>{x}</span>
+                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
+                          <span className="text-safe">{x}</span>
                         </li>
                       ))}
                     </ul>

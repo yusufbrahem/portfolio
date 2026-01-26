@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -171,6 +172,50 @@ export async function updateExperience(
   if (session.user.role !== "super_admin") {
     if (!session.user.portfolioId || existing.portfolioId !== session.user.portfolioId) {
       throw new Error("Access denied");
+    }
+  }
+  
+  // Server-side length validation
+  if (data.title !== undefined) {
+    const titleValidation = validateTextLength(data.title, TEXT_LIMITS.TITLE, "Experience title");
+    if (!titleValidation.isValid) {
+      throw new Error(titleValidation.error || "Experience title exceeds maximum length");
+    }
+  }
+  
+  if (data.company !== undefined) {
+    const companyValidation = validateTextLength(data.company, TEXT_LIMITS.NAME, "Company");
+    if (!companyValidation.isValid) {
+      throw new Error(companyValidation.error || "Company exceeds maximum length");
+    }
+  }
+  
+  if (data.location !== undefined) {
+    const locationValidation = validateTextLength(data.location, TEXT_LIMITS.LABEL, "Location");
+    if (!locationValidation.isValid) {
+      throw new Error(locationValidation.error || "Location exceeds maximum length");
+    }
+  }
+  
+  if (data.bullets !== undefined) {
+    for (const bullet of data.bullets) {
+      if (bullet.trim()) {
+        const bulletValidation = validateTextLength(bullet, TEXT_LIMITS.BULLET, "Bullet point");
+        if (!bulletValidation.isValid) {
+          throw new Error(bulletValidation.error || "Bullet point exceeds maximum length");
+        }
+      }
+    }
+  }
+  
+  if (data.tech !== undefined) {
+    for (const techItem of data.tech) {
+      if (techItem.trim()) {
+        const techValidation = validateTextLength(techItem, TEXT_LIMITS.TAG, "Technology");
+        if (!techValidation.isValid) {
+          throw new Error(techValidation.error || "Technology exceeds maximum length");
+        }
+      }
     }
   }
   

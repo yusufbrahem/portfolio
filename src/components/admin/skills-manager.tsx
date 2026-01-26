@@ -13,6 +13,8 @@ import {
 } from "@/app/actions/skills";
 import { ItemVisibilityToggle } from "@/components/admin/item-visibility-toggle";
 import { updateSkillGroupVisibility } from "@/app/actions/item-visibility";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
+import { CharCounter } from "@/components/ui/char-counter";
 
 type SkillGroup = Awaited<ReturnType<typeof getSkillGroups>>[0];
 
@@ -193,10 +195,10 @@ export function SkillsManager({ initialData, isReadOnly = false }: { initialData
         </div>
       ) : (
         skillGroups.map((group) => (
-          <div key={group.id} className="border border-border bg-panel rounded-lg">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-2 flex-1">
-                <button onClick={() => toggleGroup(group.id)} className="text-muted hover:text-foreground transition-colors">
+          <div key={group.id} className="border border-border bg-panel rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between p-4 gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+                <button onClick={() => toggleGroup(group.id)} className="text-muted hover:text-foreground transition-colors flex-shrink-0">
                   {expandedGroups.has(group.id) ? (
                     <ChevronDown className="h-4 w-4" />
                   ) : (
@@ -216,16 +218,16 @@ export function SkillsManager({ initialData, isReadOnly = false }: { initialData
                         setEditingGroup(null);
                       }
                     }}
-                    className="px-2 py-1 border border-border bg-background text-foreground rounded flex-1"
+                    className="px-2 py-1 border border-border bg-background text-foreground rounded flex-1 min-w-0"
                     autoFocus
                     disabled={loading === group.id}
                   />
                 ) : (
-                  <h3 className="font-semibold text-foreground">{group.name}</h3>
+                  <h3 className="font-semibold text-foreground break-words min-w-0" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{group.name}</h3>
                 )}
-                {loading === group.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
+                {loading === group.id && <Loader2 className="h-4 w-4 animate-spin text-muted flex-shrink-0" />}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <ItemVisibilityToggle
                   itemId={group.id}
                   initialValue={group.isVisible ?? true}
@@ -258,7 +260,7 @@ export function SkillsManager({ initialData, isReadOnly = false }: { initialData
                   <p className="text-sm text-muted py-2">No skills in this group yet.</p>
                 ) : (
                   group.skills.map((skill) => (
-                    <div key={skill.id} className="flex items-center justify-between py-2 px-3 bg-panel2 rounded">
+                    <div key={skill.id} className="flex items-center justify-between py-2 px-3 bg-panel2 rounded gap-3 overflow-hidden">
                       {editingSkill?.groupId === group.id && editingSkill.skillId === skill.id ? (
                         <input
                           type="text"
@@ -272,15 +274,15 @@ export function SkillsManager({ initialData, isReadOnly = false }: { initialData
                               setEditingSkill(null);
                             }
                           }}
-                          className="flex-1 px-2 py-1 border border-border bg-background text-foreground rounded"
+                          className="flex-1 px-2 py-1 border border-border bg-background text-foreground rounded min-w-0"
                           autoFocus
                           disabled={loading === skill.id}
                         />
                       ) : (
-                        <span className="text-foreground">{skill.name}</span>
+                        <span className="text-foreground break-words min-w-0 flex-1" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{skill.name}</span>
                       )}
-                      {loading === skill.id && <Loader2 className="h-3 w-3 animate-spin text-muted" />}
-                      <div className="flex items-center gap-2">
+                      {loading === skill.id && <Loader2 className="h-3 w-3 animate-spin text-muted flex-shrink-0" />}
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                           onClick={() => setEditingSkill({ groupId: group.id, skillId: skill.id })}
                           className="text-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -337,43 +339,65 @@ function GroupForm({
   loading: boolean;
 }) {
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      onSave(name);
-      setName("");
+    if (!name.trim()) return;
+    
+    const validation = validateTextLength(name, TEXT_LIMITS.NAME, "Group name");
+    if (!validation.isValid) {
+      setNameError(validation.error);
+      return;
     }
+    
+    onSave(name);
+    setName("");
+    setNameError(null);
   };
 
   return (
     <form onSubmit={handleSubmit} className="border border-border bg-panel rounded-lg p-4">
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Group name"
-          className="flex-1 px-3 py-2 border border-border bg-background text-foreground rounded-lg"
-          autoFocus
-          required
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          disabled={loading || !name.trim()}
-          className="flex items-center gap-2 px-3 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2 transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={name}
+            maxLength={TEXT_LIMITS.NAME}
+            onChange={(e) => {
+              const value = e.target.value;
+              setName(value);
+              const validation = validateTextLength(value, TEXT_LIMITS.NAME, "Group name");
+              setNameError(validation.error);
+            }}
+            placeholder="Group name"
+            className={`flex-1 px-3 py-2 border rounded-lg ${
+              nameError
+                ? "border-red-500 bg-red-500/10"
+                : "border-border bg-background text-foreground"
+            }`}
+            autoFocus
+            required
+            disabled={loading}
+          />
+          <button
+            type="submit"
+            disabled={loading || !name.trim() || !!nameError}
+            className="flex items-center gap-2 px-3 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-2 border border-border bg-panel text-foreground rounded-lg hover:bg-panel2 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <CharCounter current={name.length} max={TEXT_LIMITS.NAME} />
+        {nameError && <p className="text-xs text-red-400">{nameError}</p>}
       </div>
     </form>
   );
@@ -389,27 +413,49 @@ function SkillForm({
   loading: boolean;
 }) {
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      onSave(name);
-      setName("");
+    if (!name.trim()) return;
+    
+    const validation = validateTextLength(name, TEXT_LIMITS.TAG, "Skill name");
+    if (!validation.isValid) {
+      setNameError(validation.error);
+      return;
     }
+    
+    onSave(name);
+    setName("");
+    setNameError(null);
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Skill name"
-        className="flex-1 px-2 py-1 border border-border bg-background text-foreground rounded text-sm"
-        autoFocus
-        required
-        disabled={loading}
-      />
+      <div className="flex-1 space-y-1">
+        <input
+          type="text"
+          value={name}
+          maxLength={TEXT_LIMITS.TAG}
+          onChange={(e) => {
+            const value = e.target.value;
+            setName(value);
+            const validation = validateTextLength(value, TEXT_LIMITS.TAG, "Skill name");
+            setNameError(validation.error);
+          }}
+          placeholder="Skill name"
+          className={`flex-1 px-2 py-1 border rounded text-sm ${
+            nameError
+              ? "border-red-500 bg-red-500/10"
+              : "border-border bg-background text-foreground"
+          }`}
+          autoFocus
+          required
+          disabled={loading}
+        />
+        <CharCounter current={name.length} max={TEXT_LIMITS.TAG} />
+        {nameError && <p className="text-xs text-red-400">{nameError}</p>}
+      </div>
       <button
         type="submit"
         disabled={loading || !name.trim()}

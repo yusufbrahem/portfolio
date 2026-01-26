@@ -45,7 +45,7 @@ export function ItemVisibilityToggle({
         type="button"
         onClick={handleToggle}
         disabled={isSaving || isReadOnly}
-        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed items-center ${
           isVisible ? "bg-green-500" : "bg-gray-300"
         }`}
         role="switch"
@@ -54,12 +54,12 @@ export function ItemVisibilityToggle({
         title={isVisible ? "Visible on portfolio" : "Hidden from portfolio"}
       >
         <span
-          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-            isVisible ? "translate-x-4" : "translate-x-0"
+          className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out flex items-center justify-center ${
+            isVisible ? "translate-x-4" : "translate-x-0.5"
           }`}
         >
           {isSaving && (
-            <Loader2 className="h-2.5 w-2.5 animate-spin text-gray-600 m-0.5" />
+            <Loader2 className="h-2.5 w-2.5 animate-spin text-gray-600" />
           )}
         </span>
       </button>

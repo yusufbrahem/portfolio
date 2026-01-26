@@ -13,6 +13,8 @@ import {
 } from "@/app/actions/architecture";
 import { ItemVisibilityToggle } from "@/components/admin/item-visibility-toggle";
 import { updateArchitecturePillarVisibility } from "@/app/actions/item-visibility";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
+import { CharCounter } from "@/components/ui/char-counter";
 
 type ArchitectureContent = Awaited<ReturnType<typeof getArchitectureContent>>;
 
@@ -357,9 +359,17 @@ function PillarForm({
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState(initialData?.title || "");
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const validation = validateTextLength(title, TEXT_LIMITS.ARCHITECTURE_PILLAR_TITLE, "Pillar title");
+    if (!validation.isValid) {
+      setTitleError(validation.error);
+      return;
+    }
+    
     onSave({ title });
   };
 
@@ -368,11 +378,23 @@ function PillarForm({
       <input
         type="text"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
+        maxLength={TEXT_LIMITS.ARCHITECTURE_PILLAR_TITLE}
+        onChange={(e) => {
+          const value = e.target.value;
+          setTitle(value);
+          const validation = validateTextLength(value, TEXT_LIMITS.ARCHITECTURE_PILLAR_TITLE, "Pillar title");
+          setTitleError(validation.error);
+        }}
+        className={`w-full px-4 py-2 border rounded-lg ${
+          titleError
+            ? "border-red-500 bg-red-500/10"
+            : "border-border bg-background text-foreground"
+        }`}
         placeholder="Pillar title"
         required
       />
+      <CharCounter current={title.length} max={TEXT_LIMITS.ARCHITECTURE_PILLAR_TITLE} />
+      {titleError && <p className="text-xs text-red-400">{titleError}</p>}
       <div className="flex gap-2">
         <button
           type="submit"
@@ -404,9 +426,17 @@ function PointForm({
   onCancel: () => void;
 }) {
   const [text, setText] = useState(initialData?.text || "");
+  const [textError, setTextError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const validation = validateTextLength(text, TEXT_LIMITS.ARCHITECTURE_POINT, "Point description");
+    if (!validation.isValid) {
+      setTextError(validation.error);
+      return;
+    }
+    
     onSave({ text });
   };
 
@@ -415,11 +445,23 @@ function PointForm({
       <input
         type="text"
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="w-full px-3 py-1.5 text-sm border border-border bg-background text-foreground rounded"
+        maxLength={TEXT_LIMITS.ARCHITECTURE_POINT}
+        onChange={(e) => {
+          const value = e.target.value;
+          setText(value);
+          const validation = validateTextLength(value, TEXT_LIMITS.ARCHITECTURE_POINT, "Point description");
+          setTextError(validation.error);
+        }}
+        className={`w-full px-3 py-1.5 text-sm border rounded ${
+          textError
+            ? "border-red-500 bg-red-500/10"
+            : "border-border bg-background text-foreground"
+        }`}
         placeholder="Point text"
         required
       />
+      <CharCounter current={text.length} max={TEXT_LIMITS.ARCHITECTURE_POINT} />
+      {textError && <p className="text-xs text-red-400">{textError}</p>}
       <div className="flex gap-2">
         <button
           type="submit"

@@ -13,8 +13,10 @@ export function Card({
       className={cn(
         "rounded-[var(--radius)] border border-border bg-panel",
         "shadow-[var(--shadow)]",
+        "overflow-hidden", // Prevent horizontal overflow
         className,
       )}
+      style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
     >
       {children}
     </div>
@@ -33,6 +35,7 @@ export function Pill({
       className={cn(
         "inline-flex items-center rounded-full border border-border bg-panel2 px-3 py-1",
         "text-xs font-medium text-foreground",
+        "text-safe max-w-full", // Prevent overflow
         className,
       )}
     >

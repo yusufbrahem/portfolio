@@ -9,6 +9,8 @@ import {
   deletePrinciple,
   type getAboutContent,
 } from "@/app/actions/about";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
+import { CharCounter } from "@/components/ui/char-counter";
 
 type AboutContent = Awaited<ReturnType<typeof getAboutContent>>;
 
@@ -251,12 +253,29 @@ function AboutContentForm({
 }) {
   const [title, setTitle] = useState(initialData.title);
   const [paragraphs, setParagraphs] = useState(initialData.paragraphs.join("\n\n"));
+  const [paragraphErrors, setParagraphErrors] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const parsedParagraphs = paragraphs.split("\n\n").filter((p) => p.trim());
+    
+    // Validate each paragraph
+    const errors: string[] = [];
+    for (let i = 0; i < parsedParagraphs.length; i++) {
+      const validation = validateTextLength(parsedParagraphs[i], TEXT_LIMITS.LONG_TEXT, `Paragraph ${i + 1}`);
+      if (!validation.isValid) {
+        errors[i] = validation.error || `Paragraph ${i + 1} exceeds maximum length`;
+      }
+    }
+    setParagraphErrors(errors);
+    
+    if (errors.some(err => err !== undefined)) {
+      return;
+    }
+    
     onSave({
       title,
-      paragraphs: paragraphs.split("\n\n").filter((p) => p.trim()),
+      paragraphs: parsedParagraphs,
     });
   };
 
@@ -267,10 +286,12 @@ function AboutContentForm({
         <input
           type="text"
           value={title}
+          maxLength={TEXT_LIMITS.TITLE}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
           required
         />
+        <CharCounter current={title.length} max={TEXT_LIMITS.TITLE} />
       </div>
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">
@@ -278,16 +299,48 @@ function AboutContentForm({
         </label>
         <textarea
           value={paragraphs}
-          onChange={(e) => setParagraphs(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setParagraphs(value);
+            // Validate each paragraph in real-time
+            const parsed = value.split("\n\n").filter((p) => p.trim());
+            const errors: string[] = [];
+            for (let i = 0; i < parsed.length; i++) {
+              const validation = validateTextLength(parsed[i], TEXT_LIMITS.LONG_TEXT, `Paragraph ${i + 1}`);
+              if (!validation.isValid) {
+                errors[i] = validation.error || `Paragraph ${i + 1} exceeds maximum length`;
+              }
+            }
+            setParagraphErrors(errors);
+          }}
           rows={6}
-          className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
+          className={`w-full px-4 py-2 border rounded-lg ${
+            paragraphErrors.some(err => err !== undefined)
+              ? "border-red-500 bg-red-500/10"
+              : "border-border bg-background text-foreground"
+          }`}
           required
         />
+        <div className="mt-1 space-y-1">
+          {paragraphs.split("\n\n").map((para, idx) => {
+            if (!para.trim()) return null;
+            return (
+              <div key={idx}>
+                <CharCounter current={para.trim().length} max={TEXT_LIMITS.LONG_TEXT} />
+                {paragraphErrors[idx] && (
+                  <p className="text-xs text-red-400">{paragraphErrors[idx]}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-xs text-muted">Each paragraph should be {TEXT_LIMITS.LONG_TEXT} characters or less</p>
       </div>
       <div className="flex gap-2">
         <button
           type="submit"
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500"
+          disabled={paragraphErrors.some(err => err !== undefined)}
+          className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           Save
@@ -329,20 +382,24 @@ function PrincipleForm({
         <input
           type="text"
           value={title}
+          maxLength={TEXT_LIMITS.TITLE}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
           required
         />
+        <CharCounter current={title.length} max={TEXT_LIMITS.TITLE} />
       </div>
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">Description</label>
         <textarea
           value={description}
+          maxLength={TEXT_LIMITS.DESCRIPTION}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg"
           required
         />
+        <CharCounter current={description.length} max={TEXT_LIMITS.DESCRIPTION} />
       </div>
       <div className="flex gap-2">
         <button

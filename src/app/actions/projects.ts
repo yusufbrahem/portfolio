@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -150,6 +151,43 @@ export async function updateProject(
 ) {
   const session = await requireAuth();
   await assertNotImpersonatingForWrite();
+  
+  // Server-side length validation
+  if (data.title !== undefined) {
+    const titleValidation = validateTextLength(data.title, TEXT_LIMITS.TITLE, "Project title");
+    if (!titleValidation.isValid) {
+      throw new Error(titleValidation.error || "Project title exceeds maximum length");
+    }
+  }
+  
+  if (data.summary !== undefined) {
+    const summaryValidation = validateTextLength(data.summary, TEXT_LIMITS.SUMMARY, "Project summary");
+    if (!summaryValidation.isValid) {
+      throw new Error(summaryValidation.error || "Project summary exceeds maximum length");
+    }
+  }
+  
+  if (data.bullets) {
+    for (const bullet of data.bullets) {
+      if (bullet.trim()) {
+        const bulletValidation = validateTextLength(bullet, TEXT_LIMITS.BULLET, "Bullet point");
+        if (!bulletValidation.isValid) {
+          throw new Error(bulletValidation.error || "Bullet point exceeds maximum length");
+        }
+      }
+    }
+  }
+  
+  if (data.tags) {
+    for (const tag of data.tags) {
+      if (tag.trim()) {
+        const tagValidation = validateTextLength(tag, TEXT_LIMITS.TAG, "Tag");
+        if (!tagValidation.isValid) {
+          throw new Error(tagValidation.error || "Tag exceeds maximum length");
+        }
+      }
+    }
+  }
   
   // Verify resource exists and user has access
   const existing = await prisma.project.findUnique({ 

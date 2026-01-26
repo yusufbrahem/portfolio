@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -85,6 +86,12 @@ export async function createPillar(data: {
   await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
   await assertNotImpersonatingForWrite();
   
+  // Server-side length validation
+  const titleValidation = validateTextLength(data.title, TEXT_LIMITS.ARCHITECTURE_PILLAR_TITLE, "Pillar title");
+  if (!titleValidation.isValid) {
+    throw new Error(titleValidation.error || "Pillar title exceeds maximum length");
+  }
+  
   // Verify parent resource exists and user has access
   const parent = await prisma.architectureContent.findUnique({ 
     where: { id: data.architectureContentId },
@@ -136,6 +143,14 @@ export async function updatePillar(
   if (session.user.role !== "super_admin") {
     if (!session.user.portfolioId || existing.architectureContent.portfolioId !== session.user.portfolioId) {
       throw new Error("Access denied");
+    }
+  }
+  
+  // Server-side length validation
+  if (data.title !== undefined) {
+    const titleValidation = validateTextLength(data.title, TEXT_LIMITS.ARCHITECTURE_PILLAR_TITLE, "Pillar title");
+    if (!titleValidation.isValid) {
+      throw new Error(titleValidation.error || "Pillar title exceeds maximum length");
     }
   }
   
@@ -211,6 +226,12 @@ export async function createPoint(data: {
     }
   }
   
+  // Server-side length validation
+  const textValidation = validateTextLength(data.text, TEXT_LIMITS.ARCHITECTURE_POINT, "Point description");
+  if (!textValidation.isValid) {
+    throw new Error(textValidation.error || "Point description exceeds maximum length");
+  }
+  
   const result = await prisma.architecturePoint.create({
     data,
   });
@@ -249,6 +270,14 @@ export async function updatePoint(
   if (session.user.role !== "super_admin") {
     if (!session.user.portfolioId || existing.architecturePillar.architectureContent.portfolioId !== session.user.portfolioId) {
       throw new Error("Access denied");
+    }
+  }
+  
+  // Server-side length validation
+  if (data.text !== undefined) {
+    const textValidation = validateTextLength(data.text, TEXT_LIMITS.ARCHITECTURE_POINT, "Point description");
+    if (!textValidation.isValid) {
+      throw new Error(textValidation.error || "Point description exceeds maximum length");
     }
   }
   

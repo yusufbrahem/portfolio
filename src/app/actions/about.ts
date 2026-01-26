@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 
 // Public read - no auth required
 // Can optionally filter by portfolioId (for future public portfolio pages)
@@ -53,6 +54,19 @@ export async function updateAboutContent(data: {
   
   if (!portfolioId) {
     throw new Error("User must have a portfolio to update about content");
+  }
+  
+  // Server-side length validation
+  const titleValidation = validateTextLength(data.title, TEXT_LIMITS.TITLE, "Title");
+  if (!titleValidation.isValid) {
+    throw new Error(titleValidation.error || "Title exceeds maximum length");
+  }
+  
+  // Validate each paragraph
+  for (const para of data.paragraphs) {
+    if (para.length > TEXT_LIMITS.LONG_TEXT) {
+      throw new Error(`Paragraph exceeds maximum length of ${TEXT_LIMITS.LONG_TEXT} characters`);
+    }
   }
   
   const existing = await prisma.aboutContent.findFirst({
@@ -125,6 +139,21 @@ export async function updatePrinciple(
 ) {
   const session = await requireAuth();
   await assertNotImpersonatingForWrite();
+  
+  // Server-side length validation
+  if (data.title !== undefined) {
+    const titleValidation = validateTextLength(data.title, TEXT_LIMITS.TITLE, "Principle title");
+    if (!titleValidation.isValid) {
+      throw new Error(titleValidation.error || "Principle title exceeds maximum length");
+    }
+  }
+  
+  if (data.description !== undefined) {
+    const descriptionValidation = validateTextLength(data.description, TEXT_LIMITS.DESCRIPTION, "Principle description");
+    if (!descriptionValidation.isValid) {
+      throw new Error(descriptionValidation.error || "Principle description exceeds maximum length");
+    }
+  }
   
   // Verify resource exists and get parent portfolioId
   const existing = await prisma.aboutPrinciple.findUnique({ 

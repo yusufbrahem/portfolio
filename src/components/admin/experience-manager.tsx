@@ -12,6 +12,8 @@ import {
 import { CustomMonthPicker } from "@/components/admin/custom-month-picker";
 import { ItemVisibilityToggle } from "@/components/admin/item-visibility-toggle";
 import { updateExperienceVisibility } from "@/app/actions/item-visibility";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
+import { CharCounter } from "@/components/ui/char-counter";
 
 type Experience = Awaited<ReturnType<typeof GetExperiences>>[0];
 
@@ -149,14 +151,14 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
             isReadOnly={isReadOnly}
           />
         ) : (
-          <div key={exp.id} className="border border-border bg-panel rounded-lg p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">{exp.title}</h3>
-                <p className="text-sm text-muted">{exp.company}</p>
-                <p className="text-xs text-muted-disabled">{exp.location} • {exp.period}</p>
+          <div key={exp.id} className="border border-border bg-panel rounded-lg p-4 overflow-hidden">
+            <div className="flex items-start justify-between mb-3 gap-3">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <h3 className="font-semibold text-foreground mb-1 break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{exp.title}</h3>
+                <p className="text-sm text-muted break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{exp.company}</p>
+                <p className="text-xs text-muted-disabled break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{exp.location} • {exp.period}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {loading === exp.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
                 <ItemVisibilityToggle
                   itemId={exp.id}
@@ -183,12 +185,12 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
                 </button>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-hidden">
               <div>
                 <p className="text-xs text-muted-disabled mb-1">Bullets:</p>
-                <ul className="text-sm text-muted space-y-1">
+                <ul className="text-sm text-muted space-y-1 break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                   {exp.bullets.map((b) => (
-                    <li key={b.id}>• {b.text}</li>
+                    <li key={b.id} className="break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>• {b.text}</li>
                   ))}
                 </ul>
               </div>
@@ -196,7 +198,7 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
                 <p className="text-xs text-muted-disabled mb-1">Tech:</p>
                 <div className="flex flex-wrap gap-2">
                   {exp.tech.map((t) => (
-                    <span key={t.id} className="text-xs px-2 py-1 bg-panel2 rounded">
+                    <span key={t.id} className="text-xs px-2 py-1 bg-panel2 rounded break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                       {t.name}
                     </span>
                   ))}
@@ -303,6 +305,11 @@ function ExperienceForm({
   );
   const [bullets, setBullets] = useState<string[]>(experience?.bullets.map((b) => b.text) || []);
   const [tech, setTech] = useState<string[]>(experience?.tech.map((t) => t.name) || []);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [companyError, setCompanyError] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [bulletErrors, setBulletErrors] = useState<(string | null)[]>([]);
+  const [techErrors, setTechErrors] = useState<(string | null)[]>([]);
   
   const duration = calculateDuration(fromDate, isPresent ? null : toDate, isPresent);
 
@@ -337,6 +344,12 @@ function ExperienceForm({
       return;
     }
     
+    const locationValidation = validateTextLength(finalLocation, TEXT_LIMITS.LABEL, "Location");
+    if (!locationValidation.isValid) {
+      setLocationError(locationValidation.error);
+      return;
+    }
+    
     const period = formatPeriod(fromDate, isPresent ? null : toDate, isPresent);
     onSave({ title, company, location: finalLocation, period, bullets, tech });
   };
@@ -347,6 +360,17 @@ function ExperienceForm({
 
   const updateBullet = (index: number, value: string) => {
     setBullets(bullets.map((b, i) => (i === index ? value : b)));
+    // Validate bullet length
+    if (value.trim()) {
+      const validation = validateTextLength(value, TEXT_LIMITS.BULLET, "Bullet point");
+      const newErrors = [...bulletErrors];
+      newErrors[index] = validation.error;
+      setBulletErrors(newErrors);
+    } else {
+      const newErrors = [...bulletErrors];
+      newErrors[index] = null;
+      setBulletErrors(newErrors);
+    }
   };
 
   const removeBullet = (index: number) => {
@@ -359,6 +383,17 @@ function ExperienceForm({
 
   const updateTech = (index: number, value: string) => {
     setTech(tech.map((t, i) => (i === index ? value : t)));
+    // Validate tech length
+    if (value.trim()) {
+      const validation = validateTextLength(value, TEXT_LIMITS.TAG, "Technology");
+      const newErrors = [...techErrors];
+      newErrors[index] = validation.error;
+      setTechErrors(newErrors);
+    } else {
+      const newErrors = [...techErrors];
+      newErrors[index] = null;
+      setTechErrors(newErrors);
+    }
   };
 
   const removeTech = (index: number) => {
@@ -398,17 +433,27 @@ function ExperienceForm({
             <input
               type="text"
               value={location}
+              maxLength={TEXT_LIMITS.LABEL}
               onChange={(e) => {
-                setLocation(e.target.value);
+                const value = e.target.value;
+                setLocation(value);
                 // If user types, switch to custom mode
                 if (locationType !== "custom") {
                   setLocationType("custom");
                 }
+                const validation = validateTextLength(value, TEXT_LIMITS.LABEL, "Location");
+                setLocationError(validation.error);
               }}
               placeholder="City, Country"
-              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg h-[2.5rem]"
+              className={`w-full px-4 py-2 border rounded-lg h-[2.5rem] ${
+                locationError
+                  ? "border-red-500 bg-red-500/10"
+                  : "border-border bg-background text-foreground"
+              }`}
               required
             />
+            <CharCounter current={location.length} max={TEXT_LIMITS.LABEL} />
+            {locationError && <p className="mt-1 text-xs text-red-400">{locationError}</p>}
             <div className="flex gap-2 flex-wrap">
               <button
                 type="button"
@@ -533,17 +578,30 @@ function ExperienceForm({
         </div>
         <div className="space-y-2">
           {bullets.map((bullet, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={bullet}
-                onChange={(e) => updateBullet(index, e.target.value)}
-                className="flex-1 px-3 py-2 border border-border bg-background text-foreground rounded-lg"
-                placeholder="Bullet point"
-              />
-              <button type="button" onClick={() => removeBullet(index)} className="text-red-500">
-                <X className="h-4 w-4" />
-              </button>
+            <div key={index} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={bullet}
+                  maxLength={TEXT_LIMITS.BULLET}
+                  onChange={(e) => updateBullet(index, e.target.value)}
+                  className={`flex-1 px-3 py-2 border rounded-lg ${
+                    bulletErrors[index]
+                      ? "border-red-500 bg-red-500/10"
+                      : "border-border bg-background text-foreground"
+                  }`}
+                  placeholder="Bullet point"
+                />
+                <button type="button" onClick={() => removeBullet(index)} className="text-red-500">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <CharCounter current={bullet.length} max={TEXT_LIMITS.BULLET} />
+                {bulletErrors[index] && (
+                  <p className="text-xs text-red-400">{bulletErrors[index]}</p>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -561,8 +619,13 @@ function ExperienceForm({
               <input
                 type="text"
                 value={t}
+                maxLength={TEXT_LIMITS.TAG}
                 onChange={(e) => updateTech(index, e.target.value)}
-                className="px-2 py-1 border border-border bg-background text-foreground rounded text-sm"
+                className={`px-2 py-1 border rounded text-sm ${
+                  techErrors[index]
+                    ? "border-red-500 bg-red-500/10"
+                    : "border-border bg-background text-foreground"
+                }`}
                 placeholder="Tech"
               />
               <button type="button" onClick={() => removeTech(index)} className="text-red-500">
@@ -575,7 +638,16 @@ function ExperienceForm({
       <div className="flex items-center gap-2">
         <button
           type="submit"
-          disabled={loading}
+          disabled={
+            loading || 
+            !title || 
+            !company || 
+            !!titleError || 
+            !!companyError || 
+            !!locationError || 
+            bulletErrors.some(err => err !== null) || 
+            techErrors.some(err => err !== null)
+          }
           className="flex items-center gap-2 px-4 py-2 bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

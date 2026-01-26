@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Save, Plus, X, Sparkles } from "lucide-react";
 import { updateHeroContent } from "@/app/actions/hero";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
+import { CharCounter } from "@/components/ui/char-counter";
 
 type HeroRecord = {
   headline: string;
@@ -44,6 +46,9 @@ export function HeroManager({
     subheadline: hero?.subheadline || "",
     highlights: parsedHighlights.join("\n"),
   });
+  const [headlineError, setHeadlineError] = useState<string | null>(null);
+  const [subheadlineError, setSubheadlineError] = useState<string | null>(null);
+  const [highlightsErrors, setHighlightsErrors] = useState<(string | null)[]>([]);
 
   // Generate smart default headline from PersonInfo
   const getSmartDefaultHeadline = (): string => {
@@ -91,11 +96,41 @@ export function HeroManager({
 
   const save = async () => {
     setError(null);
+    setHeadlineError(null);
+    setSubheadlineError(null);
+    setHighlightsErrors([]);
+    
+    // Validate headline
+    const headlineValidation = validateTextLength(form.headline.trim(), TEXT_LIMITS.HEADLINE, "Headline");
+    if (!headlineValidation.isValid) {
+      setHeadlineError(headlineValidation.error);
+      return;
+    }
+    
+    // Validate subheadline
+    const subheadlineValidation = validateTextLength(form.subheadline.trim(), TEXT_LIMITS.SUBHEADLINE, "Subheadline");
+    if (!subheadlineValidation.isValid) {
+      setSubheadlineError(subheadlineValidation.error);
+      return;
+    }
+    
+    // Validate highlights
+    const highlights = form.highlights
+      .split("\n")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    
+    const highlightValidationErrors: (string | null)[] = [];
+    for (const highlight of highlights) {
+      const validation = validateTextLength(highlight, TEXT_LIMITS.HIGHLIGHT, "Highlight");
+      highlightValidationErrors.push(validation.error);
+    }
+    setHighlightsErrors(highlightValidationErrors);
+    if (highlightValidationErrors.some(err => err !== null)) {
+      return;
+    }
+    
     try {
-      const highlights = form.highlights
-        .split("\n")
-        .map((x) => x.trim())
-        .filter(Boolean);
       const result = await updateHeroContent({
         headline: form.headline.trim(),
         subheadline: form.subheadline.trim(),
@@ -169,11 +204,23 @@ export function HeroManager({
             <input
               type="text"
               value={form.headline}
-              onChange={(e) => setForm({ ...form, headline: e.target.value })}
+              maxLength={TEXT_LIMITS.HEADLINE}
+              onChange={(e) => {
+                const value = e.target.value;
+                setForm({ ...form, headline: value });
+                const validation = validateTextLength(value, TEXT_LIMITS.HEADLINE, "Headline");
+                setHeadlineError(validation.error);
+              }}
               disabled={isReadOnly}
-              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                headlineError
+                  ? "border-red-500 bg-red-500/10"
+                  : "border-border bg-background text-foreground"
+              }`}
               required
             />
+            <CharCounter current={form.headline.length} max={TEXT_LIMITS.HEADLINE} />
+            {headlineError && <p className="mt-1 text-xs text-red-400">{headlineError}</p>}
             {isCreating && (!personInfo || !personInfo.name || !personInfo.role) && (
               <p className="mt-1 text-xs text-muted">
                 Add your name and role in Profile settings to auto-generate this headline.
@@ -190,27 +237,72 @@ export function HeroManager({
             <label className="block text-sm font-medium text-foreground mb-2">Subheadline</label>
             <textarea
               value={form.subheadline}
-              onChange={(e) => setForm({ ...form, subheadline: e.target.value })}
+              maxLength={TEXT_LIMITS.SUBHEADLINE}
+              onChange={(e) => {
+                const value = e.target.value;
+                setForm({ ...form, subheadline: value });
+                const validation = validateTextLength(value, TEXT_LIMITS.SUBHEADLINE, "Subheadline");
+                setSubheadlineError(validation.error);
+              }}
               disabled={isReadOnly}
-              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg min-h-[96px] disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full px-4 py-2 border rounded-lg min-h-[96px] disabled:opacity-50 disabled:cursor-not-allowed ${
+                subheadlineError
+                  ? "border-red-500 bg-red-500/10"
+                  : "border-border bg-background text-foreground"
+              }`}
               required
             />
+            <CharCounter current={form.subheadline.length} max={TEXT_LIMITS.SUBHEADLINE} />
+            {subheadlineError && <p className="mt-1 text-xs text-red-400">{subheadlineError}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Highlights (one per line)
+              Highlights (one per line, max {TEXT_LIMITS.HIGHLIGHT} chars each)
             </label>
             <textarea
               value={form.highlights}
-              onChange={(e) => setForm({ ...form, highlights: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                setForm({ ...form, highlights: value });
+                // Validate each line
+                const lines = value.split("\n").map(x => x.trim()).filter(Boolean);
+                const errors: (string | null)[] = [];
+                for (const line of lines) {
+                  const validation = validateTextLength(line, TEXT_LIMITS.HIGHLIGHT, "Highlight");
+                  errors.push(validation.error);
+                }
+                setHighlightsErrors(errors);
+              }}
               disabled={isReadOnly}
-              className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg min-h-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full px-4 py-2 border rounded-lg min-h-[120px] disabled:opacity-50 disabled:cursor-not-allowed ${
+                highlightsErrors.some(err => err !== null)
+                  ? "border-red-500 bg-red-500/10"
+                  : "border-border bg-background text-foreground"
+              }`}
               placeholder={"Secure APIs\nIdentity & access\nTransaction integrity"}
             />
+            <div className="mt-1 space-y-1">
+              {form.highlights.split("\n").map((line, idx) => {
+                if (!line.trim()) return null;
+                return (
+                  <div key={idx}>
+                    <CharCounter current={line.trim().length} max={TEXT_LIMITS.HIGHLIGHT} />
+                    {highlightsErrors[idx] && (
+                      <p className="text-xs text-red-400">{highlightsErrors[idx]}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <button
             onClick={save}
-            disabled={isReadOnly}
+            disabled={
+              isReadOnly || 
+              !!headlineError || 
+              !!subheadlineError || 
+              highlightsErrors.some(err => err !== null)
+            }
             className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-foreground font-semibold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="h-4 w-4" />

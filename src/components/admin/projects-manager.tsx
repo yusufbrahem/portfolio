@@ -11,6 +11,8 @@ import {
 } from "@/app/actions/projects";
 import { ItemVisibilityToggle } from "@/components/admin/item-visibility-toggle";
 import { updateProjectVisibility } from "@/app/actions/item-visibility";
+import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
+import { CharCounter } from "@/components/ui/char-counter";
 
 type Project = Awaited<ReturnType<typeof GetProjects>>[0];
 
@@ -142,13 +144,13 @@ export function ProjectsManager({ initialData, isReadOnly = false }: { initialDa
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <div key={project.id} className="border border-border bg-panel rounded-lg p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">{project.title}</h3>
-                <p className="text-sm text-muted">{project.summary}</p>
+          <div key={project.id} className="border border-border bg-panel rounded-lg p-4 overflow-hidden">
+            <div className="flex items-start justify-between mb-3 gap-3">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <h3 className="font-semibold text-foreground mb-1 break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{project.title}</h3>
+                <p className="text-sm text-muted break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{project.summary}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {loading === project.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
                 <ItemVisibilityToggle
                   itemId={project.id}
@@ -175,12 +177,12 @@ export function ProjectsManager({ initialData, isReadOnly = false }: { initialDa
                 </button>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-hidden">
               <div>
                 <p className="text-xs text-muted-disabled mb-1">Bullets:</p>
-                <ul className="text-sm text-muted space-y-1">
+                <ul className="text-sm text-muted space-y-1 break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                   {project.bullets.map((b) => (
-                    <li key={b.id}>• {b.text}</li>
+                    <li key={b.id} className="break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>• {b.text}</li>
                   ))}
                 </ul>
               </div>
@@ -188,7 +190,7 @@ export function ProjectsManager({ initialData, isReadOnly = false }: { initialDa
                 <p className="text-xs text-muted-disabled mb-1">Tags:</p>
                 <div className="flex flex-wrap gap-2">
                   {project.tags.map((t) => (
-                    <span key={t.id} className="text-xs px-2 py-1 bg-panel2 rounded">
+                    <span key={t.id} className="text-xs px-2 py-1 bg-panel2 rounded break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                       {t.name}
                     </span>
                   ))}
@@ -217,10 +219,58 @@ function ProjectForm({
   const [summary, setSummary] = useState(project?.summary || "");
   const [bullets, setBullets] = useState<string[]>(project?.bullets.map((b) => b.text) || []);
   const [tags, setTags] = useState<string[]>(project?.tags.map((t) => t.name) || []);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [bulletErrors, setBulletErrors] = useState<(string | null)[]>([]);
+  const [tagErrors, setTagErrors] = useState<(string | null)[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !summary) return;
+    
+    // Validate lengths
+    const titleValidation = validateTextLength(title, TEXT_LIMITS.TITLE, "Title");
+    if (!titleValidation.isValid) {
+      setTitleError(titleValidation.error);
+      return;
+    }
+    
+    const summaryValidation = validateTextLength(summary, TEXT_LIMITS.SUMMARY, "Summary");
+    if (!summaryValidation.isValid) {
+      setSummaryError(summaryValidation.error);
+      return;
+    }
+    
+    // Validate bullets
+    const bulletValidationErrors: (string | null)[] = [];
+    for (const bullet of bullets) {
+      if (bullet.trim()) {
+        const validation = validateTextLength(bullet, TEXT_LIMITS.BULLET, "Bullet point");
+        bulletValidationErrors.push(validation.error);
+      } else {
+        bulletValidationErrors.push(null);
+      }
+    }
+    setBulletErrors(bulletValidationErrors);
+    if (bulletValidationErrors.some(err => err !== null)) {
+      return;
+    }
+    
+    // Validate tags
+    const tagValidationErrors: (string | null)[] = [];
+    for (const tag of tags) {
+      if (tag.trim()) {
+        const validation = validateTextLength(tag, TEXT_LIMITS.TAG, "Tag");
+        tagValidationErrors.push(validation.error);
+      } else {
+        tagValidationErrors.push(null);
+      }
+    }
+    setTagErrors(tagValidationErrors);
+    if (tagValidationErrors.some(err => err !== null)) {
+      return;
+    }
+    
     onSave({ title, summary, bullets, tags });
   };
 
@@ -230,6 +280,17 @@ function ProjectForm({
 
   const updateBullet = (index: number, value: string) => {
     setBullets(bullets.map((b, i) => (i === index ? value : b)));
+    // Validate bullet length
+    if (value.trim()) {
+      const validation = validateTextLength(value, TEXT_LIMITS.BULLET, "Bullet point");
+      const newErrors = [...bulletErrors];
+      newErrors[index] = validation.error;
+      setBulletErrors(newErrors);
+    } else {
+      const newErrors = [...bulletErrors];
+      newErrors[index] = null;
+      setBulletErrors(newErrors);
+    }
   };
 
   const removeBullet = (index: number) => {
@@ -242,6 +303,17 @@ function ProjectForm({
 
   const updateTag = (index: number, value: string) => {
     setTags(tags.map((t, i) => (i === index ? value : t)));
+    // Validate tag length
+    if (value.trim()) {
+      const validation = validateTextLength(value, TEXT_LIMITS.TAG, "Tag");
+      const newErrors = [...tagErrors];
+      newErrors[index] = validation.error;
+      setTagErrors(newErrors);
+    } else {
+      const newErrors = [...tagErrors];
+      newErrors[index] = null;
+      setTagErrors(newErrors);
+    }
   };
 
   const removeTag = (index: number) => {
@@ -255,20 +327,44 @@ function ProjectForm({
         <input
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg"
+          maxLength={TEXT_LIMITS.TITLE}
+          onChange={(e) => {
+            const value = e.target.value;
+            setTitle(value);
+            const validation = validateTextLength(value, TEXT_LIMITS.TITLE, "Title");
+            setTitleError(validation.error);
+          }}
+          className={`w-full px-3 py-2 border rounded-lg ${
+            titleError
+              ? "border-red-500 bg-red-500/10"
+              : "border-border bg-background text-foreground"
+          }`}
           required
         />
+        <CharCounter current={title.length} max={TEXT_LIMITS.TITLE} />
+        {titleError && <p className="mt-1 text-xs text-red-400">{titleError}</p>}
       </div>
       <div>
         <label className="block text-sm font-medium text-foreground mb-1">Summary</label>
         <textarea
           value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg"
+          maxLength={TEXT_LIMITS.SUMMARY}
+          onChange={(e) => {
+            const value = e.target.value;
+            setSummary(value);
+            const validation = validateTextLength(value, TEXT_LIMITS.SUMMARY, "Summary");
+            setSummaryError(validation.error);
+          }}
+          className={`w-full px-3 py-2 border rounded-lg ${
+            summaryError
+              ? "border-red-500 bg-red-500/10"
+              : "border-border bg-background text-foreground"
+          }`}
           rows={3}
           required
         />
+        <CharCounter current={summary.length} max={TEXT_LIMITS.SUMMARY} />
+        {summaryError && <p className="mt-1 text-xs text-red-400">{summaryError}</p>}
       </div>
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -279,17 +375,30 @@ function ProjectForm({
         </div>
         <div className="space-y-2">
           {bullets.map((bullet, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={bullet}
-                onChange={(e) => updateBullet(index, e.target.value)}
-                className="flex-1 px-3 py-2 border border-border bg-background text-foreground rounded-lg"
-                placeholder="Bullet point"
-              />
-              <button type="button" onClick={() => removeBullet(index)} className="text-red-500">
-                <X className="h-4 w-4" />
-              </button>
+            <div key={index} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={bullet}
+                  maxLength={TEXT_LIMITS.BULLET}
+                  onChange={(e) => updateBullet(index, e.target.value)}
+                  className={`flex-1 px-3 py-2 border rounded-lg ${
+                    bulletErrors[index]
+                      ? "border-red-500 bg-red-500/10"
+                      : "border-border bg-background text-foreground"
+                  }`}
+                  placeholder="Bullet point"
+                />
+                <button type="button" onClick={() => removeBullet(index)} className="text-red-500">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <CharCounter current={bullet.length} max={TEXT_LIMITS.BULLET} />
+                {bulletErrors[index] && (
+                  <p className="text-xs text-red-400">{bulletErrors[index]}</p>
+                )}
+              </div>
             </div>
           ))}
         </div>
