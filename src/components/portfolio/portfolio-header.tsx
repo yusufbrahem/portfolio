@@ -6,20 +6,36 @@ export function PortfolioHeader({
   slug,
   name,
   avatarSrc,
+  visibleSections,
 }: {
   slug: string;
   name: string;
   avatarSrc?: string | null;
+  visibleSections?: {
+    about?: boolean;
+    skills?: boolean;
+    projects?: boolean;
+    experience?: boolean;
+    architecture?: boolean;
+    contact?: boolean;
+  };
 }) {
   const base = `/portfolio/${slug}`;
-  const nav = [
-    { href: `${base}#skills`, label: "Skills" },
-    { href: `${base}#projects`, label: "Projects" },
-    { href: `${base}#experience`, label: "Experience" },
-    { href: `${base}#about`, label: "About" },
-    { href: `${base}#architecture`, label: "Architecture" },
-    { href: `${base}#contact`, label: "Contact" },
+  const allNav = [
+    { href: `${base}#skills`, label: "Skills", key: "skills" as const },
+    { href: `${base}#projects`, label: "Projects", key: "projects" as const },
+    { href: `${base}#experience`, label: "Experience", key: "experience" as const },
+    { href: `${base}#about`, label: "About", key: "about" as const },
+    { href: `${base}#architecture`, label: "Architecture", key: "architecture" as const },
+    { href: `${base}#contact`, label: "Contact", key: "contact" as const },
   ] as const;
+
+  // Filter navigation based on visible sections
+  const nav = visibleSections
+    ? allNav.filter((item) => {
+        return visibleSections[item.key] === true;
+      })
+    : allNav;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">

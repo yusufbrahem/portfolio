@@ -3,7 +3,9 @@ import { getExperiencesForAdmin } from "@/app/actions/experience";
 import { getAdminReadScope, requireAuth } from "@/lib/auth";
 import { ExperienceManager } from "@/components/admin/experience-manager";
 import { SectionIntroEditor } from "@/components/admin/section-intro-editor";
+import { SectionVisibilityToggle } from "@/components/admin/section-visibility-toggle";
 import { getPortfolioIntros } from "@/app/actions/portfolio-intros";
+import { getSectionVisibility } from "@/app/actions/section-visibility";
 import { redirect } from "next/navigation";
 
 export default async function AdminExperiencePage() {
@@ -15,9 +17,10 @@ export default async function AdminExperiencePage() {
     redirect("/admin/users?message=Super admin accounts are for platform management only.");
   }
   
-  const [experiences, portfolioIntros] = await Promise.all([
+  const [experiences, portfolioIntros, visibility] = await Promise.all([
     getExperiencesForAdmin(),
     getPortfolioIntros(),
+    getSectionVisibility(),
   ]);
 
   return (
@@ -27,6 +30,12 @@ export default async function AdminExperiencePage() {
           <h1 className="text-2xl font-semibold text-foreground mb-2">Manage Experience</h1>
           <p className="text-muted">Add, edit, or delete work experience entries</p>
         </div>
+        
+        <SectionVisibilityToggle
+          section="experience"
+          initialValue={visibility?.showExperience ?? true}
+          isReadOnly={scope.isImpersonating}
+        />
         
         <SectionIntroEditor
           section="experience"

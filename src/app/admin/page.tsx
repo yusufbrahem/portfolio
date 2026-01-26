@@ -8,6 +8,8 @@ import { HeroManager } from "@/components/admin/hero-manager";
 import { redirect } from "next/navigation";
 import { needsOnboarding } from "@/lib/onboarding";
 import { PublicationRequest } from "@/components/admin/publication-request";
+import { PortfolioVisibilityToggle } from "@/components/admin/portfolio-visibility-toggle";
+import { getPortfolioVisibility } from "@/app/actions/portfolio-visibility";
 
 export default async function AdminDashboard() {
   // Require authentication before accessing any data
@@ -42,7 +44,7 @@ export default async function AdminDashboard() {
   // Build where clause: if portfolioId is set, filter by it; otherwise super admin sees all
   const whereClause = portfolioId ? { portfolioId } : (session.user.role === "super_admin" ? {} : { portfolioId: session.user.portfolioId || "none" });
 
-  const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo, heroContent, portfolio] = await Promise.all([
+  const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo, heroContent, portfolio, portfolioVisibility] = await Promise.all([
     // Skills count: filter by portfolioId through skillGroup
     prisma.skill.count({
       where: {
@@ -88,6 +90,8 @@ export default async function AdminDashboard() {
           select: { status: true, rejectionReason: true } 
         })
       : null,
+    // Get portfolio visibility
+    getPortfolioVisibility(),
   ]);
 
   const principlesCount = aboutContent
@@ -104,6 +108,14 @@ export default async function AdminDashboard() {
           <h1 className="text-2xl font-semibold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted">Manage your portfolio content</p>
         </div>
+
+        {/* Portfolio Visibility Toggle */}
+        {portfolioVisibility && (
+          <PortfolioVisibilityToggle
+            initialValue={portfolioVisibility.isPublic ?? true}
+            isReadOnly={scope.isImpersonating}
+          />
+        )}
 
         {/* Publication Request Section */}
         {portfolio && (

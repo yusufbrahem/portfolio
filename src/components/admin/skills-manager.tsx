@@ -11,6 +11,8 @@ import {
   deleteSkill,
   type getSkillGroups,
 } from "@/app/actions/skills";
+import { ItemVisibilityToggle } from "@/components/admin/item-visibility-toggle";
+import { updateSkillGroupVisibility } from "@/app/actions/item-visibility";
 
 type SkillGroup = Awaited<ReturnType<typeof getSkillGroups>>[0];
 
@@ -224,6 +226,15 @@ export function SkillsManager({ initialData, isReadOnly = false }: { initialData
                 {loading === group.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
               </div>
               <div className="flex items-center gap-2">
+                <ItemVisibilityToggle
+                  itemId={group.id}
+                  initialValue={group.isVisible ?? true}
+                  onToggle={async (id, isVisible) => {
+                    await updateSkillGroupVisibility(id, isVisible);
+                    setSkillGroups(skillGroups.map(g => g.id === id ? { ...g, isVisible } : g));
+                  }}
+                  isReadOnly={isReadOnly}
+                />
                 <button
                   onClick={() => setEditingGroup(group.id)}
                   className="text-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

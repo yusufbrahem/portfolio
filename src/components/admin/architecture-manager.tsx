@@ -11,6 +11,8 @@ import {
   deletePoint,
   type getArchitectureContent,
 } from "@/app/actions/architecture";
+import { ItemVisibilityToggle } from "@/components/admin/item-visibility-toggle";
+import { updateArchitecturePillarVisibility } from "@/app/actions/item-visibility";
 
 type ArchitectureContent = Awaited<ReturnType<typeof getArchitectureContent>>;
 
@@ -244,6 +246,20 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
                     <span className="text-xs text-muted">({pillar.points.length} points)</span>
                   </div>
                   <div className="flex gap-2">
+                    <ItemVisibilityToggle
+                      itemId={pillar.id}
+                      initialValue={pillar.isVisible ?? true}
+                      onToggle={async (id, isVisible) => {
+                        await updateArchitecturePillarVisibility(id, isVisible);
+                        if (architecture) {
+                          setArchitecture({
+                            ...architecture,
+                            pillars: architecture.pillars.map(p => p.id === id ? { ...p, isVisible } : p),
+                          });
+                        }
+                      }}
+                      isReadOnly={isReadOnly}
+                    />
                     <button
                       onClick={() => setEditingPillar(pillar.id)}
                       disabled={isReadOnly}

@@ -22,6 +22,13 @@ export async function getPortfolioBySlug(slug: string) {
       projectsIntro: true,
       experienceIntro: true,
       architectureIntro: true,
+      isPublic: true,
+      showAbout: true,
+      showSkills: true,
+      showProjects: true,
+      showExperience: true,
+      showArchitecture: true,
+      showContact: true,
       user: {
         select: {
           name: true,
@@ -73,7 +80,10 @@ export async function getHeroContent(portfolioId: string) {
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
 export async function getSkills(portfolioId: string) {
-  const where = { portfolioId };
+  const where = { 
+    portfolioId,
+    isVisible: true, // Only return visible skill groups
+  };
   
   const groups = await prisma.skillGroup.findMany({
     where,
@@ -95,7 +105,10 @@ export async function getSkills(portfolioId: string) {
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
 export async function getExperience(portfolioId: string) {
-  const where = { portfolioId };
+  const where = { 
+    portfolioId,
+    isVisible: true, // Only return visible experiences
+  };
   
   const roles = await prisma.experience.findMany({
     where,
@@ -127,7 +140,10 @@ export async function getExperience(portfolioId: string) {
 // Accepts optional portfolioId for future public portfolio pages
 // If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
 export async function getProjects(portfolioId: string) {
-  const where = { portfolioId };
+  const where = { 
+    portfolioId,
+    isVisible: true, // Only return visible projects
+  };
   
   const projects = await prisma.project.findMany({
     where,
@@ -185,6 +201,9 @@ export async function getArchitectureContent(portfolioId: string) {
     where: { portfolioId },
     include: {
       pillars: {
+        where: {
+          isVisible: true, // Only return visible pillars
+        },
         include: {
           points: {
             orderBy: { order: "asc" },

@@ -10,6 +10,8 @@ import {
   type getExperiences as GetExperiences,
 } from "@/app/actions/experience";
 import { CustomMonthPicker } from "@/components/admin/custom-month-picker";
+import { ItemVisibilityToggle } from "@/components/admin/item-visibility-toggle";
+import { updateExperienceVisibility } from "@/app/actions/item-visibility";
 
 type Experience = Awaited<ReturnType<typeof GetExperiences>>[0];
 
@@ -156,6 +158,15 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
               </div>
               <div className="flex items-center gap-2">
                 {loading === exp.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
+                <ItemVisibilityToggle
+                  itemId={exp.id}
+                  initialValue={exp.isVisible ?? true}
+                  onToggle={async (id, isVisible) => {
+                    await updateExperienceVisibility(id, isVisible);
+                    setExperiences(experiences.map(e => e.id === id ? { ...e, isVisible } : e));
+                  }}
+                  isReadOnly={isReadOnly}
+                />
                 <button
                   onClick={() => setEditingId(exp.id)}
                   className="text-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

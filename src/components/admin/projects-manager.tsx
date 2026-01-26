@@ -9,6 +9,8 @@ import {
   getProjects,
   type getProjects as GetProjects,
 } from "@/app/actions/projects";
+import { ItemVisibilityToggle } from "@/components/admin/item-visibility-toggle";
+import { updateProjectVisibility } from "@/app/actions/item-visibility";
 
 type Project = Awaited<ReturnType<typeof GetProjects>>[0];
 
@@ -148,6 +150,15 @@ export function ProjectsManager({ initialData, isReadOnly = false }: { initialDa
               </div>
               <div className="flex items-center gap-2">
                 {loading === project.id && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
+                <ItemVisibilityToggle
+                  itemId={project.id}
+                  initialValue={project.isVisible ?? true}
+                  onToggle={async (id, isVisible) => {
+                    await updateProjectVisibility(id, isVisible);
+                    setProjects(projects.map(p => p.id === id ? { ...p, isVisible } : p));
+                  }}
+                  isReadOnly={isReadOnly}
+                />
                 <button
                   onClick={() => setEditingId(project.id)}
                   className="text-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

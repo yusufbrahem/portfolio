@@ -3,7 +3,9 @@ import { getArchitectureContentForAdmin, ensureArchitectureContent } from "@/app
 import { getAdminReadScope, assertNotImpersonatingForWrite, requireAuth } from "@/lib/auth";
 import { ArchitectureManager } from "@/components/admin/architecture-manager";
 import { SectionIntroEditor } from "@/components/admin/section-intro-editor";
+import { SectionVisibilityToggle } from "@/components/admin/section-visibility-toggle";
 import { getPortfolioIntros } from "@/app/actions/portfolio-intros";
+import { getSectionVisibility } from "@/app/actions/section-visibility";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +31,10 @@ export default async function AdminArchitecturePage() {
     }
   }
 
-  const portfolioIntros = await getPortfolioIntros();
+  const [portfolioIntros, visibility] = await Promise.all([
+    getPortfolioIntros(),
+    getSectionVisibility(),
+  ]);
 
   return (
     <Container>
@@ -38,6 +43,12 @@ export default async function AdminArchitecturePage() {
           <h1 className="text-2xl font-semibold text-foreground mb-2">Architecture Content</h1>
           <p className="text-muted">Manage your architecture section pillars and points</p>
         </div>
+
+        <SectionVisibilityToggle
+          section="architecture"
+          initialValue={visibility?.showArchitecture ?? true}
+          isReadOnly={scope.isImpersonating}
+        />
 
         <SectionIntroEditor
           section="architecture"

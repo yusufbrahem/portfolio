@@ -2,6 +2,8 @@ import { Container } from "@/components/container";
 import { getPersonInfoForAdmin } from "@/app/actions/contact";
 import { getAdminReadScope, requireAuth } from "@/lib/auth";
 import { ContactManager } from "@/components/admin/contact-manager";
+import { SectionVisibilityToggle } from "@/components/admin/section-visibility-toggle";
+import { getSectionVisibility } from "@/app/actions/section-visibility";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
@@ -30,10 +32,13 @@ export default async function AdminContactPage() {
     }
   }
 
-  const adminUser = await prisma.adminUser.findUnique({
-    where: { id: userId },
-    select: { name: true, email: true },
-  });
+  const [adminUser, visibility] = await Promise.all([
+    prisma.adminUser.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    }),
+    getSectionVisibility(),
+  ]);
 
   // Use AdminUser name if available, otherwise use session user name, otherwise use email prefix
   const defaultName = adminUser?.name || session.user.name || adminUser?.email?.split("@")[0] || "";
@@ -46,6 +51,12 @@ export default async function AdminContactPage() {
           <h1 className="text-2xl font-semibold text-foreground mb-2">Contact Information</h1>
           <p className="text-muted">Manage your contact details, email, and LinkedIn</p>
         </div>
+
+        <SectionVisibilityToggle
+          section="contact"
+          initialValue={visibility?.showContact ?? true}
+          isReadOnly={scope.isImpersonating}
+        />
 
         <ContactManager 
           initialData={personInfo} 

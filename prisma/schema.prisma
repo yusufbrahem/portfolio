@@ -12,6 +12,7 @@ model SkillGroup {
   portfolio   Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   name        String
   order       Int        @default(0)
+  isVisible   Boolean    @default(true) // Item-level visibility toggle
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   skills      Skill[]
@@ -19,6 +20,7 @@ model SkillGroup {
   @@index([order])
   @@index([portfolioId])
   @@index([portfolioId, order])
+  @@index([portfolioId, isVisible])
 }
 
 model Skill {
@@ -42,6 +44,7 @@ model Experience {
   location    String
   period      String
   order       Int                @default(0)
+  isVisible   Boolean            @default(true) // Item-level visibility toggle
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   bullets     ExperienceBullet[]
@@ -50,6 +53,7 @@ model Experience {
   @@index([order])
   @@index([portfolioId])
   @@index([portfolioId, order])
+  @@index([portfolioId, isVisible])
 }
 
 model ExperienceBullet {
@@ -81,6 +85,7 @@ model Project {
   title       String
   summary     String
   order       Int             @default(0)
+  isVisible   Boolean         @default(true) // Item-level visibility toggle
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   bullets     ProjectBullet[]
@@ -89,6 +94,7 @@ model Project {
   @@index([order])
   @@index([portfolioId])
   @@index([portfolioId, order])
+  @@index([portfolioId, isVisible])
 }
 
 model ProjectBullet {
@@ -186,11 +192,13 @@ model ArchitecturePillar {
   architectureContentId String
   title                 String
   order                 Int                 @default(0)
+  isVisible             Boolean             @default(true) // Item-level visibility toggle
   createdAt             DateTime            @default(now())
   architectureContent   ArchitectureContent @relation(fields: [architectureContentId], references: [id], onDelete: Cascade)
   points                ArchitecturePoint[]
 
   @@index([architectureContentId, order])
+  @@index([architectureContentId, isVisible])
 }
 
 model ArchitecturePoint {
@@ -236,6 +244,13 @@ model Portfolio {
   projectsIntro     String?               // Custom introduction for Projects section
   experienceIntro   String?               // Custom introduction for Experience section
   architectureIntro  String?               // Custom introduction for Architecture section
+  isPublic          Boolean               @default(true) // Portfolio-level visibility (master control)
+  showAbout         Boolean               @default(true) // Visibility toggle for About section
+  showSkills        Boolean               @default(true) // Visibility toggle for Skills section
+  showProjects      Boolean               @default(true) // Visibility toggle for Projects section
+  showExperience    Boolean               @default(true) // Visibility toggle for Experience section
+  showArchitecture  Boolean               @default(true) // Visibility toggle for Architecture section
+  showContact       Boolean               @default(true) // Visibility toggle for Contact section
   skillGroups       SkillGroup[]          // Portfolio-specific skill groups
   experiences       Experience[]          // Portfolio-specific experience entries
   projects          Project[]             // Portfolio-specific projects

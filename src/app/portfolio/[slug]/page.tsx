@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck, Landmark, Activity, Mail, Linkedin, MapPin } from "lucide-react";
+import { ArrowRight, ShieldCheck, Landmark, Activity, Mail, Linkedin, MapPin, Phone } from "lucide-react";
 import { Container } from "@/components/container";
 import { Motion } from "@/components/motion";
 import { Avatar } from "@/components/avatar";
@@ -19,6 +19,7 @@ import {
 import { NotPublishedPage } from "@/components/portfolio/not-published-page";
 import { notFound } from "next/navigation";
 import { getSectionIntro } from "@/lib/section-intros";
+import { isSectionVisible } from "@/lib/section-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,11 @@ export default async function PortfolioPage({ params }: PageProps) {
     notFound();
   }
 
+  // LEVEL 1: Portfolio-level visibility check (master control)
+  if (!portfolio.isPublic) {
+    notFound(); // Portfolio is hidden, show 404
+  }
+
   // If portfolio is not PUBLISHED, show friendly not-published page
   if (portfolio.status !== "PUBLISHED") {
     return <NotPublishedPage portfolio={portfolio} />;
@@ -71,6 +77,58 @@ export default async function PortfolioPage({ params }: PageProps) {
     getExperience(portfolio.id),
     getAboutContent(portfolio.id),
     getArchitectureContent(portfolio.id),
+  ]);
+
+  // LEVEL 2: Check section visibility (enabled AND has visible data)
+  const [aboutVisible, skillsVisible, projectsVisible, experienceVisible, architectureVisible, contactVisible] = await Promise.all([
+    isSectionVisible(portfolio.id, "about", {
+      showAbout: portfolio.showAbout,
+      showSkills: portfolio.showSkills,
+      showProjects: portfolio.showProjects,
+      showExperience: portfolio.showExperience,
+      showArchitecture: portfolio.showArchitecture,
+      showContact: portfolio.showContact,
+    }),
+    isSectionVisible(portfolio.id, "skills", {
+      showAbout: portfolio.showAbout,
+      showSkills: portfolio.showSkills,
+      showProjects: portfolio.showProjects,
+      showExperience: portfolio.showExperience,
+      showArchitecture: portfolio.showArchitecture,
+      showContact: portfolio.showContact,
+    }),
+    isSectionVisible(portfolio.id, "projects", {
+      showAbout: portfolio.showAbout,
+      showSkills: portfolio.showSkills,
+      showProjects: portfolio.showProjects,
+      showExperience: portfolio.showExperience,
+      showArchitecture: portfolio.showArchitecture,
+      showContact: portfolio.showContact,
+    }),
+    isSectionVisible(portfolio.id, "experience", {
+      showAbout: portfolio.showAbout,
+      showSkills: portfolio.showSkills,
+      showProjects: portfolio.showProjects,
+      showExperience: portfolio.showExperience,
+      showArchitecture: portfolio.showArchitecture,
+      showContact: portfolio.showContact,
+    }),
+    isSectionVisible(portfolio.id, "architecture", {
+      showAbout: portfolio.showAbout,
+      showSkills: portfolio.showSkills,
+      showProjects: portfolio.showProjects,
+      showExperience: portfolio.showExperience,
+      showArchitecture: portfolio.showArchitecture,
+      showContact: portfolio.showContact,
+    }),
+    isSectionVisible(portfolio.id, "contact", {
+      showAbout: portfolio.showAbout,
+      showSkills: portfolio.showSkills,
+      showProjects: portfolio.showProjects,
+      showExperience: portfolio.showExperience,
+      showArchitecture: portfolio.showArchitecture,
+      showContact: portfolio.showContact,
+    }),
   ]);
 
   const heroHeadline = hero?.headline ?? "";
@@ -100,7 +158,19 @@ export default async function PortfolioPage({ params }: PageProps) {
 
   return (
     <div>
-      <PortfolioHeader slug={slug} name={person.name} avatarSrc={avatarSrc} />
+      <PortfolioHeader 
+        slug={slug} 
+        name={person.name} 
+        avatarSrc={avatarSrc}
+        visibleSections={{
+          about: aboutVisible,
+          skills: skillsVisible,
+          projects: projectsVisible,
+          experience: experienceVisible,
+          architecture: architectureVisible,
+          contact: contactVisible,
+        }}
+      />
       <ScrollToTopButton />
       {/* Hero Section */}
       <Container className="py-14 sm:py-20">
@@ -218,7 +288,7 @@ export default async function PortfolioPage({ params }: PageProps) {
       </Container>
 
       {/* Skills Section */}
-      {skills && skills.length > 0 && (
+      {skillsVisible && skills && skills.length > 0 && (
         <Container id="skills">
           <Section 
             eyebrow="Skills" 
@@ -246,7 +316,7 @@ export default async function PortfolioPage({ params }: PageProps) {
       )}
 
       {/* Projects Section */}
-      {projects && projects.length > 0 && (
+      {projectsVisible && projects && projects.length > 0 && (
         <Container id="projects">
           <Section 
             eyebrow="Projects" 
@@ -287,7 +357,7 @@ export default async function PortfolioPage({ params }: PageProps) {
       )}
 
       {/* Experience Section */}
-      {experience && experience.roles && experience.roles.length > 0 && (
+      {experienceVisible && experience && experience.roles && experience.roles.length > 0 && (
         <Container id="experience">
           <Section 
             eyebrow="Experience" 
@@ -332,7 +402,7 @@ export default async function PortfolioPage({ params }: PageProps) {
       )}
 
       {/* About Section */}
-      {about && (
+      {aboutVisible && about && (
         <Container id="about">
           <Section eyebrow="About" title={about.title} description={about.paragraphs[0]}>
             <div className="grid gap-6 lg:grid-cols-12">
@@ -365,7 +435,7 @@ export default async function PortfolioPage({ params }: PageProps) {
       )}
 
       {/* Architecture Section */}
-      {architecture && architecture.pillars && architecture.pillars.length > 0 && (
+      {architectureVisible && architecture && architecture.pillars && architecture.pillars.length > 0 && (
         <Container id="architecture">
           <Section 
             eyebrow="Architecture" 
@@ -396,6 +466,7 @@ export default async function PortfolioPage({ params }: PageProps) {
       )}
 
       {/* Contact Section */}
+      {contactVisible && (
       <Container id="contact">
         <Section 
           eyebrow="Contact" 
@@ -421,6 +492,23 @@ export default async function PortfolioPage({ params }: PageProps) {
                         </a>
                       </div>
                     </div>
+
+                    {person.phone && (
+                      <div className="flex items-start gap-3">
+                        <Phone className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            Phone
+                          </p>
+                          <a
+                            className="text-sm text-muted hover:underline"
+                            href={`tel:${person.phone}`}
+                          >
+                            {person.phone}
+                          </a>
+                        </div>
+                      </div>
+                    )}
 
                     {person.linkedIn && (
                       <div className="flex items-start gap-3">
@@ -463,6 +551,7 @@ export default async function PortfolioPage({ params }: PageProps) {
           </div>
         </Section>
       </Container>
+      )}
     </div>
   );
 }
