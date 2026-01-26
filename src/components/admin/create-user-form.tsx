@@ -5,6 +5,7 @@ import { createUser, setImpersonatedPortfolioId } from "@/app/actions/super-admi
 import { getMinPasswordLengthAction } from "@/app/actions/password-validation";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Accordion } from "@/components/ui/accordion";
 
 export function CreateUserForm() {
   const [email, setEmail] = useState("");
@@ -64,12 +65,12 @@ export function CreateUserForm() {
   };
 
   return (
-    <div className="border border-border bg-panel rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-        <Plus className="h-5 w-5" />
-        Create New User
-      </h2>
-      <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-4">
+    <Accordion
+      title="Create New User"
+      icon={<Plus className="h-5 w-5" />}
+      defaultOpen={false}
+    >
+      <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-4 mt-2">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
             Email *
@@ -161,6 +162,6 @@ export function CreateUserForm() {
           </button>
         </div>
       </form>
-    </div>
+    </Accordion>
   );
 }

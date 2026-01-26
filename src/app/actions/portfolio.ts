@@ -20,7 +20,10 @@ export async function requestPortfolioPublication() {
 
   await prisma.portfolio.update({
     where: { id: portfolioId },
-    data: { status: "READY_FOR_REVIEW" },
+    data: { 
+      status: "READY_FOR_REVIEW",
+      requestedAt: new Date(), // Set timestamp when user requests publication
+    },
   });
 
   revalidatePath("/admin");

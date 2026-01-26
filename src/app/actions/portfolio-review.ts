@@ -29,6 +29,7 @@ export async function approvePortfolio(portfolioId: string) {
     data: { 
       status: "PUBLISHED",
       rejectionReason: null, // Clear any previous rejection reason
+      approvedAt: new Date(), // Set timestamp when super admin approves
     },
   });
 

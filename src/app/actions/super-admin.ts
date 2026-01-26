@@ -189,6 +189,9 @@ export async function getUsersWithPortfolios() {
           isPublished: true,
           status: true,
           rejectionReason: true,
+          requestedAt: true,
+          approvedAt: true,
+          createdAt: true,
           personInfo: {
             select: {
               avatarUrl: true,

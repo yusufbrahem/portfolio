@@ -252,6 +252,8 @@ model Portfolio {
   isPublished       Boolean               @default(false) // Deprecated: use status instead
   status            PortfolioStatus       @default(DRAFT) // Portfolio lifecycle status
   rejectionReason   String?               // Reason for rejection (if status is REJECTED)
+  requestedAt       DateTime?             // When user requested portfolio publication
+  approvedAt        DateTime?             // When super admin approved the portfolio
   skillsIntro       String?               // Custom introduction for Skills section
   projectsIntro     String?               // Custom introduction for Projects section
   experienceIntro   String?               // Custom introduction for Experience section
