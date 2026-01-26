@@ -8,7 +8,6 @@ import { HeroManager } from "@/components/admin/hero-manager";
 import { redirect } from "next/navigation";
 import { needsOnboarding } from "@/lib/onboarding";
 import { PublicationRequest } from "@/components/admin/publication-request";
-import { SectionIntrosManager } from "@/components/admin/section-intros-manager";
 
 export default async function AdminDashboard() {
   // Require authentication before accessing any data
@@ -43,7 +42,7 @@ export default async function AdminDashboard() {
   // Build where clause: if portfolioId is set, filter by it; otherwise super admin sees all
   const whereClause = portfolioId ? { portfolioId } : (session.user.role === "super_admin" ? {} : { portfolioId: session.user.portfolioId || "none" });
 
-  const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo, heroContent, portfolio, portfolioIntros] = await Promise.all([
+  const [skillsCount, projectsCount, experienceCount, aboutContent, architectureContent, personInfo, heroContent, portfolio] = await Promise.all([
     // Skills count: filter by portfolioId through skillGroup
     prisma.skill.count({
       where: {
@@ -87,18 +86,6 @@ export default async function AdminDashboard() {
       ? prisma.portfolio.findUnique({ 
           where: { id: session.user.portfolioId }, 
           select: { status: true, rejectionReason: true } 
-        })
-      : null,
-    // Get portfolio intros
-    portfolioId
-      ? prisma.portfolio.findUnique({ 
-          where: { id: portfolioId }, 
-          select: { skillsIntro: true, projectsIntro: true, experienceIntro: true, architectureIntro: true } 
-        })
-      : session.user.portfolioId
-      ? prisma.portfolio.findUnique({ 
-          where: { id: session.user.portfolioId }, 
-          select: { skillsIntro: true, projectsIntro: true, experienceIntro: true, architectureIntro: true } 
         })
       : null,
   ]);
@@ -253,15 +240,6 @@ export default async function AdminDashboard() {
           )}
         </div>
 
-        {/* Section Introductions */}
-        {portfolioIntros && (
-          <div className="pt-2">
-            <SectionIntrosManager 
-              initialData={portfolioIntros}
-              isReadOnly={scope.isImpersonating}
-            />
-          </div>
-        )}
       </div>
     </Container>
   );

@@ -2,6 +2,8 @@ import { Container } from "@/components/container";
 import { getExperiencesForAdmin } from "@/app/actions/experience";
 import { getAdminReadScope, requireAuth } from "@/lib/auth";
 import { ExperienceManager } from "@/components/admin/experience-manager";
+import { SectionIntroEditor } from "@/components/admin/section-intro-editor";
+import { getPortfolioIntros } from "@/app/actions/portfolio-intros";
 import { redirect } from "next/navigation";
 
 export default async function AdminExperiencePage() {
@@ -13,7 +15,10 @@ export default async function AdminExperiencePage() {
     redirect("/admin/users?message=Super admin accounts are for platform management only.");
   }
   
-  const experiences = await getExperiencesForAdmin();
+  const [experiences, portfolioIntros] = await Promise.all([
+    getExperiencesForAdmin(),
+    getPortfolioIntros(),
+  ]);
 
   return (
     <Container>
@@ -22,6 +27,13 @@ export default async function AdminExperiencePage() {
           <h1 className="text-2xl font-semibold text-foreground mb-2">Manage Experience</h1>
           <p className="text-muted">Add, edit, or delete work experience entries</p>
         </div>
+        
+        <SectionIntroEditor
+          section="experience"
+          initialValue={portfolioIntros?.experienceIntro}
+          isReadOnly={scope.isImpersonating}
+        />
+        
         <ExperienceManager initialData={experiences} isReadOnly={scope.isImpersonating} />
       </div>
     </Container>

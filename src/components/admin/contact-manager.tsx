@@ -6,6 +6,7 @@ import { updatePersonInfo, type getPersonInfo } from "@/app/actions/contact";
 import { uploadCV } from "@/app/actions/upload";
 import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
 import { COUNTRIES, getCountryByCode, getCountryByDialCode } from "@/lib/countries";
+import { DEFAULT_SECTION_INTROS } from "@/lib/section-intros";
 
 type PersonInfo = Awaited<ReturnType<typeof getPersonInfo>>;
 
@@ -53,7 +54,7 @@ export function ContactManager({
       location: initialData?.location || "",
       linkedIn: initialData?.linkedIn || "",
       phone: initialData?.phone || "",
-      contactMessage: initialData?.contactMessage || "",
+      contactMessage: initialData?.contactMessage || DEFAULT_SECTION_INTROS.contact,
       cvUrl: initialData?.cvUrl || "",
     };
   };
@@ -555,9 +556,9 @@ export function ContactManager({
             onChange={(e) => setFormData({ ...formData, contactMessage: e.target.value })}
             className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
             rows={3}
-            placeholder="Optional custom message for the contact section..."
             disabled={isSaving}
           />
+          <p className="mt-1 text-xs text-muted">Edit or replace the default contact message.</p>
           <p className="mt-1 text-xs text-muted">Optional. If left empty, a generic message will be shown.</p>
         </div>
         <div>

@@ -18,6 +18,7 @@ import {
 } from "@/lib/data";
 import { NotPublishedPage } from "@/components/portfolio/not-published-page";
 import { notFound } from "next/navigation";
+import { getSectionIntro } from "@/lib/section-intros";
 
 export const dynamic = "force-dynamic";
 
@@ -222,7 +223,7 @@ export default async function PortfolioPage({ params }: PageProps) {
           <Section 
             eyebrow="Skills" 
             title="Skills and expertise" 
-            description={portfolio.skillsIntro || undefined}
+            description={getSectionIntro(portfolio.skillsIntro, "skills")}
           >
             <div className="grid gap-5 lg:grid-cols-2">
               {skills.map((group, idx) => (
@@ -250,7 +251,7 @@ export default async function PortfolioPage({ params }: PageProps) {
           <Section 
             eyebrow="Projects" 
             title="Projects and work samples" 
-            description={portfolio.projectsIntro || undefined}
+            description={getSectionIntro(portfolio.projectsIntro, "projects")}
           >
             <div className="grid gap-6 lg:grid-cols-3">
               {projects.map((p, idx) => (
@@ -290,8 +291,8 @@ export default async function PortfolioPage({ params }: PageProps) {
         <Container id="experience">
           <Section 
             eyebrow="Experience" 
-            title={portfolio.experienceIntro || experience.intro || undefined} 
-            description={portfolio.experienceIntro || experience.intro || undefined}
+            title="Professional experience and career journey"
+            description={getSectionIntro(portfolio.experienceIntro, "experience")}
           >
             <div className="space-y-6">
               {experience.roles.map((role, idx) => (
@@ -369,7 +370,7 @@ export default async function PortfolioPage({ params }: PageProps) {
           <Section 
             eyebrow="Architecture" 
             title="Technical architecture and design principles" 
-            description={portfolio.architectureIntro || undefined}
+            description={getSectionIntro(portfolio.architectureIntro, "architecture")}
           >
             <div className="grid gap-6 lg:grid-cols-3">
               {architecture.pillars.map((p, idx) => (
@@ -399,7 +400,7 @@ export default async function PortfolioPage({ params }: PageProps) {
         <Section 
           eyebrow="Contact" 
           title="Get in touch" 
-          description={person.contactMessage || undefined}
+          description={getSectionIntro(person.contactMessage, "contact")}
         >
           <div className="grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">

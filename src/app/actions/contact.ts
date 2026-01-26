@@ -80,17 +80,22 @@ export async function updatePersonInfo(data: {
     }
   }
   
+  // Normalize contactMessage: empty strings become null
+  const normalizedContactMessage = data.contactMessage?.trim() || null;
+  
   const result = await prisma.personInfo.upsert({
     where: { id: existing?.id || `person-${portfolioId}` },
     update: {
       ...data,
       phone: normalizedPhone,
+      contactMessage: normalizedContactMessage,
     },
     create: {
       id: `person-${portfolioId}`,
       portfolioId,
       ...data,
       phone: normalizedPhone,
+      contactMessage: normalizedContactMessage,
     },
   });
   

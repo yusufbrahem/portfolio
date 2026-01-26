@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Save, Loader2 } from "lucide-react";
 import { updatePortfolioIntros, type getPortfolioIntros } from "@/app/actions/portfolio-intros";
+import { DEFAULT_SECTION_INTROS } from "@/lib/section-intros";
 
 type PortfolioIntros = Awaited<ReturnType<typeof getPortfolioIntros>>;
 
@@ -13,11 +14,12 @@ export function SectionIntrosManager({
   initialData: PortfolioIntros | null;
   isReadOnly?: boolean;
 }) {
+  // Pre-fill with defaults if user hasn't customized
   const [formData, setFormData] = useState({
-    skillsIntro: initialData?.skillsIntro || "",
-    projectsIntro: initialData?.projectsIntro || "",
-    experienceIntro: initialData?.experienceIntro || "",
-    architectureIntro: initialData?.architectureIntro || "",
+    skillsIntro: initialData?.skillsIntro || DEFAULT_SECTION_INTROS.skills,
+    projectsIntro: initialData?.projectsIntro || DEFAULT_SECTION_INTROS.projects,
+    experienceIntro: initialData?.experienceIntro || DEFAULT_SECTION_INTROS.experience,
+    architectureIntro: initialData?.architectureIntro || DEFAULT_SECTION_INTROS.architecture,
   });
   const [isSaving, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function SectionIntrosManager({
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-foreground">Section Introductions</h2>
         <p className="text-sm text-muted mt-1">
-          Customize the introduction text for each section on your portfolio. Leave empty to use generic introductions.
+          Customize the introduction text for each section on your portfolio. Each field is pre-filled with a default introduction that you can edit, replace, or clear. If cleared, the default will be shown on your public portfolio.
         </p>
       </div>
 
@@ -75,10 +77,9 @@ export function SectionIntrosManager({
             onChange={(e) => setFormData({ ...formData, skillsIntro: e.target.value })}
             className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
             rows={2}
-            placeholder="An overview of the skills and tools used across professional projects."
             disabled={isSaving || isReadOnly}
           />
-          <p className="mt-1 text-xs text-muted">Leave empty to use the default introduction.</p>
+          <p className="mt-1 text-xs text-muted">Edit or replace the default introduction. Clear the field to use the default on your public portfolio.</p>
         </div>
 
         <div>
@@ -90,10 +91,9 @@ export function SectionIntrosManager({
             onChange={(e) => setFormData({ ...formData, projectsIntro: e.target.value })}
             className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
             rows={2}
-            placeholder="A selection of projects highlighting problem-solving and delivery experience."
             disabled={isSaving || isReadOnly}
           />
-          <p className="mt-1 text-xs text-muted">Leave empty to use the default introduction.</p>
+          <p className="mt-1 text-xs text-muted">Edit or replace the default introduction. Clear the field to use the default on your public portfolio.</p>
         </div>
 
         <div>
@@ -105,10 +105,9 @@ export function SectionIntrosManager({
             onChange={(e) => setFormData({ ...formData, experienceIntro: e.target.value })}
             className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
             rows={2}
-            placeholder="An overview of professional roles, responsibilities, and achievements."
             disabled={isSaving || isReadOnly}
           />
-          <p className="mt-1 text-xs text-muted">Leave empty to use the default introduction.</p>
+          <p className="mt-1 text-xs text-muted">Edit or replace the default introduction. Clear the field to use the default on your public portfolio.</p>
         </div>
 
         <div>
@@ -120,10 +119,9 @@ export function SectionIntrosManager({
             onChange={(e) => setFormData({ ...formData, architectureIntro: e.target.value })}
             className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
             rows={2}
-            placeholder="An overview of the technical principles and architectural approach behind this work."
             disabled={isSaving || isReadOnly}
           />
-          <p className="mt-1 text-xs text-muted">Leave empty to use the default introduction.</p>
+          <p className="mt-1 text-xs text-muted">Edit or replace the default introduction. Clear the field to use the default on your public portfolio.</p>
         </div>
 
         <div className="flex items-center gap-2 pt-2">
