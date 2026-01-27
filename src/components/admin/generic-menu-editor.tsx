@@ -565,14 +565,14 @@ function BlockEditor({
               <div key={item.id} className="flex items-center gap-2">
                 <input
                   type="text"
-                  value={item.value}
+                  value={item.value ?? ""}
                   onChange={(e) => setItem(i, { value: e.target.value.slice(0, TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE) })}
                   disabled={disabled}
                   maxLength={TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}
                   className="flex-1 px-3 py-2 border border-border rounded bg-background text-foreground"
                   placeholder={`Item ${i + 1}`}
                 />
-                <span className="text-xs text-muted w-12">{item.value.length}/{TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}</span>
+                <span className="text-xs text-muted w-12">{(item.value ?? "").length}/{TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}</span>
                 <button
                   type="button"
                   onClick={() => setItem(i, { visible: !item.visible })}
@@ -772,7 +772,15 @@ function BlockEditor({
       const setFileLinkItem = (index: number, part: Partial<FileLinkItem>) => {
         setData((d) => {
           const list = [...normalizeFileLinkItems(d)];
-          list[index] = { ...list[index], ...part };
+          const current = list[index];
+          if (!current) return d;
+          const merged: FileLinkItem = {
+            ...current,
+            ...part,
+            title: (part.title !== undefined ? part.title : current.title) ?? "",
+            externalUrl: part.externalUrl !== undefined ? (part.externalUrl ?? "") : (current.externalUrl ?? ""),
+          };
+          list[index] = merged;
           return { ...d, items: list };
         });
       };
@@ -844,14 +852,14 @@ function BlockEditor({
                   <label className="block text-xs text-muted mb-1">Title</label>
                   <input
                     type="text"
-                    value={item.title}
+                    value={item.title ?? ""}
                     onChange={(e) => setFileLinkItem(i, { title: e.target.value.slice(0, TEXT_LIMITS.MENU_BLOCK_TITLE) })}
                     maxLength={TEXT_LIMITS.MENU_BLOCK_TITLE}
                     disabled={disabled}
                     className="w-full px-3 py-2 border border-border rounded bg-background text-foreground text-sm"
                     placeholder="e.g. Certificate PDF"
                   />
-                  <span className="text-xs text-muted">{getCharCountDisplay(item.title.length, TEXT_LIMITS.MENU_BLOCK_TITLE)}</span>
+                  <span className="text-xs text-muted">{getCharCountDisplay((item.title ?? "").length, TEXT_LIMITS.MENU_BLOCK_TITLE)}</span>
                 </div>
                 <div>
                   <label className="block text-xs text-muted mb-1">Type</label>
@@ -983,14 +991,14 @@ function BlockEditor({
               <div key={item.id} className="flex items-center gap-2 p-2 border border-border rounded">
                 <input
                   type="text"
-                  value={item.value}
+                  value={item.value ?? ""}
                   onChange={(e) => setItem(i, { value: e.target.value.slice(0, TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE) })}
                   maxLength={TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}
                   disabled={disabled}
                   className="flex-1 px-2 py-1.5 border border-border rounded bg-background text-foreground text-sm"
                   placeholder="Card text"
                 />
-                <span className="text-xs text-muted w-10">{item.value.length}/{TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}</span>
+                <span className="text-xs text-muted w-10">{(item.value ?? "").length}/{TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}</span>
                 <button type="button" onClick={() => setItem(i, { visible: !item.visible })} disabled={disabled} className="p-1.5 rounded text-muted hover:bg-panel2" title={item.visible ? "Hide" : "Show"}>
                   {item.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 opacity-50" />}
                 </button>
@@ -1067,14 +1075,14 @@ function BlockEditor({
               <div key={item.id} className="flex items-center gap-2 p-2 border border-border rounded">
                 <input
                   type="text"
-                  value={item.value}
+                  value={item.value ?? ""}
                   onChange={(e) => setItem(i, { value: e.target.value.slice(0, TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE) })}
                   maxLength={TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}
                   disabled={disabled}
                   className="flex-1 px-2 py-1.5 border border-border rounded bg-background text-foreground text-sm"
                   placeholder="Timeline entry"
                 />
-                <span className="text-xs text-muted w-10">{item.value.length}/{TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}</span>
+                <span className="text-xs text-muted w-10">{(item.value ?? "").length}/{TEXT_LIMITS.MENU_BLOCK_ITEM_VALUE}</span>
                 <button type="button" onClick={() => setItem(i, { visible: !item.visible })} disabled={disabled} className="p-1.5 rounded text-muted hover:bg-panel2" title={item.visible ? "Hide" : "Show"}>
                   {item.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 opacity-50" />}
                 </button>
