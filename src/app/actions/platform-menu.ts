@@ -119,11 +119,18 @@ export async function updatePlatformMenu(
       where: { platformMenuId: menuId },
       select: { id: true },
     });
+    const offset = 10000; // Free slots 0..n-1 to avoid unique(portfolioMenuId, order) conflict
     for (const pm of portfolioMenus) {
       const existing = await prisma.menuBlock.findMany({
         where: { portfolioMenuId: pm.id },
         select: { id: true, componentKey: true, data: true },
       });
+      for (let j = 0; j < existing.length; j++) {
+        await prisma.menuBlock.update({
+          where: { id: existing[j].id },
+          data: { order: offset + j },
+        });
+      }
       const byKey = new Map(existing.map((b) => [b.componentKey, b]));
       for (let i = 0; i < data.componentKeys.length; i++) {
         const key = data.componentKeys[i];
