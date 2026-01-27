@@ -13,41 +13,42 @@ export const dynamic = "force-dynamic";
 export default async function AdminContactPage() {
   const session = await requireAuth();
   const scope = await getAdminReadScope();
-  
-  // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
+
   if (session.user.role === "super_admin" && !scope.portfolioId) {
     redirect("/admin/users?message=Super admin accounts are for platform management only.");
   }
 
-  // SINGLE SOURCE OF TRUTH: Check if menu is enabled
   const menuEnabled = await isMenuEnabled("contact");
   if (!menuEnabled) {
     redirect("/admin?message=This section is disabled by the platform.");
   }
-  
-  const personInfo = await getPersonInfoForAdmin();
 
-  // Get user's name and email for smart defaults
-  let userId = session.user.id;
-  if (scope.isImpersonating && scope.portfolioId) {
-    const impersonatedPortfolio = await prisma.portfolio.findUnique({
-      where: { id: scope.portfolioId },
-      select: { userId: true },
-    });
-    if (impersonatedPortfolio) {
-      userId = impersonatedPortfolio.userId;
-    }
+  const menu = await prisma.platformMenu.findUnique({
+    where: { key: "contact" },
+    select: { id: true, label: true },
+  });
+  if (!menu) {
+    redirect("/admin?message=Section not found.");
   }
 
-  const [adminUser, visibility] = await Promise.all([
-    prisma.adminUser.findUnique({
-      where: { id: userId },
-      select: { name: true, email: true },
-    }),
+  const [personInfo, visibility] = await Promise.all([
+    getPersonInfoForAdmin(menu.id),
     getSectionVisibility(),
   ]);
 
-  // Use AdminUser name if available, otherwise use session user name, otherwise use email prefix
+  let userId = session.user.id;
+  if (scope.isImpersonating && scope.portfolioId) {
+    const impersonated = await prisma.portfolio.findUnique({
+      where: { id: scope.portfolioId },
+      select: { userId: true },
+    });
+    if (impersonated) userId = impersonated.userId;
+  }
+
+  const adminUser = await prisma.adminUser.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true },
+  });
   const defaultName = adminUser?.name || session.user.name || adminUser?.email?.split("@")[0] || "";
   const defaultEmail = adminUser?.email || session.user.email || "";
 
@@ -58,17 +59,16 @@ export default async function AdminContactPage() {
           <h1 className="text-2xl font-semibold text-foreground mb-2">Contact Information</h1>
           <p className="text-muted">Manage your contact details, email, and LinkedIn</p>
         </div>
-
         <SectionVisibilityToggle
           section="contact"
           initialValue={visibility?.showContact ?? true}
           isReadOnly={scope.isImpersonating}
         />
-
-        <ContactManager 
-          initialData={personInfo} 
+        <ContactManager
+          initialData={personInfo}
           userDefaults={(defaultName || defaultEmail) ? { name: defaultName, email: defaultEmail } : null}
-          isReadOnly={scope.isImpersonating} 
+          isReadOnly={scope.isImpersonating}
+          platformMenuId={menu.id}
         />
       </div>
     </Container>

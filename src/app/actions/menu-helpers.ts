@@ -1,32 +1,36 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { hasSectionEditor, getSectionAdminRoute } from "@/lib/section-types";
 
 /**
- * Get enabled platform menus for admin side menu
- * Returns menu key to route mapping
- * Only includes menus that have admin editors
+ * Get menus to show in admin side menu.
+ * Only menus that are BOTH enabled at platform level AND visible in this portfolio.
+ * Every menu routes to the generic menu editor: /admin/sections/[key].
  */
-export async function getEnabledAdminMenus() {
-  const enabledMenus = await prisma.platformMenu.findMany({
-    where: { enabled: true },
-    select: { key: true, label: true, sectionType: true },
-    orderBy: { key: "asc" },
+export async function getEnabledAdminMenus(portfolioId: string | null): Promise<
+  Array<{ key: string; label: string; route: string }>
+> {
+  if (!portfolioId) return [];
+
+  const portfolioMenus = await prisma.portfolioMenu.findMany({
+    where: {
+      portfolioId,
+      visible: true,
+      platformMenu: { enabled: true },
+    },
+    select: {
+      platformMenu: {
+        select: { key: true, label: true },
+      },
+    },
+    orderBy: { order: "asc" },
   });
 
-  return enabledMenus
-    .filter((menu) => hasSectionEditor(menu.sectionType))
-    .map((menu) => {
-      const route = getSectionAdminRoute(menu.sectionType);
-      return {
-        key: menu.key,
-        label: menu.label,
-        route: route!,
-        hasEditor: true,
-      };
-    })
-    .filter((menu) => menu.route !== null);
+  return portfolioMenus.map(({ platformMenu: menu }) => ({
+    key: menu.key,
+    label: menu.label,
+    route: `/admin/sections/${encodeURIComponent(menu.key)}`,
+  }));
 }
 
 /**

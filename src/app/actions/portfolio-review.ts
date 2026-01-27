@@ -81,7 +81,7 @@ export async function rejectPortfolio(portfolioId: string, reason: string) {
 export async function getPendingReviewPortfolios() {
   await requireSuperAdmin();
 
-  return await prisma.portfolio.findMany({
+  const portfolios = await prisma.portfolio.findMany({
     where: { status: "READY_FOR_REVIEW" },
     select: {
       id: true,
@@ -95,17 +95,24 @@ export async function getPendingReviewPortfolios() {
           name: true,
         },
       },
-      personInfo: {
+      personInfos: {
         select: {
           name: true,
           role: true,
           avatarUrl: true,
           updatedAt: true,
         },
+        take: 1,
       },
     },
     orderBy: { updatedAt: "desc" },
   });
+
+  return portfolios.map((p) => ({
+    ...p,
+    personInfo: p.personInfos?.[0] ?? null,
+    personInfos: undefined,
+  }));
 }
 
 /**

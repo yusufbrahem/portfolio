@@ -18,14 +18,16 @@ type UserDefaults = {
   email: string;
 } | null;
 
-export function ContactManager({ 
-  initialData, 
+export function ContactManager({
+  initialData,
   userDefaults,
-  isReadOnly = false 
-}: { 
-  initialData: PersonInfo | null; 
+  isReadOnly = false,
+  platformMenuId,
+}: {
+  initialData: PersonInfo | null;
   userDefaults?: UserDefaults;
   isReadOnly?: boolean;
+  platformMenuId: string;
 }) {
   const [personInfo, setPersonInfo] = useState(initialData);
   const [isEditing, setIsEditing] = useState(false);
@@ -374,6 +376,7 @@ export function ContactManager({
     setIsSaving(true);
     try {
       const result = await updatePersonInfo({
+        platformMenuId,
         name: formData.name.trim(),
         role: formData.role.trim(),
         location: formData.location.trim(),
@@ -464,7 +467,28 @@ export function ContactManager({
       setUploadedFileName(result.filename || null);
       
       // Also update personInfo in database
-      const updatedPersonInfo = await updatePersonInfo(updatedFormData);
+      const updatedPersonInfo = await updatePersonInfo({
+        platformMenuId,
+        name: updatedFormData.name.trim(),
+        role: updatedFormData.role.trim(),
+        location: updatedFormData.location.trim(),
+        email: updatedFormData.email1 || updatedFormData.email || "",
+        linkedIn: updatedFormData.linkedIn.trim(),
+        phone: updatedFormData.phone1 || updatedFormData.phone || null,
+        contactMessage: updatedFormData.contactMessage?.trim() || null,
+        cvUrl: updatedFormData.cvUrl || null,
+        avatarUrl: personInfo?.avatarUrl || null,
+        phone1: updatedFormData.phone1 || null,
+        phone2: updatedFormData.phone2 || null,
+        whatsapp: updatedFormData.whatsapp || null,
+        email1: updatedFormData.email1 || null,
+        email2: updatedFormData.email2 || null,
+        showPhone1: updatedFormData.showPhone1,
+        showPhone2: updatedFormData.showPhone2,
+        showWhatsApp: updatedFormData.showWhatsApp,
+        showEmail1: updatedFormData.showEmail1,
+        showEmail2: updatedFormData.showEmail2,
+      });
       setPersonInfo(updatedPersonInfo);
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Failed to upload CV");

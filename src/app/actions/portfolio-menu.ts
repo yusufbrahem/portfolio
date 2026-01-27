@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { hasSectionEditor } from "@/lib/section-types";
 
 /**
  * Get portfolio menus for a specific portfolio
@@ -56,11 +55,6 @@ export async function updatePortfolioMenuVisibility(
     throw new Error("This section is disabled by the platform and cannot be shown publicly");
   }
 
-  // GUARD: Cannot enable menus without editors
-  if (visible && !hasSectionEditor(portfolioMenu.platformMenu.sectionType)) {
-    throw new Error("This section cannot be enabled until an editor exists");
-  }
-
   // Check authorization
   if (
     session.user.role !== "super_admin" &&
@@ -103,12 +97,10 @@ export async function reorderPortfolioMenus(
     },
   });
 
-  // SINGLE SOURCE OF TRUTH: Only allow reordering enabled platform menus with editors
-  const invalidMenus = menus.filter(
-    (m) => !m.platformMenu.enabled || !hasSectionEditor(m.platformMenu.sectionType)
-  );
+  // Only allow reordering menus that are enabled by the platform
+  const invalidMenus = menus.filter((m) => !m.platformMenu.enabled);
   if (invalidMenus.length > 0) {
-    throw new Error("Cannot reorder menus that are disabled by the platform or have no editor");
+    throw new Error("Cannot reorder menus that are disabled by the platform");
   }
 
   // Ensure all requested menu IDs exist and belong to this portfolio
@@ -131,30 +123,66 @@ export async function reorderPortfolioMenus(
 }
 
 /**
- * Get enabled platform menus for a portfolio (for public rendering)
- * Only returns menus that have editors and are properly configured
+ * Get enabled platform menus for PUBLIC portfolio rendering.
+ * Uses publishedVisible and publishedOrder only (draft changes not visible until published).
  */
 export async function getEnabledPortfolioMenus(portfolioId: string) {
   const menus = await prisma.portfolioMenu.findMany({
     where: {
       portfolioId,
-      visible: true,
-      platformMenu: {
-        enabled: true,
-      },
+      publishedVisible: true,
+      platformMenu: { enabled: true },
     },
-    include: {
-      platformMenu: true,
-    },
+    include: { platformMenu: true },
+    orderBy: { publishedOrder: "asc" },
+  });
+
+  return menus.map((menu) => ({
+    id: menu.id,
+    key: menu.platformMenu.key,
+    label: menu.platformMenu.label,
+    order: menu.publishedOrder,
+    platformMenuId: menu.platformMenu.id,
+    sectionType: menu.platformMenu.sectionType,
+    componentKeys: menu.platformMenu.componentKeys,
+  }));
+}
+
+/**
+ * Publish menu configuration: copy draft visible/order to published.
+ * Public portfolio updates only after this is called.
+ */
+export async function publishMenuConfiguration(portfolioId: string) {
+  const session = await requireAuth();
+  if (session.user.role !== "super_admin" && session.user.portfolioId !== portfolioId) {
+    throw new Error("Unauthorized");
+  }
+
+  // Fetch in current draft order so publishedOrder becomes 0, 1, 2, ...
+  const menus = await prisma.portfolioMenu.findMany({
+    where: { portfolioId },
+    select: { id: true, visible: true, order: true },
     orderBy: { order: "asc" },
   });
 
-  // Filter out menus without editors - they cannot be rendered
-  return menus
-    .filter((menu) => hasSectionEditor(menu.platformMenu.sectionType))
-    .map((menu) => ({
-      key: menu.platformMenu.key,
-      label: menu.platformMenu.label,
-      order: menu.order,
-    }));
+  await Promise.all(
+    menus.map((pm, index) =>
+      prisma.portfolioMenu.update({
+        where: { id: pm.id },
+        data: { publishedVisible: pm.visible, publishedOrder: index },
+      })
+    )
+  );
+
+  revalidatePath("/admin/menus");
+  revalidatePath("/admin");
+
+  // Revalidate public portfolio so new order is visible
+  const portfolio = await prisma.portfolio.findUnique({
+    where: { id: portfolioId },
+    select: { slug: true },
+  });
+  if (portfolio?.slug) {
+    revalidatePath(`/portfolio/${portfolio.slug}`, "page");
+  }
 }

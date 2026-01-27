@@ -17,7 +17,15 @@ import { CharCounter } from "@/components/ui/char-counter";
 
 type Experience = Awaited<ReturnType<typeof GetExperiences>>[0];
 
-export function ExperienceManager({ initialData, isReadOnly = false }: { initialData: Experience[]; isReadOnly?: boolean }) {
+export function ExperienceManager({
+  initialData,
+  isReadOnly = false,
+  platformMenuId,
+}: {
+  initialData: Experience[];
+  isReadOnly?: boolean;
+  platformMenuId: string;
+}) {
   const [experiences, setExperiences] = useState(initialData);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -41,7 +49,7 @@ export function ExperienceManager({ initialData, isReadOnly = false }: { initial
     setError(null);
     try {
       const order = experiences.length;
-      const newExperience = await createExperience({ ...data, order });
+      const newExperience = await createExperience({ platformMenuId, ...data, order });
       setExperiences([...experiences, newExperience]);
       setIsCreating(false);
     } catch (err) {

@@ -173,15 +173,13 @@ export async function createUser(data: { email: string; password: string; name?:
 export async function getUsersWithPortfolios() {
   await requireSuperAdmin();
 
-  const users = await prisma.adminUser.findMany({
+  const rows = await prisma.adminUser.findMany({
     select: {
       id: true,
       email: true,
       name: true,
-      // @ts-expect-error - role may not exist in Prisma Client until migration
       role: true,
       createdAt: true,
-      // @ts-expect-error - portfolio relation may not exist in Prisma Client until migration
       portfolio: {
         select: {
           id: true,
@@ -192,11 +190,9 @@ export async function getUsersWithPortfolios() {
           requestedAt: true,
           approvedAt: true,
           createdAt: true,
-          personInfo: {
-            select: {
-              avatarUrl: true,
-              updatedAt: true,
-            },
+          personInfos: {
+            select: { avatarUrl: true, updatedAt: true },
+            take: 1,
           },
         },
       },
@@ -204,7 +200,16 @@ export async function getUsersWithPortfolios() {
     orderBy: { createdAt: "asc" },
   });
 
-  return users;
+  return rows.map((u) => ({
+    ...u,
+    portfolio: u.portfolio
+      ? {
+          ...u.portfolio,
+          personInfo: u.portfolio.personInfos?.[0] ?? null,
+          personInfos: undefined,
+        }
+      : null,
+  }));
 }
 
 /**

@@ -4,17 +4,20 @@ import { Motion } from "@/components/motion";
 import { Avatar } from "@/components/avatar";
 import { Card, Pill, PrimaryButton, SecondaryButton } from "@/components/ui";
 import { Section } from "@/components/section";
+import { MenuBlockRenderer } from "@/components/portfolio/menu-block-renderer";
 import { PortfolioHeader } from "@/components/portfolio/portfolio-header";
 import { ScrollToTopButton } from "@/components/portfolio/scroll-to-top";
 import {
   getPortfolioBySlug,
-  getPersonInfo,
+  getFirstPersonInfoForPortfolio,
   getHeroContent,
-  getSkills,
-  getProjects,
-  getExperience,
-  getAboutContent,
-  getArchitectureContent,
+  getSkillsByPortfolio,
+  getProjectsByPortfolio,
+  getExperienceByPortfolio,
+  getAboutContentByPortfolio,
+  getArchitectureContentByPortfolio,
+  getPersonInfoByPortfolio,
+  getMenuBlocksByPortfolioMenuIds,
 } from "@/lib/data";
 import { NotPublishedPage } from "@/components/portfolio/not-published-page";
 import { notFound } from "next/navigation";
@@ -40,7 +43,7 @@ export async function generateMetadata({ params }: PageProps) {
     };
   }
   
-  const person = await getPersonInfo(portfolio.id);
+  const person = await getFirstPersonInfoForPortfolio(portfolio.id);
 
   return {
     title: `${person.name} — ${person.role}`,
@@ -69,17 +72,25 @@ export default async function PortfolioPage({ params }: PageProps) {
     return <NotPublishedPage portfolio={portfolio} />;
   }
 
-  // Fetch all portfolio-specific data
-  const [person, hero, skills, projects, experience, about, architecture, menus] = await Promise.all([
-    getPersonInfo(portfolio.id),
-    getHeroContent(portfolio.id),
-    getSkills(portfolio.id),
-    getProjects(portfolio.id),
-    getExperience(portfolio.id),
-    getAboutContent(portfolio.id),
-    getArchitectureContent(portfolio.id),
-    getEnabledPortfolioMenus(portfolio.id),
-  ]);
+  const menus = await getEnabledPortfolioMenus(portfolio.id);
+  const componentMenuIds = menus.filter(
+    (m) => Array.isArray(m.componentKeys) && m.componentKeys.length > 0
+  ).map((m) => m.id);
+
+  const [hero, skillsByMenu, experienceByMenu, projectsByMenu, aboutByMenu, architectureByMenu, personByMenu, blocksByPm] =
+    await Promise.all([
+      getHeroContent(portfolio.id),
+      getSkillsByPortfolio(portfolio.id),
+      getExperienceByPortfolio(portfolio.id),
+      getProjectsByPortfolio(portfolio.id),
+      getAboutContentByPortfolio(portfolio.id),
+      getArchitectureContentByPortfolio(portfolio.id),
+      getPersonInfoByPortfolio(portfolio.id),
+      getMenuBlocksByPortfolioMenuIds(componentMenuIds),
+    ]);
+
+  // First person for hero card (avatar, name, cv link)
+  const person = await getFirstPersonInfoForPortfolio(portfolio.id);
 
   // Create a map of menu keys for quick lookup
   const menuKeys = new Set(menus.map((m) => m.key));
@@ -155,13 +166,19 @@ export default async function PortfolioPage({ params }: PageProps) {
   const heroBadges = heroHighlights.slice(0, 3);
   const heroBullets = heroHighlights.slice(3);
 
-  // Derive "Current" and "Focus" from user-owned data (no hardcoded strings)
-  const currentRole = experience?.roles?.[0]
-    ? `${experience.roles[0].title}${experience.roles[0].company ? ` at ${experience.roles[0].company}` : ""}`
+  // Derive "Current" and "Focus" from first experience/skills section in menu order
+  const firstExperienceData = menus
+    .map((m) => experienceByMenu[m.platformMenuId])
+    .find((e) => e?.roles?.length);
+  const firstSkillsData = menus
+    .map((m) => skillsByMenu[m.platformMenuId])
+    .find((s) => s?.length);
+  const currentRole = firstExperienceData?.roles?.[0]
+    ? `${firstExperienceData.roles[0].title}${firstExperienceData.roles[0].company ? ` at ${firstExperienceData.roles[0].company}` : ""}`
     : null;
   const focus =
-    skills && skills.length > 0
-      ? skills
+    firstSkillsData && firstSkillsData.length > 0
+      ? firstSkillsData
           .slice(0, 2)
           .flatMap((g) => g.items)
           .slice(0, 6)
@@ -298,96 +315,115 @@ export default async function PortfolioPage({ params }: PageProps) {
         </div>
       </Container>
 
-      {/* Render sections dynamically in menu order */}
+      {/* Render sections dynamically in menu order (data keyed by platformMenuId) */}
       {menus
         .sort((a, b) => a.order - b.order)
         .map((menu) => {
-          const isVisible = sectionVisibility[menu.key];
+          const isVisible = menu.key in sectionVisibility ? sectionVisibility[menu.key] : true;
           if (!isVisible) return null;
+          const isComponentBased = Array.isArray(menu.componentKeys) && menu.componentKeys.length > 0;
+          const menuBlocks = isComponentBased ? (blocksByPm[menu.id] ?? []) : [];
+          const skills = skillsByMenu[menu.platformMenuId];
+          const experience = experienceByMenu[menu.platformMenuId];
+          const projects = projectsByMenu[menu.platformMenuId];
+          const about = aboutByMenu[menu.platformMenuId];
+          const architecture = architectureByMenu[menu.platformMenuId];
+          const sectionPerson = personByMenu[menu.platformMenuId];
 
-          switch (menu.key) {
-            case "skills":
+          if (isComponentBased) {
+            return (
+              <MenuBlockRenderer
+                key={menu.key}
+                menuKey={menu.key}
+                menuLabel={menu.label}
+                blocks={menuBlocks}
+              />
+            );
+          }
+
+          switch (menu.sectionType) {
+            case "skills_template":
               if (!skills || skills.length === 0) return null;
               return (
-                <Container key="skills" id="skills">
-          <Section 
-            eyebrow="Skills" 
-            title="Skills and expertise" 
-            description={getSectionIntro(portfolio.skillsIntro, "skills")}
-          >
-            <div className="grid gap-5 lg:grid-cols-2">
-              {skills.map((group, idx) => (
-                <Motion key={group.group} delay={idx * 0.05}>
-                  <Card className="p-6">
-                    <p className="text-sm font-semibold text-foreground text-safe">
-                      {group.group}
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {group.items.map((s) => (
-                        <Pill key={s}>{s}</Pill>
+                <Container key={menu.key} id={menu.key}>
+                  <Section
+                    eyebrow={menu.label}
+                    title="Skills and expertise"
+                    description={getSectionIntro(portfolio.skillsIntro, "skills")}
+                  >
+                    <div className="grid gap-5 lg:grid-cols-2">
+                      {skills.map((group, idx) => (
+                        <Motion key={group.group} delay={idx * 0.05}>
+                          <Card className="p-6">
+                            <p className="text-sm font-semibold text-foreground text-safe">
+                              {group.group}
+                            </p>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {group.items.map((s) => (
+                                <Pill key={s}>{s}</Pill>
+                              ))}
+                            </div>
+                          </Card>
+                        </Motion>
                       ))}
                     </div>
-                  </Card>
-                </Motion>
-              ))}
-            </div>
-          </Section>
+                  </Section>
                 </Container>
               );
 
-            case "projects":
+            case "projects_template":
               if (!projects || projects.length === 0) return null;
               return (
-                <Container key="projects" id="projects">
-          <Section 
-            eyebrow="Projects" 
-            title="Projects and work samples" 
-            description={getSectionIntro(portfolio.projectsIntro, "projects")}
-          >
-            <div className="grid gap-6 lg:grid-cols-3">
-              {projects.map((p, idx) => (
-                <Motion key={p.title} delay={idx * 0.05}>
-                  <Card className="flex h-full flex-col p-6">
-                    <div className="space-y-2">
-                      <p className="text-base font-semibold text-foreground text-safe">
-                        {p.title}
-                      </p>
-                      <p className="text-sm leading-relaxed text-muted text-safe">{p.summary}</p>
-                    </div>
+                <Container key={menu.key} id={menu.key}>
+                  <Section
+                    eyebrow={menu.label}
+                    title="Projects and work samples"
+                    description={getSectionIntro(portfolio.projectsIntro, "projects")}
+                  >
+                    <div className="grid gap-6 lg:grid-cols-3">
+                      {projects.map((p, idx) => (
+                        <Motion key={p.title} delay={idx * 0.05}>
+                          <Card className="flex h-full flex-col p-6">
+                            <div className="space-y-2">
+                              <p className="text-base font-semibold text-foreground text-safe">
+                                {p.title}
+                              </p>
+                              <p className="text-sm leading-relaxed text-muted text-safe">{p.summary}</p>
+                            </div>
 
-                    <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
-                      {p.bullets.map((b) => (
-                        <li key={b} className="flex gap-2">
-                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
-                          <span className="text-safe">{b}</span>
-                        </li>
-                      ))}
-                    </ul>
+                            <ul className="mt-4 space-y-2 text-base leading-relaxed text-muted">
+                              {p.bullets.map((b) => (
+                                <li key={b} className="flex gap-2">
+                                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
+                                  <span className="text-safe">{b}</span>
+                                </li>
+                              ))}
+                            </ul>
 
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {p.tags.map((t) => (
-                        <Pill key={t}>{t}</Pill>
+                            <div className="mt-5 flex flex-wrap gap-2">
+                              {p.tags.map((t) => (
+                                <Pill key={t}>{t}</Pill>
+                              ))}
+                            </div>
+                          </Card>
+                        </Motion>
                       ))}
                     </div>
-                  </Card>
-                </Motion>
-              ))}
-            </div>
-          </Section>
+                  </Section>
                 </Container>
               );
 
-            case "experience":
-              if (!experience || !experience.roles || experience.roles.length === 0) return null;
+            case "experience_template":
+              if (!experience?.roles?.length) return null;
               return (
-                <Container key="experience" id="experience">
-          <Section 
-            eyebrow="Experience" 
-            title="Professional experience and career journey"
-            description={getSectionIntro(portfolio.experienceIntro, "experience")}
-          >
-            <div className="space-y-6">
-              {experience.roles.map((role, idx) => (
+                <Container key={menu.key} id={menu.key}>
+                  <Section
+                    eyebrow={menu.label}
+                    title="Professional experience and career journey"
+                    description={getSectionIntro(portfolio.experienceIntro, "experience")}
+                  >
+                    <div className="space-y-6">
+                      {experience.roles.map((role, idx) => (
                 <Motion key={`${role.title}-${role.company}`} delay={idx * 0.05}>
                   <Card className="p-6">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -418,16 +454,16 @@ export default async function PortfolioPage({ params }: PageProps) {
                   </Card>
                 </Motion>
               ))}
-            </div>
-          </Section>
+                    </div>
+                  </Section>
                 </Container>
               );
 
-            case "about":
+            case "about_template":
               if (!about) return null;
               return (
-                <Container key="about" id="about">
-          <Section eyebrow="About" title={about.title} description={about.paragraphs[0]}>
+                <Container key={menu.key} id={menu.key}>
+                  <Section eyebrow={menu.label} title={about.title} description={about.paragraphs[0]}>
             {(() => {
               const additionalParagraphs = about.paragraphs.slice(1);
               const hasAdditionalParagraphs = additionalParagraphs.length > 0;
@@ -484,19 +520,19 @@ export default async function PortfolioPage({ params }: PageProps) {
                 </div>
               );
             })()}
-          </Section>
+                  </Section>
                 </Container>
               );
 
-            case "architecture":
-              if (!architecture || !architecture.pillars || architecture.pillars.length === 0) return null;
+            case "architecture_template":
+              if (!architecture?.pillars?.length) return null;
               return (
-                <Container key="architecture" id="architecture">
-          <Section 
-            eyebrow="Architecture" 
-            title="Technical architecture and design principles" 
-            description={getSectionIntro(portfolio.architectureIntro, "architecture")}
-          >
+                <Container key={menu.key} id={menu.key}>
+                  <Section
+                    eyebrow={menu.label}
+                    title="Technical architecture and design principles"
+                    description={getSectionIntro(portfolio.architectureIntro, "architecture")}
+                  >
             <div className="grid gap-6 lg:grid-cols-3">
               {architecture.pillars.map((p, idx) => (
                 <Motion key={p.title} delay={idx * 0.05}>
@@ -515,160 +551,125 @@ export default async function PortfolioPage({ params }: PageProps) {
                   </Card>
                 </Motion>
               ))}
-            </div>
-          </Section>
-                </Container>
+                  </div>
+                </Section>
+              </Container>
               );
 
-            case "contact":
+            case "contact_template":
+              if (!sectionPerson) return null;
               return (
-                <Container key="contact" id="contact">
-        <Section 
-          eyebrow="Contact" 
-          title="Get in touch" 
-          description={getSectionIntro(person.contactMessage, "contact")}
-        >
-          <div className="grid gap-6 lg:grid-cols-12">
-            <div className="lg:col-span-7">
-              <Motion>
-                <Card className="p-6">
-                  <div className="space-y-5">
-                    {/* Email 1 (Primary) - Show if visible */}
-                    {person.showEmail1 && (person.email1 || person.email) && (
-                      <div className="flex items-start gap-3">
-                        <Mail className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Email
-                          </p>
-                          <a
-                            className="text-sm text-muted hover:underline"
-                            href={`mailto:${person.email1 || person.email}`}
-                          >
-                            {person.email1 || person.email}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Email 2 (Secondary) - Show if visible */}
-                    {person.showEmail2 && person.email2 && (
-                      <div className="flex items-start gap-3">
-                        <Mail className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Email (Secondary)
-                          </p>
-                          <a
-                            className="text-sm text-muted hover:underline"
-                            href={`mailto:${person.email2}`}
-                          >
-                            {person.email2}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Phone 1 (Primary) - Show if visible */}
-                    {person.showPhone1 && (person.phone1 || person.phone) && (
-                      <div className="flex items-start gap-3">
-                        <Phone className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Phone
-                          </p>
-                          <a
-                            className="text-sm text-muted hover:underline"
-                            href={`tel:${person.phone1 || person.phone}`}
-                          >
-                            {person.phone1 || person.phone}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Phone 2 (Secondary) - Show if visible */}
-                    {person.showPhone2 && person.phone2 && (
-                      <div className="flex items-start gap-3">
-                        <Phone className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Phone (Secondary)
-                          </p>
-                          <a
-                            className="text-sm text-muted hover:underline"
-                            href={`tel:${person.phone2}`}
-                          >
-                            {person.phone2}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* WhatsApp - Show if visible */}
-                    {person.showWhatsApp && person.whatsapp && (
-                      <div className="flex items-start gap-3">
-                        <MessageCircle className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            WhatsApp
-                          </p>
-                          <a
-                            className="text-sm text-muted hover:underline"
-                            href={`https://wa.me/${person.whatsapp.replace(/[^\d]/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {person.whatsapp}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-
-                    {person.linkedIn && (
-                      <div className="flex items-start gap-3">
-                        <Linkedin className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            LinkedIn
-                          </p>
-                          <a
-                            className="text-sm text-muted hover:underline"
-                            href={person.linkedIn}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {person.linkedIn.replace("https://", "")}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-start gap-3">
-                      <MapPin className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">
-                          Location
-                        </p>
-                        <p className="text-sm text-muted">{person.location}</p>
-                      </div>
-                    </div>
-
-                    <div className="pt-2">
-                      {/* Use primary email for contact button */}
-                      {(person.showEmail1 && (person.email1 || person.email)) && (
-                        <PrimaryButton href={`mailto:${person.email1 || person.email}`}>
-                          Email {person.name}
-                        </PrimaryButton>
-                      )}
+                <Container key={menu.key} id={menu.key}>
+                  <Section
+                    eyebrow={menu.label}
+                    title="Get in touch"
+                    description={getSectionIntro(sectionPerson.contactMessage ?? undefined, "contact")}
+                  >
+                    <div className="grid gap-6 lg:grid-cols-12">
+                      <div className="lg:col-span-7">
+                        <Motion>
+                          <Card className="p-6">
+                            <div className="space-y-5">
+                              {sectionPerson.showEmail1 && (sectionPerson.email1 || sectionPerson.email) && (
+                                <div className="flex items-start gap-3">
+                                  <Mail className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground">Email</p>
+                                    <a
+                                      className="text-sm text-muted hover:underline"
+                                      href={`mailto:${sectionPerson.email1 || sectionPerson.email}`}
+                                    >
+                                      {sectionPerson.email1 || sectionPerson.email}
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                                {sectionPerson.showEmail2 && sectionPerson.email2 && (
+                                <div className="flex items-start gap-3">
+                                  <Mail className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground">Email (Secondary)</p>
+                                    <a className="text-sm text-muted hover:underline" href={`mailto:${sectionPerson.email2}`}>
+                                      {sectionPerson.email2}
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                              {sectionPerson.showPhone1 && (sectionPerson.phone1 || sectionPerson.phone) && (
+                                <div className="flex items-start gap-3">
+                                  <Phone className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground">Phone</p>
+                                    <a className="text-sm text-muted hover:underline" href={`tel:${sectionPerson.phone1 || sectionPerson.phone}`}>
+                                      {sectionPerson.phone1 || sectionPerson.phone}
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                              {sectionPerson.showPhone2 && sectionPerson.phone2 && (
+                                <div className="flex items-start gap-3">
+                                  <Phone className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground">Phone (Secondary)</p>
+                                    <a className="text-sm text-muted hover:underline" href={`tel:${sectionPerson.phone2}`}>
+                                      {sectionPerson.phone2}
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                              {sectionPerson.showWhatsApp && sectionPerson.whatsapp && (
+                                <div className="flex items-start gap-3">
+                                  <MessageCircle className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground">WhatsApp</p>
+                                    <a
+                                      className="text-sm text-muted hover:underline"
+                                      href={`https://wa.me/${sectionPerson.whatsapp.replace(/[^\d]/g, "")}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {sectionPerson.whatsapp}
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                              {sectionPerson.linkedIn && (
+                                <div className="flex items-start gap-3">
+                                  <Linkedin className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground">LinkedIn</p>
+                                    <a
+                                      className="text-sm text-muted hover:underline"
+                                      href={sectionPerson.linkedIn}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {sectionPerson.linkedIn.replace("https://", "")}
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="flex items-start gap-3">
+                                <MapPin className="mt-0.5 h-5 w-5 text-accent" aria-hidden="true" />
+                                <div>
+                                  <p className="text-sm font-semibold text-foreground">Location</p>
+                                  <p className="text-sm text-muted">{sectionPerson.location}</p>
+                                </div>
+                              </div>
+                              <div className="pt-2">
+                                {sectionPerson.showEmail1 && (sectionPerson.email1 || sectionPerson.email) && (
+                                  <PrimaryButton href={`mailto:${sectionPerson.email1 || sectionPerson.email}`}>
+                                    Email {sectionPerson.name}
+                                  </PrimaryButton>
+                                )}
+                              </div>
+                            </div>
+                          </Card>
+                      </Motion>
                     </div>
                   </div>
-                </Card>
-              </Motion>
-            </div>
-          </div>
-        </Section>
-                </Container>
+                </Section>
+              </Container>
               );
 
             default:

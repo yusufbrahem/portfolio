@@ -21,55 +21,41 @@ export async function getSkillGroups(portfolioId?: string | null) {
   });
 }
 
-// Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
-export async function getSkillGroupsForAdmin() {
+// Admin read - requires authentication; scoped to portfolio + platform menu (section instance)
+export async function getSkillGroupsForAdmin(platformMenuId: string) {
   const session = await requireAuth();
   const { getAdminReadScope } = await import("@/lib/auth");
   const scope = await getAdminReadScope();
   const portfolioId = scope.portfolioId || session.user.portfolioId;
-  
-  // If no portfolio ID (super admin not impersonating and no own portfolio), return empty
-  if (!portfolioId) {
-    return [];
-  }
-  
+
+  if (!portfolioId) return [];
+
   return await prisma.skillGroup.findMany({
-    where: { portfolioId },
+    where: { portfolioId, platformMenuId },
     include: {
-      skills: {
-        orderBy: { order: "asc" },
-      },
+      skills: { orderBy: { order: "asc" } },
     },
     orderBy: { order: "asc" },
   });
 }
 
-export async function createSkillGroup(data: { name: string; order: number }) {
+export async function createSkillGroup(data: { name: string; order: number; platformMenuId: string }) {
   const session = await requireAuth();
-  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
+  await assertNotSuperAdminForPortfolioWrite();
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
-  
-  if (!portfolioId) {
-    throw new Error("User must have a portfolio to create skill groups");
-  }
-  
-  // Server-side length validation
+
+  if (!portfolioId) throw new Error("User must have a portfolio to create skill groups");
+
   const nameValidation = validateTextLength(data.name, TEXT_LIMITS.NAME, "Skill group name");
-  if (!nameValidation.isValid) {
-    throw new Error(nameValidation.error || "Skill group name exceeds maximum length");
-  }
-  
-  // Ownership check: ensure user owns this portfolio
-  // Super admin can create in any portfolio, but for now they create in their own
+  if (!nameValidation.isValid) throw new Error(nameValidation.error || "Skill group name exceeds maximum length");
+
+  const { platformMenuId, ...rest } = data;
   const result = await prisma.skillGroup.create({
-    data: {
-      ...data,
-      portfolioId,
-    },
+    data: { ...rest, portfolioId, platformMenuId },
   });
   revalidatePath("/admin/skills");
+  revalidatePath("/admin/sections");
   revalidatePath("/skills");
   return result;
 }

@@ -20,25 +20,19 @@ export async function getAboutContent(portfolioId?: string | null) {
   });
 }
 
-// Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
-export async function getAboutContentForAdmin() {
+// Admin read - requires authentication; scoped to portfolio + platform menu (section instance)
+export async function getAboutContentForAdmin(platformMenuId: string) {
   const session = await requireAuth();
   const { getAdminReadScope } = await import("@/lib/auth");
   const scope = await getAdminReadScope();
   const portfolioId = scope.portfolioId || session.user.portfolioId;
-  
-  // If no portfolio ID (super admin not impersonating and no own portfolio), return null
-  if (!portfolioId) {
-    return null;
-  }
-  
+
+  if (!portfolioId) return null;
+
   return await prisma.aboutContent.findFirst({
-    where: { portfolioId },
+    where: { portfolioId, platformMenuId },
     include: {
-      principles: {
-        orderBy: { order: "asc" },
-      },
+      principles: { orderBy: { order: "asc" } },
     },
   });
 }
@@ -46,55 +40,41 @@ export async function getAboutContentForAdmin() {
 export async function updateAboutContent(data: {
   title: string;
   paragraphs: string[];
+  platformMenuId: string;
 }) {
   const session = await requireAuth();
-  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
+  await assertNotSuperAdminForPortfolioWrite();
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
-  
-  if (!portfolioId) {
-    throw new Error("User must have a portfolio to update about content");
-  }
-  
-  // Server-side length validation
+
+  if (!portfolioId) throw new Error("User must have a portfolio to update about content");
+
   const titleValidation = validateTextLength(data.title, TEXT_LIMITS.TITLE, "Title");
-  if (!titleValidation.isValid) {
-    throw new Error(titleValidation.error || "Title exceeds maximum length");
-  }
-  
-  // Validate each paragraph
+  if (!titleValidation.isValid) throw new Error(titleValidation.error || "Title exceeds maximum length");
+
   for (const para of data.paragraphs) {
     if (para.length > TEXT_LIMITS.LONG_TEXT) {
       throw new Error(`Paragraph exceeds maximum length of ${TEXT_LIMITS.LONG_TEXT} characters`);
     }
   }
-  
-  const existing = await prisma.aboutContent.findFirst({
-    where: { portfolioId },
-  });
-  
-  // Ownership check: if existing content, verify it belongs to user's portfolio
-  if (existing && session.user.role !== "super_admin") {
-    if (existing.portfolioId !== portfolioId) {
-      throw new Error("Access denied");
-    }
-  }
-  
+
+  const { platformMenuId, ...content } = data;
   const result = await prisma.aboutContent.upsert({
-    where: { id: existing?.id || `about-${portfolioId}` },
+    where: { portfolioId_platformMenuId: { portfolioId, platformMenuId } },
     update: {
-      title: data.title,
-      paragraphs: JSON.stringify(data.paragraphs),
+      title: content.title,
+      paragraphs: JSON.stringify(content.paragraphs),
     },
     create: {
-      id: `about-${portfolioId}`,
       portfolioId,
-      title: data.title,
-      paragraphs: JSON.stringify(data.paragraphs),
+      platformMenuId,
+      title: content.title,
+      paragraphs: JSON.stringify(content.paragraphs),
     },
   });
-  
+
   revalidatePath("/admin/about");
+  revalidatePath("/admin/sections");
   revalidatePath("/about");
   return result;
 }

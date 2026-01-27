@@ -59,21 +59,21 @@ export default async function AdminDashboard() {
     prisma.experience.count({
       where: whereClause,
     }),
-    // About content: use findUnique if portfolioId, otherwise findFirst for regular users
+    // About content: findFirst (portfolio has many aboutContents per menu; dashboard shows first for counts)
     portfolioId
-      ? prisma.aboutContent.findUnique({ where: { portfolioId } })
+      ? prisma.aboutContent.findFirst({ where: { portfolioId } })
       : session.user.role === "super_admin"
-      ? null // Super admin without impersonation: no single portfolio to show
+      ? null
       : prisma.aboutContent.findFirst({ where: { portfolioId: session.user.portfolioId || "none" } }),
-    // Architecture content: same logic
+    // Architecture content: findFirst (portfolio has many architectureContents per menu)
     portfolioId
-      ? prisma.architectureContent.findUnique({ where: { portfolioId } })
+      ? prisma.architectureContent.findFirst({ where: { portfolioId } })
       : session.user.role === "super_admin"
       ? null
       : prisma.architectureContent.findFirst({ where: { portfolioId: session.user.portfolioId || "none" } }),
-    // Person info: same logic (include updatedAt for cache-busting)
+    // Person info: findFirst (portfolio has many personInfos per contact menu; dashboard shows first for overview)
     portfolioId
-      ? prisma.personInfo.findUnique({ where: { portfolioId }, select: { id: true, name: true, role: true, location: true, avatarUrl: true, updatedAt: true } })
+      ? prisma.personInfo.findFirst({ where: { portfolioId }, select: { id: true, name: true, role: true, location: true, avatarUrl: true, updatedAt: true } })
       : session.user.role === "super_admin"
       ? null
       : prisma.personInfo.findFirst({ where: { portfolioId: session.user.portfolioId || "none" }, select: { id: true, name: true, role: true, location: true, avatarUrl: true, updatedAt: true } }),

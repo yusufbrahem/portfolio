@@ -27,11 +27,12 @@ export default async function AdminLayout({
   // Middleware protects routes, but this adds an extra layer
   const session = await requireAuth();
   
-  // Get enabled menus for side navigation (only for portfolio users)
+  // Side menu: only menus this portfolio has enabled (PortfolioMenu.visible) and platform has enabled. All are active and clickable.
   let enabledMenus: Array<{ key: string; label: string; route: string }> = [];
   const scope = await getAdminReadScope();
+  const effectivePortfolioId = scope.portfolioId ?? session.user.portfolioId ?? null;
   if (session.user.role !== "super_admin" || scope.portfolioId) {
-    enabledMenus = await getEnabledAdminMenus();
+    enabledMenus = await getEnabledAdminMenus(effectivePortfolioId);
   }
 
   const isReadOnly = scope.isImpersonating;
@@ -66,14 +67,13 @@ export default async function AdminLayout({
       } else {
         activePortfolioLabel = "Portfolio";
       }
-      // Get avatar for this portfolio
+      // Get avatar for this portfolio (portfolio has many personInfos; use first for header avatar)
       if (p?.id) {
-        const personInfo = await prisma.personInfo.findUnique({
+        const personInfo = await prisma.personInfo.findFirst({
           where: { portfolioId: p.id },
           select: { avatarUrl: true, updatedAt: true },
         });
         const url = (personInfo as any)?.avatarUrl;
-        // Add cache-busting query parameter using updatedAt timestamp
         avatarUrl = url ? `${url}?t=${new Date((personInfo as any).updatedAt).getTime()}` : null;
       }
     } catch {
@@ -88,14 +88,13 @@ export default async function AdminLayout({
         select: { slug: true, id: true },
       });
       activePortfolioLabel = p?.slug || session.user.email.split("@")[0] || "Portfolio";
-      // Get avatar for this portfolio
+      // Get avatar for this portfolio (portfolio has many personInfos; use first for header avatar)
       if (p?.id) {
-        const personInfo = await prisma.personInfo.findUnique({
+        const personInfo = await prisma.personInfo.findFirst({
           where: { portfolioId: p.id },
           select: { avatarUrl: true, updatedAt: true },
         });
         const url = (personInfo as any)?.avatarUrl;
-        // Add cache-busting query parameter using updatedAt timestamp
         avatarUrl = url ? `${url}?t=${new Date((personInfo as any).updatedAt).getTime()}` : null;
       }
     } catch {
@@ -215,7 +214,7 @@ export default async function AdminLayout({
                   <Settings className="h-4 w-4" />
                   Dashboard
                 </Link>
-                {/* Render menu links based on enabled platform menus */}
+                {/* Render menu links: every item is active (visible + platform enabled) and clickable */}
                 {enabledMenus.map((menu) => {
                   const iconMap: Record<string, React.ReactNode> = {
                     skills: <Code className="h-4 w-4" />,

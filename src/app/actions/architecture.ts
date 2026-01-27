@@ -25,55 +25,42 @@ export async function getArchitectureContent(portfolioId?: string | null) {
   });
 }
 
-// Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
-export async function getArchitectureContentForAdmin() {
+// Admin read - requires authentication; scoped to portfolio + platform menu (section instance)
+export async function getArchitectureContentForAdmin(platformMenuId: string) {
   const session = await requireAuth();
   const { getAdminReadScope } = await import("@/lib/auth");
   const scope = await getAdminReadScope();
   const portfolioId = scope.portfolioId || session.user.portfolioId;
-  
-  // If no portfolio ID (super admin not impersonating and no own portfolio), return null
-  if (!portfolioId) {
-    return null;
-  }
-  
+
+  if (!portfolioId) return null;
+
   return await prisma.architectureContent.findFirst({
-    where: { portfolioId },
+    where: { portfolioId, platformMenuId },
     include: {
       pillars: {
-        include: {
-          points: {
-            orderBy: { order: "asc" },
-          },
-        },
+        include: { points: { orderBy: { order: "asc" } } },
         orderBy: { order: "asc" },
       },
     },
   });
 }
 
-export async function ensureArchitectureContent() {
+export async function ensureArchitectureContent(platformMenuId: string) {
   const session = await requireAuth();
-  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
+  await assertNotSuperAdminForPortfolioWrite();
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
-  
-  if (!portfolioId) {
-    throw new Error("User must have a portfolio to create architecture content");
-  }
-  
+
+  if (!portfolioId) throw new Error("User must have a portfolio to create architecture content");
+
   const existing = await prisma.architectureContent.findFirst({
-    where: { portfolioId },
+    where: { portfolioId, platformMenuId },
   });
-  
+
   if (existing) return existing;
-  
+
   return await prisma.architectureContent.create({
-    data: {
-      id: `arch-${portfolioId}`,
-      portfolioId,
-    },
+    data: { portfolioId, platformMenuId },
   });
 }
 

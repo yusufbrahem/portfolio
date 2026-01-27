@@ -24,28 +24,20 @@ export async function getExperiences(portfolioId?: string | null) {
   });
 }
 
-// Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
-export async function getExperiencesForAdmin() {
+// Admin read - requires authentication; scoped to portfolio + platform menu (section instance)
+export async function getExperiencesForAdmin(platformMenuId: string) {
   const session = await requireAuth();
   const { getAdminReadScope } = await import("@/lib/auth");
   const scope = await getAdminReadScope();
   const portfolioId = scope.portfolioId || session.user.portfolioId;
-  
-  // If no portfolio ID (super admin not impersonating and no own portfolio), return empty
-  if (!portfolioId) {
-    return [];
-  }
-  
+
+  if (!portfolioId) return [];
+
   return await prisma.experience.findMany({
-    where: { portfolioId },
+    where: { portfolioId, platformMenuId },
     include: {
-      bullets: {
-        orderBy: { order: "asc" },
-      },
-      tech: {
-        orderBy: { order: "asc" },
-      },
+      bullets: { orderBy: { order: "asc" } },
+      tech: { orderBy: { order: "asc" } },
     },
     orderBy: { order: "asc" },
   });
@@ -98,6 +90,7 @@ export async function getExperienceForAdmin(id: string) {
 }
 
 export async function createExperience(data: {
+  platformMenuId: string;
   title: string;
   company: string;
   location: string;
@@ -107,19 +100,18 @@ export async function createExperience(data: {
   tech: string[];
 }) {
   const session = await requireAuth();
-  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
+  await assertNotSuperAdminForPortfolioWrite();
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
-  
-  if (!portfolioId) {
-    throw new Error("User must have a portfolio to create experiences");
-  }
-  
-  const { bullets, tech, ...experienceData } = data;
+
+  if (!portfolioId) throw new Error("User must have a portfolio to create experiences");
+
+  const { platformMenuId, bullets, tech, ...experienceData } = data;
   const result = await prisma.experience.create({
     data: {
       ...experienceData,
       portfolioId,
+      platformMenuId,
       bullets: {
         create: bullets.map((text, index) => ({ text, order: index })),
       },
@@ -137,6 +129,7 @@ export async function createExperience(data: {
     },
   });
   revalidatePath("/admin/experience");
+  revalidatePath("/admin/sections");
   revalidatePath("/experience");
   revalidatePath("/resume");
   return result;

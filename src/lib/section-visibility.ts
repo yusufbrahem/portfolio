@@ -1,60 +1,59 @@
-import { getSkills, getProjects, getExperience, getArchitectureContent, getPersonInfo, getAboutContent } from "./data";
+import {
+  getSkills,
+  getProjects,
+  getExperience,
+  getArchitectureContent,
+  getPersonInfo,
+  getAboutContent,
+  getPlatformMenuIdForSection,
+} from "./data";
 
 /**
- * Check if a section has meaningful visible data to display
- * (considers item-level visibility)
+ * Check if a section has meaningful visible data to display (per section instance).
+ * Resolves platformMenuId from portfolio + menu key, then checks data.
  */
 export async function hasSectionData(
   portfolioId: string,
   section: "about" | "skills" | "projects" | "experience" | "architecture" | "contact"
 ): Promise<boolean> {
+  const menuId = await getPlatformMenuIdForSection(portfolioId, section);
+  if (!menuId) return false;
+
   switch (section) {
     case "about": {
-      const about = await getAboutContent(portfolioId);
+      const about = await getAboutContent(portfolioId, menuId);
       return !!about && about.paragraphs && about.paragraphs.length > 0;
     }
     case "skills": {
-      const skills = await getSkills(portfolioId);
+      const skills = await getSkills(portfolioId, menuId);
       return skills && skills.length > 0 && skills.some((g) => g.items.length > 0);
     }
     case "projects": {
-      const projects = await getProjects(portfolioId);
+      const projects = await getProjects(portfolioId, menuId);
       return projects && projects.length > 0;
     }
     case "experience": {
-      const experience = await getExperience(portfolioId);
+      const experience = await getExperience(portfolioId, menuId);
       return experience?.roles && experience.roles.length > 0;
     }
     case "architecture": {
-      const architecture = await getArchitectureContent(portfolioId);
+      const architecture = await getArchitectureContent(portfolioId, menuId);
       return architecture?.pillars && architecture.pillars.length > 0;
     }
     case "contact": {
-      const person = await getPersonInfo(portfolioId);
-      // Contact section is visible if ANY visible contact field exists:
-      // - Visible emails (email1 or email2)
-      // - Visible phones (phone1, phone2, or whatsapp)
-      // - CV URL
-      // - Contact message
-      if (!person) return false;
-      
-      // Check visible emails
-      const hasVisibleEmail = 
-        (person.showEmail1 && (person.email1 || person.email)) ||
-        (person.showEmail2 && person.email2);
-      
-      // Check visible phones
-      const hasVisiblePhone =
-        (person.showPhone1 && (person.phone1 || person.phone)) ||
-        (person.showPhone2 && person.phone2) ||
-        (person.showWhatsApp && person.whatsapp);
-      
-      return !!(
-        hasVisibleEmail ||
-        hasVisiblePhone ||
-        person.cvUrl ||
-        person.contactMessage
-      );
+      try {
+        const person = await getPersonInfo(portfolioId, menuId);
+        const hasVisibleEmail =
+          (person.showEmail1 && (person.email1 || person.email)) ||
+          (person.showEmail2 && person.email2);
+        const hasVisiblePhone =
+          (person.showPhone1 && (person.phone1 || person.phone)) ||
+          (person.showPhone2 && person.phone2) ||
+          (person.showWhatsApp && person.whatsapp);
+        return !!(hasVisibleEmail || hasVisiblePhone || person.cvUrl || person.contactMessage);
+      } catch {
+        return false;
+      }
     }
     default:
       return false;

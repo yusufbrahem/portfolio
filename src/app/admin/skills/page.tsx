@@ -8,24 +8,31 @@ import { getPortfolioIntros } from "@/app/actions/portfolio-intros";
 import { getSectionVisibility } from "@/app/actions/section-visibility";
 import { isMenuEnabled } from "@/app/actions/menu-helpers";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminSkillsPage() {
   const session = await requireAuth();
   const scope = await getAdminReadScope();
-  
-  // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
+
   if (session.user.role === "super_admin" && !scope.portfolioId) {
     redirect("/admin/users?message=Super admin accounts are for platform management only.");
   }
 
-  // SINGLE SOURCE OF TRUTH: Check if menu is enabled
   const menuEnabled = await isMenuEnabled("skills");
   if (!menuEnabled) {
     redirect("/admin?message=This section is disabled by the platform.");
   }
-  
+
+  const menu = await prisma.platformMenu.findUnique({
+    where: { key: "skills" },
+    select: { id: true, label: true },
+  });
+  if (!menu) {
+    redirect("/admin?message=Section not found.");
+  }
+
   const [skillGroups, portfolioIntros, visibility] = await Promise.all([
-    getSkillGroupsForAdmin(),
+    getSkillGroupsForAdmin(menu.id),
     getPortfolioIntros(),
     getSectionVisibility(),
   ]);
@@ -34,23 +41,24 @@ export default async function AdminSkillsPage() {
     <Container>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">Manage Skills</h1>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">Manage {menu.label}</h1>
           <p className="text-muted">Add, edit, or delete skill groups and individual skills</p>
         </div>
-        
         <SectionVisibilityToggle
           section="skills"
           initialValue={visibility?.showSkills ?? true}
           isReadOnly={scope.isImpersonating}
         />
-        
         <SectionIntroEditor
           section="skills"
           initialValue={portfolioIntros?.skillsIntro}
           isReadOnly={scope.isImpersonating}
         />
-        
-        <SkillsManager initialData={skillGroups} isReadOnly={scope.isImpersonating} />
+        <SkillsManager
+          initialData={skillGroups}
+          isReadOnly={scope.isImpersonating}
+          platformMenuId={menu.id}
+        />
       </div>
     </Container>
   );
