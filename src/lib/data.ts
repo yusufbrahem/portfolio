@@ -41,31 +41,29 @@ export async function getPortfolioBySlug(slug: string) {
   return portfolio;
 }
 
-// Public read - portfolio scoped (no auth required)
-export async function getPersonInfo(portfolioId: string) {
+// Public read - portfolio + section instance (platform menu)
+export async function getPersonInfo(portfolioId: string, platformMenuId: string) {
   const info = await prisma.personInfo.findUnique({
-    where: { portfolioId },
+    where: { portfolioId_platformMenuId: { portfolioId, platformMenuId } },
     select: {
       id: true,
       portfolioId: true,
       name: true,
       role: true,
       location: true,
-      email: true, // Legacy field
+      email: true,
       linkedIn: true,
-      phone: true, // Legacy field
+      phone: true,
       contactMessage: true,
       cvUrl: true,
       avatarUrl: true,
-      updatedAt: true, // Include for cache-busting
+      updatedAt: true,
       createdAt: true,
-      // Extended contact fields
       phone1: true,
       phone2: true,
       whatsapp: true,
       email1: true,
       email2: true,
-      // Visibility controls
       showPhone1: true,
       showPhone2: true,
       showWhatsApp: true,
@@ -88,55 +86,51 @@ export async function getHeroContent(portfolioId: string) {
   return { ...hero, highlights: JSON.parse(hero.highlights || "[]") };
 }
 
-// Public read - no auth required
-// Accepts optional portfolioId for future public portfolio pages
-// If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
-export async function getSkills(portfolioId: string) {
-  const where = { 
-    portfolioId,
-    isVisible: true, // Only return visible skill groups
-  };
-  
+// Public read - one section instance (portfolio + platform menu)
+export async function getSkills(portfolioId: string, platformMenuId: string) {
   const groups = await prisma.skillGroup.findMany({
-    where,
+    where: { portfolioId, platformMenuId, isVisible: true },
     include: {
-      skills: {
-        orderBy: { order: "asc" },
-      },
+      skills: { orderBy: { order: "asc" } },
     },
     orderBy: { order: "asc" },
   });
-
   return groups.map((group) => ({
     group: group.name,
     items: group.skills.map((s) => s.name),
   }));
 }
 
-// Public read - no auth required
-// Accepts optional portfolioId for future public portfolio pages
-// If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
-export async function getExperience(portfolioId: string) {
-  const where = { 
-    portfolioId,
-    isVisible: true, // Only return visible experiences
-  };
-  
+// Batch: all skills for a portfolio, keyed by platformMenuId (for public page)
+export async function getSkillsByPortfolio(portfolioId: string): Promise<Record<string, Array<{ group: string; items: string[] }>>> {
+  const groups = await prisma.skillGroup.findMany({
+    where: { portfolioId, isVisible: true },
+    include: { skills: { orderBy: { order: "asc" } } },
+    orderBy: { order: "asc" },
+  });
+  const byMenu: Record<string, Array<{ group: string; items: string[] }>> = {};
+  for (const g of groups) {
+    if (!byMenu[g.platformMenuId]) byMenu[g.platformMenuId] = [];
+    byMenu[g.platformMenuId].push({
+      group: g.name,
+      items: g.skills.map((s) => s.name),
+    });
+  }
+  return byMenu;
+}
+
+// Public read - one section instance
+export async function getExperience(portfolioId: string, platformMenuId: string) {
   const roles = await prisma.experience.findMany({
-    where,
+    where: { portfolioId, platformMenuId, isVisible: true },
     include: {
-      bullets: {
-        orderBy: { order: "asc" },
-      },
-      tech: {
-        orderBy: { order: "asc" },
-      },
+      bullets: { orderBy: { order: "asc" } },
+      tech: { orderBy: { order: "asc" } },
     },
     orderBy: { order: "asc" },
   });
-
   return {
-    intro: null, // No hardcoded intro - use generic fallback in UI
+    intro: null,
     roles: roles.map((role) => ({
       title: role.title,
       company: role.company,
@@ -148,34 +142,79 @@ export async function getExperience(portfolioId: string) {
   };
 }
 
-// Public read - no auth required
-// Accepts optional portfolioId for future public portfolio pages
-// If no portfolioId provided, returns all (backward compatible, will need update in Phase 5)
-export async function getProjects(portfolioId: string) {
-  const where = { 
-    portfolioId,
-    isVisible: true, // Only return visible projects
-  };
-  
+// Batch: experiences by platformMenuId
+export async function getExperienceByPortfolio(portfolioId: string): Promise<
+  Record<string, { intro: null; roles: Array<{ title: string; company: string; location: string; period: string; bullets: string[]; tech: string[] }> }>
+> {
+  const roles = await prisma.experience.findMany({
+    where: { portfolioId, isVisible: true },
+    include: { bullets: { orderBy: { order: "asc" } }, tech: { orderBy: { order: "asc" } } },
+    orderBy: { order: "asc" },
+  });
+  const byMenu: Record<string, { intro: null; roles: typeof roles }> = {};
+  for (const r of roles) {
+    if (!byMenu[r.platformMenuId]) byMenu[r.platformMenuId] = { intro: null, roles: [] };
+    byMenu[r.platformMenuId].roles.push(r);
+  }
+  const result: Record<string, { intro: null; roles: Array<{ title: string; company: string; location: string; period: string; bullets: string[]; tech: string[] }> }> = {};
+  for (const [menuId, v] of Object.entries(byMenu)) {
+    result[menuId] = {
+      intro: null,
+      roles: v.roles.map((role) => ({
+        title: role.title,
+        company: role.company,
+        location: role.location,
+        period: role.period,
+        bullets: role.bullets.map((b) => b.text),
+        tech: role.tech.map((t) => t.name),
+      })),
+    };
+  }
+  return result;
+}
+
+// Public read - one section instance
+export async function getProjects(portfolioId: string, platformMenuId: string) {
   const projects = await prisma.project.findMany({
-    where,
+    where: { portfolioId, platformMenuId, isVisible: true },
     include: {
-      bullets: {
-        orderBy: { order: "asc" },
-      },
-      tags: {
-        orderBy: { order: "asc" },
-      },
+      bullets: { orderBy: { order: "asc" } },
+      tags: { orderBy: { order: "asc" } },
     },
     orderBy: { order: "asc" },
   });
-
-  return projects.map((project) => ({
-    title: project.title,
-    summary: project.summary,
-    bullets: project.bullets.map((b) => b.text),
-    tags: project.tags.map((t) => t.name),
+  return projects.map((p) => ({
+    title: p.title,
+    summary: p.summary,
+    bullets: p.bullets.map((b) => b.text),
+    tags: p.tags.map((t) => t.name),
   }));
+}
+
+// Batch: projects by platformMenuId
+export async function getProjectsByPortfolio(portfolioId: string): Promise<
+  Record<string, Array<{ title: string; summary: string; bullets: string[]; tags: string[] }>>
+> {
+  const projects = await prisma.project.findMany({
+    where: { portfolioId, isVisible: true },
+    include: { bullets: { orderBy: { order: "asc" } }, tags: { orderBy: { order: "asc" } } },
+    orderBy: { order: "asc" },
+  });
+  const byMenu: Record<string, typeof projects> = {};
+  for (const p of projects) {
+    if (!byMenu[p.platformMenuId]) byMenu[p.platformMenuId] = [];
+    byMenu[p.platformMenuId].push(p);
+  }
+  const result: Record<string, Array<{ title: string; summary: string; bullets: string[]; tags: string[] }>> = {};
+  for (const [menuId, list] of Object.entries(byMenu)) {
+    result[menuId] = list.map((p) => ({
+      title: p.title,
+      summary: p.summary,
+      bullets: p.bullets.map((b) => b.text),
+      tags: p.tags.map((t) => t.name),
+    }));
+  }
+  return result;
 }
 
 // Public read - no auth required

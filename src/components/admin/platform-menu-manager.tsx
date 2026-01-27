@@ -1,37 +1,106 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback } from "react";
 import { Settings, Eye, EyeOff, Edit2, Save, X, Plus } from "lucide-react";
-import { updatePlatformMenu, createPlatformMenu } from "@/app/actions/platform-menu";
+import {
+  updatePlatformMenu,
+  createPlatformMenu,
+  checkPlatformMenuKeyAvailable,
+} from "@/app/actions/platform-menu";
 import { PlatformMenu } from "@prisma/client";
 import { hasSectionEditor } from "@/lib/section-types";
-import type { SectionType } from "@/lib/section-types";
+import {
+  SECTION_TEMPLATE_OPTIONS,
+  type SectionTemplate,
+} from "@/lib/section-types";
+import { TEXT_LIMITS } from "@/lib/text-limits";
 
 type PlatformMenuManagerProps = {
   menus: PlatformMenu[];
 };
 
-const SECTION_TYPE_OPTIONS: Array<{ value: SectionType; label: string; hasEditor: boolean }> = [
-  { value: "about", label: "About", hasEditor: true },
-  { value: "skills", label: "Skills", hasEditor: true },
-  { value: "projects", label: "Projects", hasEditor: true },
-  { value: "experience", label: "Experience", hasEditor: true },
-  { value: "architecture", label: "Architecture", hasEditor: true },
-  { value: "contact", label: "Contact", hasEditor: true },
-  { value: "custom_static", label: "Custom Static (No Editor)", hasEditor: false },
-];
+function validateKeyLocal(key: string): string | null {
+  const k = key.trim();
+  if (!k) return "Menu key is required";
+  if (k.length > TEXT_LIMITS.PLATFORM_MENU_KEY_MAX)
+    return `Key must be ${TEXT_LIMITS.PLATFORM_MENU_KEY_MAX} characters or less`;
+  if (/\s/.test(k)) return "Key cannot contain spaces";
+  if (k !== k.toLowerCase()) return "Key must be lowercase";
+  if (!/^[a-z0-9_-]+$/.test(k))
+    return "Key must be lowercase letters, numbers, hyphens, or underscores only";
+  return null;
+}
+
+function validateLabelLocal(label: string): string | null {
+  const t = label.trim();
+  if (!t) return "Label is required";
+  if (t.length > TEXT_LIMITS.PLATFORM_MENU_LABEL)
+    return `Label must be ${TEXT_LIMITS.PLATFORM_MENU_LABEL} characters or less`;
+  return null;
+}
 
 export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManagerProps) {
   const [menus, setMenus] = useState(initialMenus);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
+  const [editSectionTemplate, setEditSectionTemplate] =
+    useState<SectionTemplate>("custom_static");
+  const [editErrors, setEditErrors] = useState<{
+    label?: string;
+    sectionTemplate?: string;
+  }>({});
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newMenuKey, setNewMenuKey] = useState("");
   const [newMenuLabel, setNewMenuLabel] = useState("");
-  const [newMenuSectionType, setNewMenuSectionType] = useState<SectionType>("custom_static");
+  const [newMenuSectionTemplate, setNewMenuSectionTemplate] =
+    useState<SectionTemplate>("custom_static");
+  const [createErrors, setCreateErrors] = useState<{
+    key?: string;
+    label?: string;
+    sectionTemplate?: string;
+  }>({});
+  const [keyCheckPending, setKeyCheckPending] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const runCreateValidation = useCallback(() => {
+    const keyErr = validateKeyLocal(newMenuKey);
+    const labelErr = validateLabelLocal(newMenuLabel);
+    const templateErr =
+      !newMenuSectionTemplate || newMenuSectionTemplate === "custom_static"
+        ? "Section template is required"
+        : null;
+    setCreateErrors({
+      key: keyErr ?? undefined,
+      label: labelErr ?? undefined,
+      sectionTemplate: templateErr ?? undefined,
+    });
+    return !keyErr && !labelErr && !templateErr;
+  }, [newMenuKey, newMenuLabel, newMenuSectionTemplate]);
+
+  const runEditValidation = useCallback(() => {
+    const labelErr = validateLabelLocal(editLabel);
+    const templateErr =
+      !editSectionTemplate || editSectionTemplate === "custom_static"
+        ? "Section template is required"
+        : null;
+    setEditErrors({
+      label: labelErr ?? undefined,
+      sectionTemplate: templateErr ?? undefined,
+    });
+    return !labelErr && !templateErr;
+  }, [editLabel, editSectionTemplate]);
+
+  const isCreateValid =
+    !createErrors.key &&
+    !createErrors.label &&
+    !createErrors.sectionTemplate &&
+    newMenuKey.trim() &&
+    newMenuLabel.trim() &&
+    newMenuSectionTemplate &&
+    newMenuSectionTemplate !== "custom_static";
+
   const handleToggleEnabled = (menu: PlatformMenu) => {
+    setListError(null);
     startTransition(async () => {
       try {
         await updatePlatformMenu(menu.id, { enabled: !menu.enabled });
@@ -39,7 +108,7 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
           prev.map((m) => (m.id === menu.id ? { ...m, enabled: !m.enabled } : m))
         );
       } catch (err) {
-        alert(err instanceof Error ? err.message : "Failed to update menu");
+        setListError(err instanceof Error ? err.message : "Failed to update menu");
       }
     });
   };
@@ -47,24 +116,39 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
   const handleStartEdit = (menu: PlatformMenu) => {
     setEditingId(menu.id);
     setEditLabel(menu.label);
+    const t =
+      menu.sectionType.endsWith("_template")
+        ? (menu.sectionType as SectionTemplate)
+        : `${menu.sectionType}_template` as SectionTemplate;
+    setEditSectionTemplate(
+      SECTION_TEMPLATE_OPTIONS.some((o) => o.value === t) ? t : "custom_static"
+    );
+    setEditErrors({});
   };
 
   const handleSaveEdit = (menuId: string) => {
-    if (!editLabel.trim()) {
-      alert("Label cannot be empty");
-      return;
-    }
+    if (!runEditValidation()) return;
 
+    setListError(null);
     startTransition(async () => {
       try {
-        await updatePlatformMenu(menuId, { label: editLabel.trim() });
+        await updatePlatformMenu(menuId, {
+          label: editLabel.trim(),
+          sectionType: editSectionTemplate,
+        });
         setMenus((prev) =>
-          prev.map((m) => (m.id === menuId ? { ...m, label: editLabel.trim() } : m))
+          prev.map((m) =>
+            m.id === menuId
+              ? { ...m, label: editLabel.trim(), sectionType: editSectionTemplate }
+              : m
+          )
         );
         setEditingId(null);
         setEditLabel("");
+        setEditSectionTemplate("custom_static");
+        setEditErrors({});
       } catch (err) {
-        alert(err instanceof Error ? err.message : "Failed to update menu");
+        setListError(err instanceof Error ? err.message : "Failed to update menu");
       }
     });
   };
@@ -72,37 +156,64 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditLabel("");
+    setEditSectionTemplate("custom_static");
+    setEditErrors({});
   };
 
   const handleCreateMenu = () => {
-    if (!newMenuKey.trim() || !newMenuLabel.trim() || !newMenuSectionType) {
-      alert("Key, label, and section type are required");
-      return;
-    }
+    if (!runCreateValidation()) return;
 
-    // Validate key format (lowercase, alphanumeric, underscores, hyphens)
-    if (!/^[a-z0-9_-]+$/.test(newMenuKey.trim())) {
-      alert("Key must be lowercase alphanumeric with underscores or hyphens only");
-      return;
-    }
-
-    startTransition(async () => {
-      try {
-        const newMenu = await createPlatformMenu({
-          key: newMenuKey.trim(),
-          label: newMenuLabel.trim(),
-          sectionType: newMenuSectionType,
-          enabled: true,
+    setKeyCheckPending(true);
+    checkPlatformMenuKeyAvailable(newMenuKey)
+      .then(({ available, error }) => {
+        if (!available && error) {
+          setCreateErrors((e) => ({ ...e, key: error }));
+          setKeyCheckPending(false);
+          return;
+        }
+        startTransition(async () => {
+          try {
+            const newMenu = await createPlatformMenu({
+              key: newMenuKey.trim().toLowerCase(),
+              label: newMenuLabel.trim(),
+              sectionType: newMenuSectionTemplate,
+              enabled: true,
+            });
+            setMenus((prev) => [...prev, newMenu]);
+            setNewMenuKey("");
+            setNewMenuLabel("");
+            setNewMenuSectionTemplate("custom_static");
+            setCreateErrors({});
+            setShowCreateForm(false);
+          } catch (err) {
+            setCreateErrors((e) => ({
+              ...e,
+              key: err instanceof Error ? err.message : "Failed to create menu",
+            }));
+          } finally {
+            setKeyCheckPending(false);
+          }
         });
-        setMenus((prev) => [...prev, newMenu]);
-        setNewMenuKey("");
-        setNewMenuLabel("");
-        setNewMenuSectionType("custom_static");
-        setShowCreateForm(false);
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Failed to create menu");
-      }
-    });
+      })
+      .catch(() => {
+        setCreateErrors((e) => ({ ...e, key: "Could not verify key" }));
+        setKeyCheckPending(false);
+      });
+  };
+
+  const handleNewKeyBlur = () => {
+    const err = validateKeyLocal(newMenuKey);
+    setCreateErrors((e) => ({ ...e, key: err ?? undefined }));
+    if (!err && newMenuKey.trim()) {
+      setKeyCheckPending(true);
+      checkPlatformMenuKeyAvailable(newMenuKey).then(({ available, error }) => {
+        setCreateErrors((e) => ({
+          ...e,
+          key: available ? undefined : (error ?? "Key already in use"),
+        }));
+        setKeyCheckPending(false);
+      });
+    }
   };
 
   return (
@@ -115,7 +226,7 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
               Platform Menus
             </h2>
             <p className="text-sm text-muted mt-1">
-              Manage global menu definitions. Disabled menus won't appear in any portfolio.
+              Manage global menu definitions. Disabled menus won&apos;t appear in any portfolio.
             </p>
           </div>
           {!showCreateForm && (
@@ -136,57 +247,115 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-foreground mb-1">
-                Menu Key (lowercase, alphanumeric, underscores/hyphens)
+                Menu Key (lowercase, no spaces, unique)
               </label>
               <input
                 type="text"
                 value={newMenuKey}
-                onChange={(e) => setNewMenuKey(e.target.value.toLowerCase())}
-                placeholder="e.g., blog, testimonials"
-                className="w-full px-2 py-1 border border-border bg-background text-foreground rounded text-sm"
-                disabled={isPending}
+                onChange={(e) => {
+                  const value = e.target.value.toLowerCase().replace(/\s/g, "");
+                  setNewMenuKey(value);
+                  setCreateErrors((prev) => ({ ...prev, key: validateKeyLocal(value) ?? undefined }));
+                }}
+                onBlur={handleNewKeyBlur}
+                placeholder="e.g. certifications, blog"
+                className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
+                  createErrors.key
+                    ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    : "border-border focus:outline-none focus:ring-2 focus:ring-accent"
+                }`}
+                disabled={isPending || keyCheckPending}
+                aria-invalid={!!createErrors.key}
+                aria-describedby={createErrors.key ? "create-key-error" : undefined}
               />
+              {createErrors.key && (
+                <p id="create-key-error" className="mt-1 text-xs text-red-500">
+                  {createErrors.key}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-foreground mb-1">
-                Menu Label
+                Label
               </label>
               <input
                 type="text"
                 value={newMenuLabel}
-                onChange={(e) => setNewMenuLabel(e.target.value)}
-                placeholder="e.g., Blog, Testimonials"
-                className="w-full px-2 py-1 border border-border bg-background text-foreground rounded text-sm"
+                onChange={(e) => {
+                  setNewMenuLabel(e.target.value);
+                  setCreateErrors((e) => ({
+                    ...e,
+                    label: validateLabelLocal(e.target.value) ?? undefined,
+                  }));
+                }}
+                placeholder="e.g. Certifications"
+                maxLength={TEXT_LIMITS.PLATFORM_MENU_LABEL}
+                className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
+                  createErrors.label
+                    ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    : "border-border focus:outline-none focus:ring-2 focus:ring-accent"
+                }`}
                 disabled={isPending}
+                aria-invalid={!!createErrors.label}
               />
+              <div className="mt-1 flex justify-between text-xs text-muted">
+                <span>{newMenuLabel.length} / {TEXT_LIMITS.PLATFORM_MENU_LABEL}</span>
+                {createErrors.label && (
+                  <span className="text-red-500">{createErrors.label}</span>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-foreground mb-1">
-                Section Type (required)
+                Section Template (required)
               </label>
               <select
-                value={newMenuSectionType}
-                onChange={(e) => setNewMenuSectionType(e.target.value as SectionType)}
-                className="w-full px-2 py-1 border border-border bg-background text-foreground rounded text-sm"
+                value={newMenuSectionTemplate}
+                onChange={(e) => {
+                  const v = e.target.value as SectionTemplate;
+                  setNewMenuSectionTemplate(v);
+                  setCreateErrors((e) => ({
+                    ...e,
+                    sectionTemplate:
+                      !v || v === "custom_static"
+                        ? "Section template is required"
+                        : undefined,
+                  }));
+                }}
+                className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
+                  createErrors.sectionTemplate
+                    ? "border-red-500"
+                    : "border-border"
+                }`}
                 disabled={isPending}
+                aria-invalid={!!createErrors.sectionTemplate}
               >
-                {SECTION_TYPE_OPTIONS.map((option) => (
+                {SECTION_TEMPLATE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label} {!option.hasEditor && "(No Editor)"}
                   </option>
                 ))}
               </select>
+              {createErrors.sectionTemplate && (
+                <p className="mt-1 text-xs text-red-500">
+                  {createErrors.sectionTemplate}
+                </p>
+              )}
               <p className="mt-1 text-xs text-muted">
-                {hasSectionEditor(newMenuSectionType)
-                  ? "This section type has an admin editor"
-                  : "This section type has no editor yet"}
+                {hasSectionEditor(newMenuSectionTemplate)
+                  ? "This template has an admin editor"
+                  : "This template has no editor yet"}
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={handleCreateMenu}
-                disabled={isPending || !newMenuKey.trim() || !newMenuLabel.trim() || !newMenuSectionType}
+                disabled={
+                  isPending ||
+                  keyCheckPending ||
+                  !isCreateValid
+                }
                 className="px-3 py-1.5 text-sm bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPending ? "Creating..." : "Create"}
@@ -197,6 +366,7 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
                   setShowCreateForm(false);
                   setNewMenuKey("");
                   setNewMenuLabel("");
+                  setCreateErrors({});
                 }}
                 disabled={isPending}
                 className="px-3 py-1.5 text-sm border border-border bg-background text-foreground rounded-lg hover:bg-panel2 transition-colors disabled:opacity-50"
@@ -208,6 +378,11 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
         </div>
       )}
 
+      {listError && (
+        <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-sm text-red-500">
+          {listError}
+        </div>
+      )}
       <div className="divide-y divide-border">
         {menus.length === 0 ? (
           <div className="px-4 py-6 text-center text-muted text-sm">
@@ -221,27 +396,83 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
             >
               <div className="flex-1 min-w-0">
                 {editingId === menu.id ? (
-                  <input
-                    type="text"
-                    value={editLabel}
-                    onChange={(e) => setEditLabel(e.target.value)}
-                    className="w-full px-2 py-1 border border-border bg-background text-foreground rounded text-sm"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleSaveEdit(menu.id);
-                      } else if (e.key === "Escape") {
-                        handleCancelEdit();
-                      }
-                    }}
-                  />
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-xs text-muted">Key (read-only)</span>
+                      <div className="mt-0.5">
+                        <code className="text-xs bg-panel2 px-1.5 py-0.5 rounded">
+                          {menu.key}
+                        </code>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-foreground">
+                        Label
+                      </label>
+                      <input
+                        type="text"
+                        value={editLabel}
+                        onChange={(e) => {
+                          setEditLabel(e.target.value);
+                          setEditErrors((e) => ({
+                            ...e,
+                            label: validateLabelLocal(e.target.value) ?? undefined,
+                          }));
+                        }}
+                        maxLength={TEXT_LIMITS.PLATFORM_MENU_LABEL}
+                        className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
+                          editErrors.label ? "border-red-500" : "border-border"
+                        }`}
+                        aria-invalid={!!editErrors.label}
+                      />
+                      {editErrors.label && (
+                        <p className="mt-1 text-xs text-red-500">{editErrors.label}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-foreground">
+                        Section Template
+                      </label>
+                      <select
+                        value={editSectionTemplate}
+                        onChange={(e) => {
+                          const v = e.target.value as SectionTemplate;
+                          setEditSectionTemplate(v);
+                          setEditErrors((e) => ({
+                            ...e,
+                            sectionTemplate:
+                              !v || v === "custom_static"
+                                ? "Section template is required"
+                                : undefined,
+                          }));
+                        }}
+                        className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
+                          editErrors.sectionTemplate ? "border-red-500" : "border-border"
+                        }`}
+                        aria-invalid={!!editErrors.sectionTemplate}
+                      >
+                        {SECTION_TEMPLATE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label} {!option.hasEditor && "(No Editor)"}
+                          </option>
+                        ))}
+                      </select>
+                      {editErrors.sectionTemplate && (
+                        <p className="mt-1 text-xs text-red-500">
+                          {editErrors.sectionTemplate}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <code className="text-xs text-muted bg-panel2 px-1.5 py-0.5 rounded">
                         {menu.key}
                       </code>
-                      <span className="text-sm font-medium text-foreground">{menu.label}</span>
+                      <span className="text-sm font-medium text-foreground">
+                        {menu.label}
+                      </span>
                       <span className="text-xs text-muted bg-panel2 px-1.5 py-0.5 rounded">
                         {menu.sectionType}
                       </span>
@@ -255,13 +486,20 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {editingId === menu.id ? (
                   <>
                     <button
                       type="button"
                       onClick={() => handleSaveEdit(menu.id)}
-                      disabled={isPending}
+                      disabled={
+                        isPending ||
+                        !!editErrors.label ||
+                        !!editErrors.sectionTemplate ||
+                        !editLabel.trim() ||
+                        !editSectionTemplate ||
+                        editSectionTemplate === "custom_static"
+                      }
                       className="p-1.5 text-accent hover:bg-accent/10 rounded transition-colors disabled:opacity-50"
                       title="Save"
                     >
@@ -284,7 +522,7 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
                       onClick={() => handleStartEdit(menu)}
                       disabled={isPending}
                       className="p-1.5 text-muted hover:bg-panel2 rounded transition-colors disabled:opacity-50"
-                      title="Edit label"
+                      title="Edit"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>

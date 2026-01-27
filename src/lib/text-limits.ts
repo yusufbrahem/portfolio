@@ -39,6 +39,10 @@ export const TEXT_LIMITS = {
   // Architecture
   ARCHITECTURE_PILLAR_TITLE: 80, // Architecture pillar titles
   ARCHITECTURE_POINT: 200, // Architecture point descriptions
+
+  // Platform menu (super admin)
+  PLATFORM_MENU_LABEL: 64, // Menu display label
+  PLATFORM_MENU_KEY_MAX: 64, // Menu key (lowercase, no spaces)
 } as const;
 
 /**

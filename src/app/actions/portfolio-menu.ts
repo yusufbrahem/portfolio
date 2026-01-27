@@ -156,5 +156,7 @@ export async function getEnabledPortfolioMenus(portfolioId: string) {
       key: menu.platformMenu.key,
       label: menu.platformMenu.label,
       order: menu.order,
+      platformMenuId: menu.platformMenu.id,
+      sectionType: menu.platformMenu.sectionType,
     }));
 }

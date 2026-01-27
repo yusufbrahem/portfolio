@@ -7,19 +7,23 @@ datasource db {
 }
 
 model SkillGroup {
-  id          String     @id @default(uuid())
-  portfolioId String     // Portfolio that owns this skill group
-  portfolio   Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  name        String
-  order       Int        @default(0)
-  isVisible   Boolean    @default(true) // Item-level visibility toggle
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  skills      Skill[]
+  id              String       @id @default(uuid())
+  portfolioId     String
+  platformMenuId  String       // Section instance: which menu this content belongs to
+  portfolio       Portfolio    @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  platformMenu    PlatformMenu @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
+  name            String
+  order           Int          @default(0)
+  isVisible       Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  skills          Skill[]
 
   @@index([order])
   @@index([portfolioId])
-  @@index([portfolioId, order])
+  @@index([platformMenuId])
+  @@index([portfolioId, platformMenuId])
+  @@index([portfolioId, platformMenuId, order])
   @@index([portfolioId, isVisible])
 }
 
@@ -36,23 +40,27 @@ model Skill {
 }
 
 model Experience {
-  id          String             @id @default(uuid())
-  portfolioId String             // Portfolio that owns this experience
-  portfolio   Portfolio          @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  title       String
-  company     String
-  location    String
-  period      String
-  order       Int                @default(0)
-  isVisible   Boolean            @default(true) // Item-level visibility toggle
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  bullets     ExperienceBullet[]
-  tech        ExperienceTech[]
+  id              String             @id @default(uuid())
+  portfolioId     String
+  platformMenuId  String             // Section instance: which menu this content belongs to
+  portfolio       Portfolio          @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  platformMenu    PlatformMenu       @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
+  title           String
+  company         String
+  location        String
+  period          String
+  order           Int                @default(0)
+  isVisible       Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  bullets         ExperienceBullet[]
+  tech            ExperienceTech[]
 
   @@index([order])
   @@index([portfolioId])
-  @@index([portfolioId, order])
+  @@index([platformMenuId])
+  @@index([portfolioId, platformMenuId])
+  @@index([portfolioId, platformMenuId, order])
   @@index([portfolioId, isVisible])
 }
 
@@ -79,21 +87,25 @@ model ExperienceTech {
 }
 
 model Project {
-  id          String          @id @default(uuid())
-  portfolioId String          // Portfolio that owns this project
-  portfolio   Portfolio       @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  title       String
-  summary     String
-  order       Int             @default(0)
-  isVisible   Boolean         @default(true) // Item-level visibility toggle
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  bullets     ProjectBullet[]
-  tags        ProjectTag[]
+  id              String          @id @default(uuid())
+  portfolioId     String
+  platformMenuId  String          // Section instance: which menu this content belongs to
+  portfolio       Portfolio       @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  platformMenu    PlatformMenu    @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
+  title           String
+  summary         String
+  order           Int             @default(0)
+  isVisible       Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  bullets         ProjectBullet[]
+  tags            ProjectTag[]
 
   @@index([order])
   @@index([portfolioId])
-  @@index([portfolioId, order])
+  @@index([platformMenuId])
+  @@index([portfolioId, platformMenuId])
+  @@index([portfolioId, platformMenuId, order])
   @@index([portfolioId, isVisible])
 }
 
@@ -120,16 +132,20 @@ model ProjectTag {
 }
 
 model AboutContent {
-  id          String           @id @default(uuid())
-  portfolioId String           @unique // Portfolio that owns this about content (1-1)
-  portfolio   Portfolio        @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  title       String
-  paragraphs  String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  principles  AboutPrinciple[]
+  id              String           @id @default(uuid())
+  portfolioId     String
+  platformMenuId  String           // Section instance: which menu this content belongs to
+  portfolio       Portfolio        @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  platformMenu    PlatformMenu     @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
+  title           String
+  paragraphs      String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  principles      AboutPrinciple[]
 
+  @@unique([portfolioId, platformMenuId])
   @@index([portfolioId])
+  @@index([platformMenuId])
 }
 
 model AboutPrinciple {
@@ -145,9 +161,11 @@ model AboutPrinciple {
 }
 
 model PersonInfo {
-  id             String    @id @default(uuid())
-  portfolioId    String    @unique // Portfolio that owns this person info (1-1)
-  portfolio      Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  id              String       @id @default(uuid())
+  portfolioId     String
+  platformMenuId  String       // Section instance: which menu (e.g. contact) this content belongs to
+  portfolio       Portfolio    @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  platformMenu    PlatformMenu @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
   name           String
   role           String
   location       String
@@ -172,7 +190,9 @@ model PersonInfo {
   updatedAt      DateTime  @updatedAt
   cvUrl          String?
 
+  @@unique([portfolioId, platformMenuId])
   @@index([portfolioId])
+  @@index([platformMenuId])
 }
 
 model HeroContent {
@@ -189,14 +209,18 @@ model HeroContent {
 }
 
 model ArchitectureContent {
-  id          String               @id @default(uuid())
-  portfolioId String               @unique // Portfolio that owns this architecture content (1-1)
-  portfolio   Portfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  pillars     ArchitecturePillar[]
+  id              String               @id @default(uuid())
+  portfolioId     String
+  platformMenuId  String
+  portfolio       Portfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  platformMenu    PlatformMenu         @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  pillars         ArchitecturePillar[]
 
+  @@unique([portfolioId, platformMenuId])
   @@index([portfolioId])
+  @@index([platformMenuId])
 }
 
 model ArchitecturePillar {
@@ -245,14 +269,20 @@ enum PortfolioStatus {
 }
 
 model PlatformMenu {
-  id          String   @id @default(uuid())
-  key         String   @unique // Stable identifier: skills, projects, experience, about, architecture, contact
-  label       String   // Default display name
-  sectionType String   // Section type: about, skills, projects, experience, architecture, contact, custom_static
-  enabled     Boolean  @default(true) // Global enable/disable toggle
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  portfolioMenus PortfolioMenu[] // Portfolio-specific menu configurations
+  id                    String                @id @default(uuid())
+  key                   String                @unique
+  label                 String
+  sectionType           String                // Section template: experience_template, about_template, etc.
+  enabled               Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  portfolioMenus        PortfolioMenu[]
+  skillGroups           SkillGroup[]
+  experiences           Experience[]
+  projects              Project[]
+  aboutContents         AboutContent[]
+  architectureContents  ArchitectureContent[]
+  personInfos           PersonInfo[]
 
   @@index([key])
   @@index([enabled])
@@ -298,14 +328,14 @@ model Portfolio {
   showExperience    Boolean               @default(true) // Visibility toggle for Experience section
   showArchitecture  Boolean               @default(true) // Visibility toggle for Architecture section
   showContact       Boolean               @default(true) // Visibility toggle for Contact section
-  skillGroups       SkillGroup[]          // Portfolio-specific skill groups
-  experiences       Experience[]          // Portfolio-specific experience entries
-  projects          Project[]             // Portfolio-specific projects
-  aboutContent      AboutContent?         // Portfolio-specific about content (1-1)
-  heroContent       HeroContent?          // Portfolio-specific hero content (1-1)
-  personInfo        PersonInfo?           // Portfolio-specific person info (1-1)
-  architectureContent ArchitectureContent? // Portfolio-specific architecture content (1-1)
-  portfolioMenus     PortfolioMenu[]       // Portfolio-specific menu configurations
+  skillGroups        SkillGroup[]
+  experiences        Experience[]
+  projects           Project[]
+  aboutContents      AboutContent[]        // One per section instance (platform menu)
+  heroContent        HeroContent?          // One per portfolio (hero is shared)
+  personInfos        PersonInfo[]          // One per contact-type menu
+  architectureContents ArchitectureContent[]
+  portfolioMenus     PortfolioMenu[]
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
