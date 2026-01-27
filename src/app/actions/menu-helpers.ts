@@ -1,11 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { CANONICAL_ADMIN_ROUTES } from "@/lib/section-types";
 
 /**
  * Get menus to show in admin side menu.
  * Only menus that are BOTH enabled at platform level AND visible in this portfolio.
- * Every menu routes to the generic menu editor: /admin/sections/[key].
+ * Default sections (skills, experience, projects, about, architecture, contact) link to
+ * their canonical editors (/admin/skills, etc.) so existing section data is shown.
+ * Other menus link to the block editor /admin/sections/[key].
  */
 export async function getEnabledAdminMenus(portfolioId: string | null): Promise<
   Array<{ key: string; label: string; route: string }>
@@ -29,7 +32,7 @@ export async function getEnabledAdminMenus(portfolioId: string | null): Promise<
   return portfolioMenus.map(({ platformMenu: menu }) => ({
     key: menu.key,
     label: menu.label,
-    route: `/admin/sections/${encodeURIComponent(menu.key)}`,
+    route: CANONICAL_ADMIN_ROUTES[menu.key] ?? `/admin/sections/${encodeURIComponent(menu.key)}`,
   }));
 }
 
