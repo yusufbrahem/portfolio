@@ -1,6 +1,15 @@
 import { prisma } from "./prisma";
 import { notFound } from "next/navigation";
 
+/** Resolve platformMenuId for a portfolio + menu key (for section visibility / data lookup) */
+export async function getPlatformMenuIdForSection(portfolioId: string, menuKey: string): Promise<string | null> {
+  const pm = await prisma.portfolioMenu.findFirst({
+    where: { portfolioId, platformMenu: { key: menuKey } },
+    select: { platformMenuId: true },
+  });
+  return pm?.platformMenuId ?? null;
+}
+
 // Public data access functions - used by public pages
 
 /**
@@ -73,6 +82,81 @@ export async function getPersonInfo(portfolioId: string, platformMenuId: string)
   });
   if (!info) notFound();
   return info;
+}
+
+// First PersonInfo for portfolio (e.g. for metadata/avatar when no menu context)
+export async function getFirstPersonInfoForPortfolio(portfolioId: string) {
+  const info = await prisma.personInfo.findFirst({
+    where: { portfolioId },
+    select: {
+      id: true,
+      portfolioId: true,
+      name: true,
+      role: true,
+      location: true,
+      email: true,
+      linkedIn: true,
+      phone: true,
+      contactMessage: true,
+      cvUrl: true,
+      avatarUrl: true,
+      updatedAt: true,
+      createdAt: true,
+      phone1: true,
+      phone2: true,
+      whatsapp: true,
+      email1: true,
+      email2: true,
+      showPhone1: true,
+      showPhone2: true,
+      showWhatsApp: true,
+      showEmail1: true,
+      showEmail2: true,
+    },
+  });
+  if (!info) notFound();
+  return info;
+}
+
+// Batch: person info by platformMenuId (for public page)
+export async function getPersonInfoByPortfolio(portfolioId: string): Promise<
+  Record<string, Awaited<ReturnType<typeof getPersonInfo>>>
+> {
+  const list = await prisma.personInfo.findMany({
+    where: { portfolioId },
+    select: {
+      platformMenuId: true,
+      id: true,
+      portfolioId: true,
+      name: true,
+      role: true,
+      location: true,
+      email: true,
+      linkedIn: true,
+      phone: true,
+      contactMessage: true,
+      cvUrl: true,
+      avatarUrl: true,
+      updatedAt: true,
+      createdAt: true,
+      phone1: true,
+      phone2: true,
+      whatsapp: true,
+      email1: true,
+      email2: true,
+      showPhone1: true,
+      showPhone2: true,
+      showWhatsApp: true,
+      showEmail1: true,
+      showEmail2: true,
+    },
+  });
+  const byMenu: Record<string, Awaited<ReturnType<typeof getPersonInfo>>> = {};
+  for (const p of list) {
+    const { platformMenuId: _mid, ...rest } = p;
+    byMenu[p.platformMenuId] = rest as Awaited<ReturnType<typeof getPersonInfo>>;
+  }
+  return byMenu;
 }
 
 // Public read - no auth required
@@ -217,23 +301,15 @@ export async function getProjectsByPortfolio(portfolioId: string): Promise<
   return result;
 }
 
-// Public read - no auth required
-// Accepts optional portfolioId for future public portfolio pages
-// If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
-export async function getAboutContent(portfolioId: string) {
+// Public read - one section instance (portfolio + platform menu)
+export async function getAboutContent(portfolioId: string, platformMenuId: string) {
   const about = await prisma.aboutContent.findUnique({
-    where: { portfolioId },
+    where: { portfolioId_platformMenuId: { portfolioId, platformMenuId } },
     include: {
-      principles: {
-        orderBy: { order: "asc" },
-      },
+      principles: { orderBy: { order: "asc" } },
     },
   });
-
-  if (!about) {
-    return null;
-  }
-
+  if (!about) return null;
   return {
     title: about.title,
     paragraphs: JSON.parse(about.paragraphs || "[]"),
@@ -245,35 +321,85 @@ export async function getAboutContent(portfolioId: string) {
   };
 }
 
-// Public read - no auth required
-// Accepts optional portfolioId for future public portfolio pages
-// If no portfolioId provided, returns first available (backward compatible, will need update in Phase 5)
-export async function getArchitectureContent(portfolioId: string) {
-  const architecture = await prisma.architectureContent.findUnique({
+// Batch: about content by platformMenuId (for public page)
+export async function getAboutContentByPortfolio(portfolioId: string): Promise<
+  Record<string, { title: string; paragraphs: string[]; principles: Array<{ id: string; title: string; description: string }> } | null>
+> {
+  const list = await prisma.aboutContent.findMany({
     where: { portfolioId },
+    include: { principles: { orderBy: { order: "asc" } } },
+  });
+  const byMenu: Record<string, NonNullable<Awaited<ReturnType<typeof getAboutContent>>>> = {};
+  for (const about of list) {
+    byMenu[about.platformMenuId] = {
+      title: about.title,
+      paragraphs: JSON.parse(about.paragraphs || "[]"),
+      principles: about.principles.map((p) => ({ id: p.id, title: p.title, description: p.description })),
+    };
+  }
+  return byMenu;
+}
+
+// Public read - one section instance (portfolio + platform menu)
+export async function getArchitectureContent(portfolioId: string, platformMenuId: string) {
+  const architecture = await prisma.architectureContent.findUnique({
+    where: { portfolioId_platformMenuId: { portfolioId, platformMenuId } },
     include: {
       pillars: {
-        where: {
-          isVisible: true, // Only return visible pillars
-        },
-        include: {
-          points: {
-            orderBy: { order: "asc" },
-          },
-        },
+        where: { isVisible: true },
+        include: { points: { orderBy: { order: "asc" } } },
         orderBy: { order: "asc" },
       },
     },
   });
-
-  if (!architecture) {
-    return null;
-  }
-
+  if (!architecture) return null;
   return {
     pillars: architecture.pillars.map((pillar) => ({
       title: pillar.title,
       points: pillar.points.map((point) => point.text),
     })),
   };
+}
+
+// Batch: architecture by platformMenuId (for public page)
+export async function getArchitectureContentByPortfolio(portfolioId: string): Promise<
+  Record<string, { pillars: Array<{ title: string; points: string[] }> } | null>
+> {
+  const list = await prisma.architectureContent.findMany({
+    where: { portfolioId },
+    include: {
+      pillars: {
+        where: { isVisible: true },
+        include: { points: { orderBy: { order: "asc" } } },
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+  const byMenu: Record<string, NonNullable<Awaited<ReturnType<typeof getArchitectureContent>>>> = {};
+  for (const arch of list) {
+    byMenu[arch.platformMenuId] = {
+      pillars: arch.pillars.map((p) => ({ title: p.title, points: p.points.map((pt) => pt.text) })),
+    };
+  }
+  return byMenu;
+}
+
+/** Public: menu blocks by portfolio menu id (for component-based menus) */
+export async function getMenuBlocksByPortfolioMenuIds(portfolioMenuIds: string[]) {
+  if (portfolioMenuIds.length === 0) return {};
+  const blocks = await prisma.menuBlock.findMany({
+    where: { portfolioMenuId: { in: portfolioMenuIds } },
+    orderBy: { order: "asc" },
+    select: { portfolioMenuId: true, componentKey: true, order: true, data: true },
+  });
+  const byPm: Record<string, Array<{ componentKey: string; order: number; data: unknown }>> = {};
+  for (const b of blocks) {
+    if (!byPm[b.portfolioMenuId]) byPm[b.portfolioMenuId] = [];
+    byPm[b.portfolioMenuId].push({
+      componentKey: b.componentKey,
+      order: b.order,
+      data: b.data,
+    });
+  }
+  return byPm;
 }

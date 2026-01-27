@@ -14,7 +14,15 @@ import { CharCounter } from "@/components/ui/char-counter";
 
 type AboutContent = Awaited<ReturnType<typeof getAboutContent>>;
 
-export function AboutManager({ initialData, isReadOnly = false }: { initialData: AboutContent | null; isReadOnly?: boolean }) {
+export function AboutManager({
+  initialData,
+  isReadOnly = false,
+  platformMenuId,
+}: {
+  initialData: AboutContent | null;
+  isReadOnly?: boolean;
+  platformMenuId: string;
+}) {
   const [aboutContent, setAboutContent] = useState(initialData);
   const [editingContent, setEditingContent] = useState(false);
   const [editingPrinciple, setEditingPrinciple] = useState<string | null>(null);
@@ -25,7 +33,7 @@ export function AboutManager({ initialData, isReadOnly = false }: { initialData:
     if (!aboutContent) return;
     setError(null);
     try {
-      await updateAboutContent(data);
+      await updateAboutContent({ ...data, platformMenuId });
       setAboutContent({ ...aboutContent, title: data.title, paragraphs: JSON.stringify(data.paragraphs) });
       setEditingContent(false);
     } catch (err) {

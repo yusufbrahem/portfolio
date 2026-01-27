@@ -54,8 +54,8 @@ export async function NotPublishedPage({ portfolio }: NotPublishedPageProps) {
       title: "This portfolio is published",
       message: "This portfolio should be visible.",
       ownerMessage: "Your portfolio is published and visible to the public.",
-      ownerAction: "View Portfolio",
-      ownerActionHref: `/portfolio/${portfolio.slug}`,
+      ownerAction: "Go to Dashboard",
+      ownerActionHref: "/admin",
       color: "text-green-500",
     },
   };
@@ -63,6 +63,15 @@ export async function NotPublishedPage({ portfolio }: NotPublishedPageProps) {
   const status = portfolio.status || "DRAFT";
   const config = statusConfig[status];
   const Icon = config.icon;
+
+  const ownerActionHref =
+    status === "PUBLISHED" && portfolio.slug
+      ? `/portfolio/${portfolio.slug}`
+      : config.ownerActionHref;
+  const ownerAction =
+    status === "PUBLISHED" && portfolio.slug
+      ? "View Portfolio"
+      : config.ownerAction;
 
   return (
     <Container className="py-24 sm:py-32">
@@ -84,10 +93,10 @@ export async function NotPublishedPage({ portfolio }: NotPublishedPageProps) {
           {isOwner && (
             <div className="mt-10">
               <Link
-                href={config.ownerActionHref}
+                href={ownerActionHref}
                 className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors"
               >
-                {config.ownerAction}
+                {ownerAction}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

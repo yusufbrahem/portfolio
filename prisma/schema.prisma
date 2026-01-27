@@ -272,7 +272,9 @@ model PlatformMenu {
   id                    String                @id @default(uuid())
   key                   String                @unique
   label                 String
-  sectionType           String                // Section template: experience_template, about_template, etc.
+  sectionType           String?               // Legacy: was section template; prefer componentKeys
+  componentKeys         Json?                 // Ordered list of UI component keys, e.g. ["title","rich_text","contact_block"]
+  order                 Int                   @default(0)  // Order in platform menu list (super admin)
   enabled               Boolean               @default(true)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
@@ -287,23 +289,43 @@ model PlatformMenu {
   @@index([key])
   @@index([enabled])
   @@index([sectionType])
+  @@index([order])
+}
+
+model MenuBlock {
+  id              String       @id @default(uuid())
+  portfolioMenuId String      // Which menu (per portfolio) this block belongs to
+  portfolioMenu   PortfolioMenu @relation(fields: [portfolioMenuId], references: [id], onDelete: Cascade)
+  componentKey    String      // UI component type: title, rich_text, pill_list, etc.
+  order           Int         @default(0)  // Order within the menu
+  data            Json        @default("{}")  // Component-specific data (title text, paragraphs, etc.)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([portfolioMenuId, order])
+  @@index([portfolioMenuId])
+  @@index([portfolioMenuId, order])
 }
 
 model PortfolioMenu {
-  id            String       @id @default(uuid())
-  portfolioId   String       // Portfolio that owns this menu configuration
-  platformMenuId String      // Reference to PlatformMenu
-  portfolio     Portfolio    @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  platformMenu  PlatformMenu @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
-  visible       Boolean      @default(true) // Visibility toggle per portfolio
-  order         Int          @default(0) // Order within portfolio
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id               String        @id @default(uuid())
+  portfolioId      String        // Portfolio that owns this menu configuration
+  platformMenuId   String        // Reference to PlatformMenu
+  portfolio        Portfolio     @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  platformMenu     PlatformMenu  @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
+  visible          Boolean       @default(true)  // Draft: visibility user wants
+  publishedVisible Boolean       @default(true)  // What is live on public portfolio
+  order            Int           @default(0)     // Draft order
+  publishedOrder   Int           @default(0)     // Order on public portfolio
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  menuBlocks       MenuBlock[]
 
-  @@unique([portfolioId, platformMenuId]) // One PortfolioMenu per portfolio+menu combination
+  @@unique([portfolioId, platformMenuId])
   @@index([portfolioId])
   @@index([portfolioId, order])
   @@index([portfolioId, visible])
+  @@index([portfolioId, publishedVisible])
   @@index([platformMenuId])
 }
 

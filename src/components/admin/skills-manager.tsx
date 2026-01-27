@@ -18,7 +18,15 @@ import { CharCounter } from "@/components/ui/char-counter";
 
 type SkillGroup = Awaited<ReturnType<typeof getSkillGroups>>[0];
 
-export function SkillsManager({ initialData, isReadOnly = false }: { initialData: SkillGroup[]; isReadOnly?: boolean }) {
+export function SkillsManager({
+  initialData,
+  isReadOnly = false,
+  platformMenuId,
+}: {
+  initialData: SkillGroup[];
+  isReadOnly?: boolean;
+  platformMenuId: string;
+}) {
   const [skillGroups, setSkillGroups] = useState(initialData);
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [editingSkill, setEditingSkill] = useState<{ groupId: string; skillId: string } | null>(null);
@@ -44,7 +52,7 @@ export function SkillsManager({ initialData, isReadOnly = false }: { initialData
     setError(null);
     try {
       const order = skillGroups.length;
-      const newGroup = await createSkillGroup({ name: name.trim(), order });
+      const newGroup = await createSkillGroup({ name: name.trim(), order, platformMenuId });
       const groupWithSkills = { ...newGroup, skills: [] };
       setSkillGroups([...skillGroups, groupWithSkills]);
       setIsCreatingGroup(false);

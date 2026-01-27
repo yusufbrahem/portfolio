@@ -1,23 +1,25 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { Settings, Eye, EyeOff, Edit2, Save, X, Plus } from "lucide-react";
+import { Settings, Eye, EyeOff, Edit2, Save, X, Plus, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import {
   updatePlatformMenu,
   createPlatformMenu,
   checkPlatformMenuKeyAvailable,
+  deletePlatformMenu,
 } from "@/app/actions/platform-menu";
 import { PlatformMenu } from "@prisma/client";
-import { hasSectionEditor } from "@/lib/section-types";
-import {
-  SECTION_TEMPLATE_OPTIONS,
-  type SectionTemplate,
-} from "@/lib/section-types";
+import { UI_COMPONENT_REGISTRY, getUIComponentDef, type UIComponentKey } from "@/lib/ui-components";
 import { TEXT_LIMITS } from "@/lib/text-limits";
 
 type PlatformMenuManagerProps = {
   menus: PlatformMenu[];
 };
+
+function parseComponentKeys(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((k): k is string => typeof k === "string");
+}
 
 function validateKeyLocal(key: string): string | null {
   const k = key.trim();
@@ -43,61 +45,45 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
   const [menus, setMenus] = useState(initialMenus);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
-  const [editSectionTemplate, setEditSectionTemplate] =
-    useState<SectionTemplate>("custom_static");
-  const [editErrors, setEditErrors] = useState<{
-    label?: string;
-    sectionTemplate?: string;
-  }>({});
+  const [editOrder, setEditOrder] = useState(0);
+  const [editComponentKeys, setEditComponentKeys] = useState<string[]>([]);
+  const [editErrors, setEditErrors] = useState<{ label?: string; components?: string }>({});
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newMenuKey, setNewMenuKey] = useState("");
   const [newMenuLabel, setNewMenuLabel] = useState("");
-  const [newMenuSectionTemplate, setNewMenuSectionTemplate] =
-    useState<SectionTemplate>("custom_static");
-  const [createErrors, setCreateErrors] = useState<{
-    key?: string;
-    label?: string;
-    sectionTemplate?: string;
-  }>({});
+  const [newMenuOrder, setNewMenuOrder] = useState(0);
+  const [newMenuComponentKeys, setNewMenuComponentKeys] = useState<string[]>([]);
+  const [createErrors, setCreateErrors] = useState<{ key?: string; label?: string; components?: string }>({});
   const [keyCheckPending, setKeyCheckPending] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const runCreateValidation = useCallback(() => {
     const keyErr = validateKeyLocal(newMenuKey);
     const labelErr = validateLabelLocal(newMenuLabel);
-    const templateErr =
-      !newMenuSectionTemplate || newMenuSectionTemplate === "custom_static"
-        ? "Section template is required"
-        : null;
+    const compErr = newMenuComponentKeys.length === 0 ? "Select at least one UI component" : undefined;
     setCreateErrors({
       key: keyErr ?? undefined,
       label: labelErr ?? undefined,
-      sectionTemplate: templateErr ?? undefined,
+      components: compErr,
     });
-    return !keyErr && !labelErr && !templateErr;
-  }, [newMenuKey, newMenuLabel, newMenuSectionTemplate]);
+    return !keyErr && !labelErr && !compErr;
+  }, [newMenuKey, newMenuLabel, newMenuComponentKeys.length]);
 
   const runEditValidation = useCallback(() => {
     const labelErr = validateLabelLocal(editLabel);
-    const templateErr =
-      !editSectionTemplate || editSectionTemplate === "custom_static"
-        ? "Section template is required"
-        : null;
-    setEditErrors({
-      label: labelErr ?? undefined,
-      sectionTemplate: templateErr ?? undefined,
-    });
-    return !labelErr && !templateErr;
-  }, [editLabel, editSectionTemplate]);
+    const compErr = editComponentKeys.length === 0 ? "At least one UI component is required" : undefined;
+    setEditErrors({ label: labelErr ?? undefined, components: compErr });
+    return !labelErr && !compErr;
+  }, [editLabel, editComponentKeys.length]);
 
   const isCreateValid =
     !createErrors.key &&
     !createErrors.label &&
-    !createErrors.sectionTemplate &&
+    !createErrors.components &&
     newMenuKey.trim() &&
     newMenuLabel.trim() &&
-    newMenuSectionTemplate &&
-    newMenuSectionTemplate !== "custom_static";
+    newMenuComponentKeys.length > 0;
 
   const handleToggleEnabled = (menu: PlatformMenu) => {
     setListError(null);
@@ -113,39 +99,53 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
     });
   };
 
+  const handleDeleteMenu = (menu: PlatformMenu) => {
+    const confirmed = window.confirm(
+      `Delete platform menu "${menu.label}" (key: ${menu.key})? This will remove the menu from all portfolios. Menu entries and block content will be removed.`
+    );
+    if (!confirmed) return;
+    setListError(null);
+    startTransition(async () => {
+      try {
+        await deletePlatformMenu(menu.id);
+        setMenus((prev) => prev.filter((m) => m.id !== menu.id));
+      } catch (err) {
+        setListError(err instanceof Error ? err.message : "Failed to delete menu");
+      }
+    });
+  };
+
   const handleStartEdit = (menu: PlatformMenu) => {
     setEditingId(menu.id);
     setEditLabel(menu.label);
-    const t =
-      menu.sectionType.endsWith("_template")
-        ? (menu.sectionType as SectionTemplate)
-        : `${menu.sectionType}_template` as SectionTemplate;
-    setEditSectionTemplate(
-      SECTION_TEMPLATE_OPTIONS.some((o) => o.value === t) ? t : "custom_static"
-    );
+    setEditOrder(menu.order);
+    setEditComponentKeys(parseComponentKeys(menu.componentKeys));
     setEditErrors({});
   };
 
   const handleSaveEdit = (menuId: string) => {
-    if (!runEditValidation()) return;
-
+    const labelErr = validateLabelLocal(editLabel);
+    setEditErrors((e) => ({ ...e, label: labelErr ?? undefined }));
+    if (labelErr) return;
     setListError(null);
     startTransition(async () => {
       try {
         await updatePlatformMenu(menuId, {
           label: editLabel.trim(),
-          sectionType: editSectionTemplate,
+          order: editOrder,
+          ...(editComponentKeys.length > 0 ? { componentKeys: editComponentKeys } : {}),
         });
         setMenus((prev) =>
           prev.map((m) =>
             m.id === menuId
-              ? { ...m, label: editLabel.trim(), sectionType: editSectionTemplate }
+              ? { ...m, label: editLabel.trim(), order: editOrder, componentKeys: editComponentKeys }
               : m
           )
         );
         setEditingId(null);
         setEditLabel("");
-        setEditSectionTemplate("custom_static");
+        setEditOrder(0);
+        setEditComponentKeys([]);
         setEditErrors({});
       } catch (err) {
         setListError(err instanceof Error ? err.message : "Failed to update menu");
@@ -156,13 +156,13 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditLabel("");
-    setEditSectionTemplate("custom_static");
+    setEditOrder(0);
+    setEditComponentKeys([]);
     setEditErrors({});
   };
 
   const handleCreateMenu = () => {
     if (!runCreateValidation()) return;
-
     setKeyCheckPending(true);
     checkPlatformMenuKeyAvailable(newMenuKey)
       .then(({ available, error }) => {
@@ -176,13 +176,15 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
             const newMenu = await createPlatformMenu({
               key: newMenuKey.trim().toLowerCase(),
               label: newMenuLabel.trim(),
-              sectionType: newMenuSectionTemplate,
+              componentKeys: newMenuComponentKeys,
+              order: newMenuOrder,
               enabled: true,
             });
             setMenus((prev) => [...prev, newMenu]);
             setNewMenuKey("");
             setNewMenuLabel("");
-            setNewMenuSectionTemplate("custom_static");
+            setNewMenuOrder(0);
+            setNewMenuComponentKeys([]);
             setCreateErrors({});
             setShowCreateForm(false);
           } catch (err) {
@@ -216,6 +218,101 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
     }
   };
 
+  const addComponent = (keys: string[], setKeys: (s: string[]) => void, key: UIComponentKey) => {
+    if (keys.includes(key)) return;
+    setKeys([...keys, key]);
+  };
+  const removeComponent = (keys: string[], setKeys: (s: string[]) => void, index: number) => {
+    setKeys(keys.filter((_, i) => i !== index));
+  };
+  const moveComponent = (keys: string[], setKeys: (s: string[]) => void, index: number, dir: -1 | 1) => {
+    const next = index + dir;
+    if (next < 0 || next >= keys.length) return;
+    const copy = [...keys];
+    [copy[index], copy[next]] = [copy[next], copy[index]];
+    setKeys(copy);
+  };
+
+  const ComponentListEditor = ({
+    keys,
+    onChange,
+    error,
+    disabled,
+  }: {
+    keys: string[];
+    onChange: (k: string[]) => void;
+    error?: string;
+    disabled?: boolean;
+  }) => (
+    <div>
+      <label className="block text-xs font-medium text-foreground mb-1">
+        UI components (orderable)
+      </label>
+      <div className="space-y-1 border border-border rounded bg-background divide-y divide-border">
+        {keys.map((key, idx) => {
+          const def = getUIComponentDef(key);
+          return (
+            <div
+              key={`${key}-${idx}`}
+              className="flex items-center gap-2 px-2 py-1.5 text-sm"
+            >
+              <GripVertical className="h-4 w-4 text-muted flex-shrink-0" aria-hidden />
+              <span className="flex-1 min-w-0">{def?.label ?? key}</span>
+              <button
+                type="button"
+                onClick={() => moveComponent(keys, onChange, idx, -1)}
+                disabled={disabled || idx === 0}
+                className="p-0.5 text-muted hover:text-foreground disabled:opacity-40"
+                title="Move up"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => moveComponent(keys, onChange, idx, 1)}
+                disabled={disabled || idx === keys.length - 1}
+                className="p-0.5 text-muted hover:text-foreground disabled:opacity-40"
+                title="Move down"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => removeComponent(keys, onChange, idx)}
+                disabled={disabled}
+                className="p-0.5 text-red-500 hover:bg-red-500/10 rounded"
+                title="Remove"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {keys.length < UI_COMPONENT_REGISTRY.length && (
+        <select
+          className="mt-2 w-full px-2 py-1 border border-border rounded text-sm bg-background text-foreground"
+          value=""
+          onChange={(e) => {
+            const v = e.target.value as UIComponentKey;
+            if (v) addComponent(keys, onChange, v);
+            e.target.value = "";
+          }}
+          disabled={disabled}
+          aria-label="Add UI component"
+        >
+          <option value="">Add component...</option>
+          {UI_COMPONENT_REGISTRY.filter((c) => !keys.includes(c.key)).map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      )}
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+    </div>
+  );
+
   return (
     <div className="border border-border bg-panel rounded-lg overflow-hidden">
       <div className="p-4 border-b border-border">
@@ -226,7 +323,7 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
               Platform Menus
             </h2>
             <p className="text-sm text-muted mt-1">
-              Manage global menu definitions. Disabled menus won&apos;t appear in any portfolio.
+              Menus are pages composed of UI components. Set key, label, order, and which components each menu contains.
             </p>
           </div>
           {!showCreateForm && (
@@ -260,102 +357,60 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
                 onBlur={handleNewKeyBlur}
                 placeholder="e.g. certifications, blog"
                 className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
-                  createErrors.key
-                    ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    : "border-border focus:outline-none focus:ring-2 focus:ring-accent"
+                  createErrors.key ? "border-red-500" : "border-border"
                 }`}
                 disabled={isPending || keyCheckPending}
                 aria-invalid={!!createErrors.key}
-                aria-describedby={createErrors.key ? "create-key-error" : undefined}
               />
               {createErrors.key && (
-                <p id="create-key-error" className="mt-1 text-xs text-red-500">
-                  {createErrors.key}
-                </p>
+                <p className="mt-1 text-xs text-red-500">{createErrors.key}</p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1">
-                Label
-              </label>
+              <label className="block text-xs font-medium text-foreground mb-1">Label</label>
               <input
                 type="text"
                 value={newMenuLabel}
                 onChange={(e) => {
-                  setNewMenuLabel(e.target.value);
-                  setCreateErrors((e) => ({
-                    ...e,
-                    label: validateLabelLocal(e.target.value) ?? undefined,
-                  }));
+                  const value = e.target.value;
+                  setNewMenuLabel(value);
+                  setCreateErrors((prev) => ({ ...prev, label: validateLabelLocal(value) ?? undefined }));
                 }}
                 placeholder="e.g. Certifications"
                 maxLength={TEXT_LIMITS.PLATFORM_MENU_LABEL}
                 className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
-                  createErrors.label
-                    ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    : "border-border focus:outline-none focus:ring-2 focus:ring-accent"
+                  createErrors.label ? "border-red-500" : "border-border"
                 }`}
                 disabled={isPending}
                 aria-invalid={!!createErrors.label}
               />
               <div className="mt-1 flex justify-between text-xs text-muted">
                 <span>{newMenuLabel.length} / {TEXT_LIMITS.PLATFORM_MENU_LABEL}</span>
-                {createErrors.label && (
-                  <span className="text-red-500">{createErrors.label}</span>
-                )}
+                {createErrors.label && <span className="text-red-500">{createErrors.label}</span>}
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1">
-                Section Template (required)
-              </label>
-              <select
-                value={newMenuSectionTemplate}
-                onChange={(e) => {
-                  const v = e.target.value as SectionTemplate;
-                  setNewMenuSectionTemplate(v);
-                  setCreateErrors((e) => ({
-                    ...e,
-                    sectionTemplate:
-                      !v || v === "custom_static"
-                        ? "Section template is required"
-                        : undefined,
-                  }));
-                }}
-                className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
-                  createErrors.sectionTemplate
-                    ? "border-red-500"
-                    : "border-border"
-                }`}
+              <label className="block text-xs font-medium text-foreground mb-1">Order (platform list)</label>
+              <input
+                type="number"
+                min={0}
+                value={newMenuOrder}
+                onChange={(e) => setNewMenuOrder(parseInt(e.target.value, 10) || 0)}
+                className="w-full px-2 py-1 border border-border rounded text-sm bg-background text-foreground"
                 disabled={isPending}
-                aria-invalid={!!createErrors.sectionTemplate}
-              >
-                {SECTION_TEMPLATE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label} {!option.hasEditor && "(No Editor)"}
-                  </option>
-                ))}
-              </select>
-              {createErrors.sectionTemplate && (
-                <p className="mt-1 text-xs text-red-500">
-                  {createErrors.sectionTemplate}
-                </p>
-              )}
-              <p className="mt-1 text-xs text-muted">
-                {hasSectionEditor(newMenuSectionTemplate)
-                  ? "This template has an admin editor"
-                  : "This template has no editor yet"}
-              </p>
+              />
             </div>
+            <ComponentListEditor
+              keys={newMenuComponentKeys}
+              onChange={setNewMenuComponentKeys}
+              error={createErrors.components}
+              disabled={isPending}
+            />
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={handleCreateMenu}
-                disabled={
-                  isPending ||
-                  keyCheckPending ||
-                  !isCreateValid
-                }
+                disabled={isPending || keyCheckPending || !isCreateValid}
                 className="px-3 py-1.5 text-sm bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPending ? "Creating..." : "Create"}
@@ -366,10 +421,12 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
                   setShowCreateForm(false);
                   setNewMenuKey("");
                   setNewMenuLabel("");
+                  setNewMenuOrder(0);
+                  setNewMenuComponentKeys([]);
                   setCreateErrors({});
                 }}
                 disabled={isPending}
-                className="px-3 py-1.5 text-sm border border-border bg-background text-foreground rounded-lg hover:bg-panel2 transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 text-sm border border-border bg-background text-foreground rounded-lg hover:bg-panel2 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -389,165 +446,145 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
             No menus configured
           </div>
         ) : (
-          menus.map((menu) => (
-            <div
-              key={menu.id}
-              className="px-4 py-3 flex items-center justify-between gap-4 hover:bg-panel2/50 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                {editingId === menu.id ? (
-                  <div className="space-y-2">
+          menus.map((menu) => {
+            const compKeys = parseComponentKeys(menu.componentKeys);
+            const isLegacy = compKeys.length === 0 && menu.sectionType;
+            return (
+              <div
+                key={menu.id}
+                className="px-4 py-3 flex items-center justify-between gap-4 hover:bg-panel2/50 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  {editingId === menu.id ? (
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-xs text-muted">Key (read-only)</span>
+                        <div className="mt-0.5">
+                          <code className="text-xs bg-panel2 px-1.5 py-0.5 rounded">{menu.key}</code>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-foreground">Label</label>
+                        <input
+                          type="text"
+                          value={editLabel}
+                          onChange={(e) => {
+                            setEditLabel(e.target.value);
+                            setEditErrors((prev) => ({ ...prev, label: validateLabelLocal(e.target.value) ?? undefined }));
+                          }}
+                          maxLength={TEXT_LIMITS.PLATFORM_MENU_LABEL}
+                          className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
+                            editErrors.label ? "border-red-500" : "border-border"
+                          }`}
+                          aria-invalid={!!editErrors.label}
+                        />
+                        {editErrors.label && (
+                          <p className="mt-1 text-xs text-red-500">{editErrors.label}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-foreground mb-1">Order</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={editOrder}
+                          onChange={(e) => setEditOrder(parseInt(e.target.value, 10) || 0)}
+                          className="w-full px-2 py-1 border border-border rounded text-sm bg-background text-foreground"
+                        />
+                      </div>
+                      <ComponentListEditor
+                        keys={editComponentKeys}
+                        onChange={setEditComponentKeys}
+                        error={editErrors.components}
+                        disabled={isPending}
+                      />
+                    </div>
+                  ) : (
                     <div>
-                      <span className="text-xs text-muted">Key (read-only)</span>
-                      <div className="mt-0.5">
-                        <code className="text-xs bg-panel2 px-1.5 py-0.5 rounded">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <code className="text-xs text-muted bg-panel2 px-1.5 py-0.5 rounded">
                           {menu.key}
                         </code>
+                        <span className="text-sm font-medium text-foreground">{menu.label}</span>
+                        <span className="text-xs text-muted">Order: {menu.order}</span>
+                        {isLegacy && (
+                          <span className="text-xs text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                            Legacy
+                          </span>
+                        )}
+                        {compKeys.length > 0 && (
+                          <span className="text-xs text-muted">
+                            {compKeys.map((k) => getUIComponentDef(k)?.label ?? k).join(" → ")}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-foreground">
-                        Label
-                      </label>
-                      <input
-                        type="text"
-                        value={editLabel}
-                        onChange={(e) => {
-                          setEditLabel(e.target.value);
-                          setEditErrors((e) => ({
-                            ...e,
-                            label: validateLabelLocal(e.target.value) ?? undefined,
-                          }));
-                        }}
-                        maxLength={TEXT_LIMITS.PLATFORM_MENU_LABEL}
-                        className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
-                          editErrors.label ? "border-red-500" : "border-border"
-                        }`}
-                        aria-invalid={!!editErrors.label}
-                      />
-                      {editErrors.label && (
-                        <p className="mt-1 text-xs text-red-500">{editErrors.label}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-foreground">
-                        Section Template
-                      </label>
-                      <select
-                        value={editSectionTemplate}
-                        onChange={(e) => {
-                          const v = e.target.value as SectionTemplate;
-                          setEditSectionTemplate(v);
-                          setEditErrors((e) => ({
-                            ...e,
-                            sectionTemplate:
-                              !v || v === "custom_static"
-                                ? "Section template is required"
-                                : undefined,
-                          }));
-                        }}
-                        className={`w-full px-2 py-1 border rounded text-sm bg-background text-foreground ${
-                          editErrors.sectionTemplate ? "border-red-500" : "border-border"
-                        }`}
-                        aria-invalid={!!editErrors.sectionTemplate}
-                      >
-                        {SECTION_TEMPLATE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label} {!option.hasEditor && "(No Editor)"}
-                          </option>
-                        ))}
-                      </select>
-                      {editErrors.sectionTemplate && (
-                        <p className="mt-1 text-xs text-red-500">
-                          {editErrors.sectionTemplate}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <code className="text-xs text-muted bg-panel2 px-1.5 py-0.5 rounded">
-                        {menu.key}
-                      </code>
-                      <span className="text-sm font-medium text-foreground">
-                        {menu.label}
-                      </span>
-                      <span className="text-xs text-muted bg-panel2 px-1.5 py-0.5 rounded">
-                        {menu.sectionType}
-                      </span>
-                      {!hasSectionEditor(menu.sectionType) && (
-                        <span className="text-xs text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                          No Editor
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {editingId === menu.id ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleSaveEdit(menu.id)}
-                      disabled={
-                        isPending ||
-                        !!editErrors.label ||
-                        !!editErrors.sectionTemplate ||
-                        !editLabel.trim() ||
-                        !editSectionTemplate ||
-                        editSectionTemplate === "custom_static"
-                      }
-                      className="p-1.5 text-accent hover:bg-accent/10 rounded transition-colors disabled:opacity-50"
-                      title="Save"
-                    >
-                      <Save className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancelEdit}
-                      disabled={isPending}
-                      className="p-1.5 text-muted hover:bg-panel2 rounded transition-colors disabled:opacity-50"
-                      title="Cancel"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleStartEdit(menu)}
-                      disabled={isPending}
-                      className="p-1.5 text-muted hover:bg-panel2 rounded transition-colors disabled:opacity-50"
-                      title="Edit"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleEnabled(menu)}
-                      disabled={isPending}
-                      className={`p-1.5 rounded transition-colors disabled:opacity-50 ${
-                        menu.enabled
-                          ? "text-green-400 hover:bg-green-500/10"
-                          : "text-muted hover:bg-panel2"
-                      }`}
-                      title={menu.enabled ? "Disable menu" : "Enable menu"}
-                    >
-                      {menu.enabled ? (
-                        <Eye className="h-4 w-4" />
-                      ) : (
-                        <EyeOff className="h-4 w-4" />
-                      )}
-                    </button>
-                  </>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {editingId === menu.id ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(menu.id)}
+                        disabled={
+                          isPending ||
+                          !!editErrors.label ||
+                          !editLabel.trim()
+                        }
+                        className="p-1.5 text-accent hover:bg-accent/10 rounded transition-colors disabled:opacity-50"
+                        title="Save"
+                      >
+                        <Save className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        disabled={isPending}
+                        className="p-1.5 text-muted hover:bg-panel2 rounded disabled:opacity-50"
+                        title="Cancel"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(menu)}
+                        disabled={isPending}
+                        className="p-1.5 text-muted hover:bg-panel2 rounded disabled:opacity-50"
+                        title="Edit"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleEnabled(menu)}
+                        disabled={isPending}
+                        className={`p-1.5 rounded transition-colors disabled:opacity-50 ${
+                          menu.enabled ? "text-green-400 hover:bg-green-500/10" : "text-muted hover:bg-panel2"
+                        }`}
+                        title={menu.enabled ? "Disable menu" : "Enable menu"}
+                      >
+                        {menu.enabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMenu(menu)}
+                        disabled={isPending}
+                        className="p-1.5 text-red-500 hover:bg-red-500/10 rounded disabled:opacity-50"
+                        title="Delete menu"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

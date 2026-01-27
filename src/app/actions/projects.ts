@@ -24,28 +24,20 @@ export async function getProjects(portfolioId?: string | null) {
   });
 }
 
-// Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
-export async function getProjectsForAdmin() {
+// Admin read - requires authentication; scoped to portfolio + platform menu (section instance)
+export async function getProjectsForAdmin(platformMenuId: string) {
   const session = await requireAuth();
   const { getAdminReadScope } = await import("@/lib/auth");
   const scope = await getAdminReadScope();
   const portfolioId = scope.portfolioId || session.user.portfolioId;
-  
-  // If no portfolio ID (super admin not impersonating and no own portfolio), return empty
-  if (!portfolioId) {
-    return [];
-  }
-  
+
+  if (!portfolioId) return [];
+
   return await prisma.project.findMany({
-    where: { portfolioId },
+    where: { portfolioId, platformMenuId },
     include: {
-      bullets: {
-        orderBy: { order: "asc" },
-      },
-      tags: {
-        orderBy: { order: "asc" },
-      },
+      bullets: { orderBy: { order: "asc" } },
+      tags: { orderBy: { order: "asc" } },
     },
     orderBy: { order: "asc" },
   });
@@ -103,38 +95,31 @@ export async function createProject(data: {
   order: number;
   bullets: string[];
   tags: string[];
+  platformMenuId: string;
 }) {
   const session = await requireAuth();
-  await assertNotSuperAdminForPortfolioWrite(); // Block super_admin from portfolio writes
+  await assertNotSuperAdminForPortfolioWrite();
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
-  
-  if (!portfolioId) {
-    throw new Error("User must have a portfolio to create projects");
-  }
-  
-  const { bullets, tags, ...projectData } = data;
+
+  if (!portfolioId) throw new Error("User must have a portfolio to create projects");
+
+  const { bullets, tags, platformMenuId, ...projectData } = data;
   const result = await prisma.project.create({
     data: {
       ...projectData,
       portfolioId,
-      bullets: {
-        create: bullets.map((text, index) => ({ text, order: index })),
-      },
-      tags: {
-        create: tags.map((name, index) => ({ name, order: index })),
-      },
+      platformMenuId,
+      bullets: { create: bullets.map((text, index) => ({ text, order: index })) },
+      tags: { create: tags.map((name, index) => ({ name, order: index })) },
     },
     include: {
-      bullets: {
-        orderBy: { order: "asc" },
-      },
-      tags: {
-        orderBy: { order: "asc" },
-      },
+      bullets: { orderBy: { order: "asc" } },
+      tags: { orderBy: { order: "asc" } },
     },
   });
   revalidatePath("/admin/projects");
+  revalidatePath("/admin/sections");
   revalidatePath("/projects");
   return result;
 }

@@ -16,41 +16,36 @@ export async function getPersonInfo(portfolioId?: string | null) {
   });
 }
 
-// Admin read - requires authentication
-// Regular users see only their portfolio, super_admin sees all (or impersonated portfolio)
-export async function getPersonInfoForAdmin() {
+// Admin read - requires authentication; scoped to portfolio + platform menu (section instance)
+export async function getPersonInfoForAdmin(platformMenuId: string) {
   const session = await requireAuth();
   const { getAdminReadScope } = await import("@/lib/auth");
   const scope = await getAdminReadScope();
   const portfolioId = scope.portfolioId || session.user.portfolioId;
-  
-  // If no portfolio ID (super admin not impersonating and no own portfolio), return null
-  if (!portfolioId) {
-    return null;
-  }
-  
+
+  if (!portfolioId) return null;
+
   return await prisma.personInfo.findFirst({
-    where: { portfolioId },
+    where: { portfolioId, platformMenuId },
   });
 }
 
 export async function updatePersonInfo(data: {
+  platformMenuId?: string; // Optional: when omitted, first contact menu for portfolio is used (e.g. onboarding)
   name: string;
   role: string;
   location: string;
   email: string; // Legacy field, kept for backward compatibility
   linkedIn: string;
-  phone?: string | null; // Legacy field, kept for backward compatibility
+  phone?: string | null;
   contactMessage?: string | null;
   cvUrl?: string | null;
   avatarUrl?: string | null;
-  // Extended contact fields
   phone1?: string | null;
   phone2?: string | null;
   whatsapp?: string | null;
   email1?: string | null;
   email2?: string | null;
-  // Visibility controls
   showPhone1?: boolean;
   showPhone2?: boolean;
   showWhatsApp?: boolean;
@@ -60,10 +55,22 @@ export async function updatePersonInfo(data: {
   const session = await requireAuth();
   await assertNotImpersonatingForWrite();
   const portfolioId = session.user.portfolioId;
-  
-  if (!portfolioId) {
-    throw new Error("User must have a portfolio to update person info");
+
+  if (!portfolioId) throw new Error("User must have a portfolio to update person info");
+
+  let platformMenuId = data.platformMenuId;
+  if (!platformMenuId) {
+    const contactMenu = await prisma.portfolioMenu.findFirst({
+      where: {
+        portfolioId,
+        platformMenu: { sectionType: "contact_template", enabled: true },
+      },
+      select: { platformMenuId: true },
+    });
+    if (!contactMenu) throw new Error("No contact section found for this portfolio");
+    platformMenuId = contactMenu.platformMenuId;
   }
+  const { platformMenuId: _pm, ...rest } = data;
   
   // Server-side length validation
   const nameValidation = validateTextLength(data.name, TEXT_LIMITS.NAME, "Name");
@@ -140,56 +147,62 @@ export async function updatePersonInfo(data: {
   const finalPhone = normalizedPhone1 || normalizedPhone;
   
   const existing = await prisma.personInfo.findFirst({
-    where: { portfolioId },
+    where: { portfolioId, platformMenuId },
   });
-  
-  // Ownership check: if existing person info, verify it belongs to user's portfolio
-  if (existing && session.user.role !== "super_admin") {
-    if (existing.portfolioId !== portfolioId) {
-      throw new Error("Access denied");
-    }
-  }
-  
-  // Normalize contactMessage: empty strings become null
-  const normalizedContactMessage = data.contactMessage?.trim() || null;
-  
-  const updateData: any = {
-    name: data.name,
-    role: data.role,
-    location: data.location,
+
+  const normalizedContactMessage = rest.contactMessage?.trim() || null;
+
+  const updateData: Record<string, unknown> = {
+    name: rest.name,
+    role: rest.role,
+    location: rest.location,
     email: finalEmail,
-    linkedIn: data.linkedIn,
+    linkedIn: rest.linkedIn,
     phone: finalPhone,
     contactMessage: normalizedContactMessage,
-    cvUrl: data.cvUrl !== undefined ? (data.cvUrl || null) : existing?.cvUrl || null,
-    avatarUrl: data.avatarUrl !== undefined ? (data.avatarUrl || null) : existing?.avatarUrl || null,
+    cvUrl: rest.cvUrl !== undefined ? (rest.cvUrl || null) : existing?.cvUrl || null,
+    avatarUrl: rest.avatarUrl !== undefined ? (rest.avatarUrl || null) : existing?.avatarUrl || null,
   };
-  
-  // Add extended fields if provided
-  if (data.phone1 !== undefined) updateData.phone1 = normalizedPhone1;
-  if (data.phone2 !== undefined) updateData.phone2 = normalizedPhone2;
-  if (data.whatsapp !== undefined) updateData.whatsapp = normalizedWhatsApp;
-  if (data.email1 !== undefined) updateData.email1 = normalizedEmail1;
-  if (data.email2 !== undefined) updateData.email2 = normalizedEmail2;
-  
-  // Add visibility controls if provided
-  if (data.showPhone1 !== undefined) updateData.showPhone1 = data.showPhone1;
-  if (data.showPhone2 !== undefined) updateData.showPhone2 = data.showPhone2;
-  if (data.showWhatsApp !== undefined) updateData.showWhatsApp = data.showWhatsApp;
-  if (data.showEmail1 !== undefined) updateData.showEmail1 = data.showEmail1;
-  if (data.showEmail2 !== undefined) updateData.showEmail2 = data.showEmail2;
-  
+  if (rest.phone1 !== undefined) updateData.phone1 = normalizedPhone1;
+  if (rest.phone2 !== undefined) updateData.phone2 = normalizedPhone2;
+  if (rest.whatsapp !== undefined) updateData.whatsapp = normalizedWhatsApp;
+  if (rest.email1 !== undefined) updateData.email1 = normalizedEmail1;
+  if (rest.email2 !== undefined) updateData.email2 = normalizedEmail2;
+  if (rest.showPhone1 !== undefined) updateData.showPhone1 = rest.showPhone1;
+  if (rest.showPhone2 !== undefined) updateData.showPhone2 = rest.showPhone2;
+  if (rest.showWhatsApp !== undefined) updateData.showWhatsApp = rest.showWhatsApp;
+  if (rest.showEmail1 !== undefined) updateData.showEmail1 = rest.showEmail1;
+  if (rest.showEmail2 !== undefined) updateData.showEmail2 = rest.showEmail2;
+
   const result = await prisma.personInfo.upsert({
-    where: { id: existing?.id || `person-${portfolioId}` },
+    where: { portfolioId_platformMenuId: { portfolioId, platformMenuId } },
     update: updateData,
     create: {
-      id: `person-${portfolioId}`,
       portfolioId,
-      ...updateData,
+      platformMenuId,
+      name: rest.name,
+      role: rest.role,
+      location: rest.location,
+      email: finalEmail,
+      linkedIn: rest.linkedIn,
+      phone: finalPhone,
+      contactMessage: normalizedContactMessage,
+      cvUrl: (updateData.cvUrl as string | null) ?? null,
+      avatarUrl: (updateData.avatarUrl as string | null) ?? null,
+      phone1: (updateData.phone1 as string | null) ?? null,
+      phone2: (updateData.phone2 as string | null) ?? null,
+      whatsapp: (updateData.whatsapp as string | null) ?? null,
+      email1: (updateData.email1 as string | null) ?? null,
+      email2: (updateData.email2 as string | null) ?? null,
+      showPhone1: (updateData.showPhone1 as boolean) ?? true,
+      showPhone2: (updateData.showPhone2 as boolean) ?? true,
+      showWhatsApp: (updateData.showWhatsApp as boolean) ?? true,
+      showEmail1: (updateData.showEmail1 as boolean) ?? true,
+      showEmail2: (updateData.showEmail2 as boolean) ?? true,
     },
   });
-  
+
   revalidatePath("/admin/contact");
-  // Public portfolio pages are under /portfolio/:slug now; revalidate admin only.
+  revalidatePath("/admin/sections");
   return result;
 }

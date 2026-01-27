@@ -48,14 +48,20 @@ export function PrimaryButton({
   href,
   children,
   className,
+  target,
+  rel,
 }: {
   href: string;
   children: React.ReactNode;
   className?: string;
+  target?: string;
+  rel?: string;
 }) {
   return (
     <Link
       href={href}
+      target={target}
+      rel={rel}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5",
         "bg-accent text-foreground",
@@ -73,14 +79,20 @@ export function SecondaryButton({
   href,
   children,
   className,
+  target,
+  rel,
 }: {
   href: string;
   children: React.ReactNode;
   className?: string;
+  target?: string;
+  rel?: string;
 }) {
   return (
     <Link
       href={href}
+      target={target}
+      rel={rel}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5",
         "border border-border bg-panel text-foreground",

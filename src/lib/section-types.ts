@@ -95,8 +95,39 @@ export function getSectionAdminRoute(sectionTypeOrTemplate: string): string | nu
 }
 
 /**
+ * Canonical menu keys that have a fixed admin route and editor.
+ * Only these keys are linked in the admin sidebar; other menus are metadata-only (no editor yet).
+ */
+export const CANONICAL_ADMIN_MENU_KEYS = new Set([
+  "skills",
+  "projects",
+  "experience",
+  "about",
+  "architecture",
+  "contact",
+]);
+
+/** Fixed admin routes only. No dynamic /admin/sections/*. */
+export const CANONICAL_ADMIN_ROUTES: Record<string, string> = {
+  skills: "/admin/skills",
+  projects: "/admin/projects",
+  experience: "/admin/experience",
+  about: "/admin/about",
+  architecture: "/admin/architecture",
+  contact: "/admin/contact",
+};
+
+export const NO_EDITOR_MESSAGE =
+  "This section is defined by the platform but does not have an editor yet.";
+
+/** True only for menu keys that have an implemented admin editor (fixed routes). */
+export function hasCanonicalEditor(menuKey: string): boolean {
+  return CANONICAL_ADMIN_MENU_KEYS.has(menuKey);
+}
+
+/**
  * Admin route for a specific menu (one entry per menu).
- * Use this for side menu so each menu has its own editor URL.
+ * @deprecated Use fixed CANONICAL_ADMIN_ROUTES only; do not route to /admin/sections/*.
  */
 export function getAdminRouteByMenuKey(menuKey: string): string {
   return `/admin/sections/${encodeURIComponent(menuKey)}`;

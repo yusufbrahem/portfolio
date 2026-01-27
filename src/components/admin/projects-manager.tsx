@@ -16,7 +16,15 @@ import { CharCounter } from "@/components/ui/char-counter";
 
 type Project = Awaited<ReturnType<typeof GetProjects>>[0];
 
-export function ProjectsManager({ initialData, isReadOnly = false }: { initialData: Project[]; isReadOnly?: boolean }) {
+export function ProjectsManager({
+  initialData,
+  isReadOnly = false,
+  platformMenuId,
+}: {
+  initialData: Project[];
+  isReadOnly?: boolean;
+  platformMenuId: string;
+}) {
   const [projects, setProjects] = useState(initialData);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -38,7 +46,7 @@ export function ProjectsManager({ initialData, isReadOnly = false }: { initialDa
     setError(null);
     try {
       const order = projects.length;
-      const newProject = await createProject({ ...data, order });
+      const newProject = await createProject({ ...data, order, platformMenuId });
       setProjects([...projects, newProject]);
       setIsCreating(false);
     } catch (err) {

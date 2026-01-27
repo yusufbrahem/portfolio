@@ -1,22 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Menu, GripVertical, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Menu, GripVertical, Eye, EyeOff, Upload } from "lucide-react";
 import {
   updatePortfolioMenuVisibility,
   reorderPortfolioMenus,
+  publishMenuConfiguration,
 } from "@/app/actions/portfolio-menu";
 import { PortfolioMenu } from "@prisma/client";
-import { hasSectionEditor } from "@/lib/section-types";
 
 type PortfolioMenuWithPlatform = PortfolioMenu & {
   platformMenu: {
     id: string;
     key: string;
     label: string;
-    sectionType: string;
+    sectionType: string | null;
     enabled: boolean;
   };
+  publishedVisible?: boolean;
+  publishedOrder?: number;
 };
 
 type PortfolioMenuManagerProps = {
@@ -71,9 +73,35 @@ export function PortfolioMenuManager({
         setDraggedIndex(null);
       } catch (err) {
         alert(err instanceof Error ? err.message : "Failed to reorder menus");
-        // Revert to initial order on error
         setMenus(initialMenus);
         setDraggedIndex(null);
+      }
+    });
+  };
+
+  // Draft order = current array index; compare to publishedOrder to detect reorder
+  const hasUnpublishedChanges =
+    menus.some(
+      (m, i) =>
+        m.visible !== (m.publishedVisible ?? m.visible) ||
+        (m.publishedOrder ?? i) !== i
+    );
+
+  const handlePublish = () => {
+    if (!hasUnpublishedChanges) return;
+    if (!window.confirm("Publish menu configuration? This will update your public portfolio.")) return;
+    startTransition(async () => {
+      try {
+        await publishMenuConfiguration(portfolioId);
+        setMenus((prev) =>
+          prev.map((m, i) => ({
+            ...m,
+            publishedVisible: m.visible,
+            publishedOrder: i,
+          }))
+        );
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to publish");
       }
     });
   };
@@ -81,13 +109,31 @@ export function PortfolioMenuManager({
   return (
     <div className="border border-border bg-panel rounded-lg overflow-hidden">
       <div className="p-4 border-b border-border">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Menu className="h-5 w-5" />
-          Menu Configuration
-        </h2>
-        <p className="text-sm text-muted mt-1">
-          Reorder and show/hide menus in your portfolio navigation. Drag to reorder.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Menu className="h-5 w-5" />
+              Menu Configuration
+            </h2>
+            <p className="text-sm text-muted mt-1">
+              Reorder and show/hide menus. Changes are draft until you publish. Drag to reorder.
+            </p>
+            {hasUnpublishedChanges && (
+              <p className="mt-2 text-sm font-medium text-amber-600">
+                You have unpublished changes. Click &quot;Publish changes&quot; to update your public portfolio.
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handlePublish}
+            disabled={isPending || !hasUnpublishedChanges}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Upload className="h-4 w-4" />
+            Publish changes
+          </button>
+        </div>
       </div>
 
       <div className="divide-y divide-border">
@@ -99,28 +145,17 @@ export function PortfolioMenuManager({
           menus.map((menu, index) => (
             <div
               key={menu.id}
-              draggable={menu.platformMenu.enabled && hasSectionEditor(menu.platformMenu.sectionType)}
-              onDragStart={() =>
-                menu.platformMenu.enabled &&
-                hasSectionEditor(menu.platformMenu.sectionType) &&
-                handleDragStart(index)
-              }
-              onDragOver={(e) =>
-                menu.platformMenu.enabled &&
-                hasSectionEditor(menu.platformMenu.sectionType) &&
-                handleDragOver(e, index)
-              }
+              draggable={!!menu.platformMenu.enabled}
+              onDragStart={() => menu.platformMenu.enabled && handleDragStart(index)}
+              onDragOver={(e) => menu.platformMenu.enabled && handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
               className={`px-4 py-3 flex items-center gap-3 transition-colors ${
-                !menu.platformMenu.enabled || !hasSectionEditor(menu.platformMenu.sectionType)
+                !menu.platformMenu.enabled
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-panel2/50 cursor-move"
-              } ${
-                draggedIndex === index ? "opacity-50" : ""
-              }`}
+              } ${draggedIndex === index ? "opacity-50" : ""}`}
             >
               <GripVertical className="h-5 w-5 text-muted flex-shrink-0" />
-              
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <code className="text-xs text-muted bg-panel2 px-1.5 py-0.5 rounded">
@@ -143,12 +178,6 @@ export function PortfolioMenuManager({
                         (Platform Disabled)
                       </span>
                     )}
-                    {!hasSectionEditor(menu.platformMenu.sectionType) && (
-                      <span className="flex items-center gap-1 text-xs text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                        <AlertCircle className="h-3 w-3" />
-                        No Editor
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -156,13 +185,9 @@ export function PortfolioMenuManager({
               <button
                 type="button"
                 onClick={() => handleToggleVisibility(menu.id, menu.visible)}
-                disabled={
-                  isPending ||
-                  !menu.platformMenu.enabled ||
-                  !hasSectionEditor(menu.platformMenu.sectionType)
-                }
+                disabled={isPending || !menu.platformMenu.enabled}
                 className={`p-1.5 rounded transition-colors disabled:opacity-50 ${
-                  !menu.platformMenu.enabled || !hasSectionEditor(menu.platformMenu.sectionType)
+                  !menu.platformMenu.enabled
                     ? "text-muted-disabled cursor-not-allowed"
                     : menu.visible
                     ? "text-green-400 hover:bg-green-500/10"
@@ -170,12 +195,10 @@ export function PortfolioMenuManager({
                 }`}
                 title={
                   !menu.platformMenu.enabled
-                    ? "This section is disabled by the platform and cannot be shown publicly"
-                    : !hasSectionEditor(menu.platformMenu.sectionType)
-                    ? "This section cannot be enabled until an editor exists"
+                    ? "Disabled by the platform"
                     : menu.visible
-                    ? "Hide menu"
-                    : "Show menu"
+                    ? "Hide in menu (draft). Publish to update public site."
+                    : "Show in menu (draft). Publish to update public site."
                 }
               >
                 {menu.visible ? (

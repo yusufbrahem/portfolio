@@ -44,9 +44,9 @@ export default async function AdminAccountPage() {
       })
     : null;
 
-  // Get avatar URL from PersonInfo of the active portfolio (impersonated or your own)
+  // Get avatar URL from first PersonInfo of the active portfolio (portfolio has many personInfos)
   const personInfo = portfolio?.id
-    ? await prisma.personInfo.findUnique({
+    ? await prisma.personInfo.findFirst({
         where: { portfolioId: portfolio.id },
         select: { avatarUrl: true, updatedAt: true },
       })

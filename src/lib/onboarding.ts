@@ -39,17 +39,17 @@ export async function needsOnboarding(): Promise<boolean> {
     return true;
   }
 
-  // Check if portfolio has meaningful content
+  // Check if portfolio has meaningful content (schema: plural relations per section instance)
   const portfolio = await prisma.portfolio.findUnique({
     where: { id: user.portfolio.id },
     select: {
-      personInfo: { select: { id: true } },
+      personInfos: { select: { id: true }, take: 1 },
       heroContent: { select: { id: true } },
       skillGroups: { select: { id: true }, take: 1 },
       projects: { select: { id: true }, take: 1 },
       experiences: { select: { id: true }, take: 1 },
-      aboutContent: { select: { id: true } },
-      architectureContent: { select: { id: true } },
+      aboutContents: { select: { id: true }, take: 1 },
+      architectureContents: { select: { id: true }, take: 1 },
     },
   });
 
@@ -58,13 +58,13 @@ export async function needsOnboarding(): Promise<boolean> {
   }
 
   // Check if has meaningful content
-  const hasPersonInfo = !!portfolio.personInfo;
+  const hasPersonInfo = portfolio.personInfos.length > 0;
   const hasHero = !!portfolio.heroContent;
   const hasSkills = portfolio.skillGroups.length > 0;
   const hasProjects = portfolio.projects.length > 0;
   const hasExperience = portfolio.experiences.length > 0;
-  const hasAbout = !!portfolio.aboutContent;
-  const hasArchitecture = !!portfolio.architectureContent;
+  const hasAbout = portfolio.aboutContents.length > 0;
+  const hasArchitecture = portfolio.architectureContents.length > 0;
 
   // Needs onboarding if missing personInfo, hero, or all content sections
   const hasAnyContent = hasSkills || hasProjects || hasExperience || hasAbout || hasArchitecture;

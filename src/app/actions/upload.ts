@@ -89,15 +89,17 @@ export async function uploadAvatar(formData: FormData) {
 
   const avatarUrl = `/uploads/avatars/${portfolioId}/${filename}`;
 
-  // Persist on PersonInfo (upsert by portfolioId)
-  const existing = await prisma.personInfo.findUnique({ where: { portfolioId } });
+  // Persist on first PersonInfo for this portfolio (portfolio has many personInfos)
+  const existing = await prisma.personInfo.findFirst({
+    where: { portfolioId },
+    select: { id: true },
+  });
   if (!existing) {
-    // Require profile to exist first (keeps flow explicit and avoids creating empty profile)
     throw new Error("Create your profile first, then upload an avatar.");
   }
 
   await prisma.personInfo.update({
-    where: { portfolioId },
+    where: { id: existing.id },
     data: { avatarUrl },
   });
 
@@ -118,4 +120,60 @@ export async function uploadAvatar(formData: FormData) {
   }
 
   return { success: true, avatarUrl };
+}
+
+const MENU_FILE_ALLOWED_TYPES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+];
+const MENU_FILE_MAX_BYTES = 10 * 1024 * 1024; // 10MB
+
+/**
+ * Upload a file for a menu block (e.g. File/Link component).
+ * Saves to public/uploads/menu-files/{portfolioId}/{blockId}_{itemId?}_{sanitized}.
+ * Optional itemId allows multiple files per block (e.g. multiple certificates).
+ */
+export async function uploadMenuFile(
+  formData: FormData,
+  portfolioId: string,
+  blockId: string,
+  itemId?: string
+) {
+  const session = await requireAuth();
+  await assertNotSuperAdminForPortfolioWrite();
+  await assertNotImpersonatingForWrite();
+
+  if (session.user.portfolioId !== portfolioId) {
+    throw new Error("Unauthorized");
+  }
+
+  const file = formData.get("file") as File;
+  if (!file) throw new Error("No file provided");
+
+  if (!MENU_FILE_ALLOWED_TYPES.includes(file.type)) {
+    throw new Error("Only PDF, PNG, JPEG, or WebP are allowed");
+  }
+  if (file.size > MENU_FILE_MAX_BYTES) {
+    throw new Error("File must be less than 10MB");
+  }
+
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  const fs = await import("fs/promises");
+  const publicPath = join(process.cwd(), "public");
+  const sanitized = file.name.replace(/[^a-zA-Z0-9._-]/g, "_") || "file";
+  const ext = file.type === "application/pdf" ? "pdf" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const dir = join(publicPath, "uploads", "menu-files", portfolioId);
+  await fs.mkdir(dir, { recursive: true });
+  const idPart = itemId ? `${itemId.slice(0, 8)}_` : "";
+  const filename = `${blockId.slice(0, 8)}_${idPart}${sanitized.slice(0, 40)}.${ext}`;
+  const filepath = join(dir, filename);
+  await writeFile(filepath, buffer);
+  const url = `/uploads/menu-files/${portfolioId}/${filename}`;
+
+  revalidatePath("/admin/sections");
+  revalidatePath("/admin");
+  return { success: true, url };
 }
