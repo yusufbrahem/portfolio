@@ -1,16 +1,22 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { Settings, Eye, EyeOff, Edit2, Save, X, Plus, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Settings, Eye, EyeOff, Edit2, Save, X, Plus, Trash2, GripVertical, ChevronUp, ChevronDown, RotateCcw, UnfoldHorizontal } from "lucide-react";
 import {
   updatePlatformMenu,
   createPlatformMenu,
   checkPlatformMenuKeyAvailable,
   deletePlatformMenu,
+  restoreDefaultMenuComponents,
+  recoverHiddenMenuBlocks,
 } from "@/app/actions/platform-menu";
 import { PlatformMenu } from "@prisma/client";
 import { UI_COMPONENT_REGISTRY, getUIComponentDef, type UIComponentKey } from "@/lib/ui-components";
 import { TEXT_LIMITS } from "@/lib/text-limits";
+import { DEFAULT_MENU_COMPONENT_KEYS } from "@/lib/default-menu-components";
+
+const PROTECTED_MENU_KEYS = new Set(Object.keys(DEFAULT_MENU_COMPONENT_KEYS));
 
 type PlatformMenuManagerProps = {
   menus: PlatformMenu[];
@@ -56,7 +62,9 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
   const [createErrors, setCreateErrors] = useState<{ key?: string; label?: string; components?: string }>({});
   const [keyCheckPending, setKeyCheckPending] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const runCreateValidation = useCallback(() => {
     const keyErr = validateKeyLocal(newMenuKey);
@@ -128,12 +136,14 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
     setEditErrors((e) => ({ ...e, label: labelErr ?? undefined }));
     if (labelErr) return;
     setListError(null);
+    const menu = menus.find((m) => m.id === menuId);
+    const isProtected = menu && PROTECTED_MENU_KEYS.has(menu.key);
     startTransition(async () => {
       try {
         await updatePlatformMenu(menuId, {
           label: editLabel.trim(),
           order: editOrder,
-          ...(editComponentKeys.length > 0 ? { componentKeys: editComponentKeys } : {}),
+          ...(!isProtected && editComponentKeys.length > 0 ? { componentKeys: editComponentKeys } : {}),
         });
         setMenus((prev) =>
           prev.map((m) =>
@@ -326,17 +336,78 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
               Menus are pages composed of UI components. Set key, label, order, and which components each menu contains.
             </p>
           </div>
-          {!showCreateForm && (
-            <button
-              type="button"
-              onClick={() => setShowCreateForm(true)}
-              className="px-3 py-1.5 text-sm bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Menu
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!showCreateForm && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setListError(null);
+                    setRestoreMessage(null);
+                    startTransition(async () => {
+                      try {
+                        const { recovered, noneFound } = await recoverHiddenMenuBlocks();
+                        router.refresh();
+                        if (noneFound) {
+                          setRestoreMessage("No hidden blocks found. If data was deleted, restore from a database backup (see RESTORE_DATA.md).");
+                        } else if (recovered.length > 0) {
+                          setRestoreMessage(
+                            `Recovered hidden blocks: ${recovered.map((r) => `${r.menuKey} (${r.keysRestored.join(", ")})`).join("; ")}.`
+                          );
+                        }
+                      } catch (err) {
+                        setListError(err instanceof Error ? err.message : "Recovery failed");
+                      }
+                    });
+                  }}
+                  disabled={isPending}
+                  className="px-3 py-1.5 text-sm border border-amber-500/50 bg-amber-500/10 text-foreground rounded-lg hover:bg-amber-500/20 transition-colors flex items-center gap-2"
+                  title="Make hidden menu blocks visible again (blocks that were removed from the component list but not deleted)"
+                >
+                  <UnfoldHorizontal className="h-4 w-4" />
+                  Recover hidden blocks
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setListError(null);
+                    setRestoreMessage(null);
+                    startTransition(async () => {
+                      try {
+                        const { updated } = await restoreDefaultMenuComponents();
+                        router.refresh();
+                        if (updated.length > 0) {
+                          setRestoreMessage(`Restored default components for: ${updated.join(", ")}.`);
+                        } else {
+                          setRestoreMessage("All default menus already have their default components.");
+                        }
+                      } catch (err) {
+                        setListError(err instanceof Error ? err.message : "Restore failed");
+                      }
+                    });
+                  }}
+                  disabled={isPending}
+                  className="px-3 py-1.5 text-sm border border-border bg-background text-foreground rounded-lg hover:bg-panel2 transition-colors flex items-center gap-2"
+                  title="Re-add default components (e.g. title, pill_list) to Skills, Experience, etc. without removing any existing components"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Restore default components
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(true)}
+                  className="px-3 py-1.5 text-sm bg-accent text-foreground rounded-lg hover:bg-blue-500 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Menu
+                </button>
+              </>
+            )}
+          </div>
         </div>
+        {restoreMessage && (
+          <p className="mt-2 text-sm text-green-600 dark:text-green-400">{restoreMessage}</p>
+        )}
       </div>
 
       {showCreateForm && (
@@ -492,12 +563,18 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
                           className="w-full px-2 py-1 border border-border rounded text-sm bg-background text-foreground"
                         />
                       </div>
-                      <ComponentListEditor
-                        keys={editComponentKeys}
-                        onChange={setEditComponentKeys}
-                        error={editErrors.components}
-                        disabled={isPending}
-                      />
+                      {PROTECTED_MENU_KEYS.has(menu.key) ? (
+                        <div className="rounded border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-muted">
+                          <span className="font-medium text-foreground">Protected.</span> UI components for main menus (Skills, Experience, etc.) cannot be changed here.
+                        </div>
+                      ) : (
+                        <ComponentListEditor
+                          keys={editComponentKeys}
+                          onChange={setEditComponentKeys}
+                          error={editErrors.components}
+                          disabled={isPending}
+                        />
+                      )}
                     </div>
                   ) : (
                     <div>
@@ -573,9 +650,9 @@ export function PlatformMenuManager({ menus: initialMenus }: PlatformMenuManager
                       <button
                         type="button"
                         onClick={() => handleDeleteMenu(menu)}
-                        disabled={isPending}
+                        disabled={isPending || PROTECTED_MENU_KEYS.has(menu.key)}
                         className="p-1.5 text-red-500 hover:bg-red-500/10 rounded disabled:opacity-50"
-                        title="Delete menu"
+                        title={PROTECTED_MENU_KEYS.has(menu.key) ? "Main menus cannot be deleted" : "Delete menu"}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
