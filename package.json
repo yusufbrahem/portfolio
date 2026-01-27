@@ -11,7 +11,9 @@
     "db:seed-auth": "tsx prisma/seed-auth.ts",
     "db:seed-users": "tsx prisma/seed-users.ts",
     "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:backup": "node scripts/backup-database.mjs",
+    "db:restore-section-data": "tsx scripts/restore-section-data-to-users.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { deleteUser } from "@/app/actions/super-admin";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";

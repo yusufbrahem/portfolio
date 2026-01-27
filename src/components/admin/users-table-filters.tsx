@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Search, Filter, X } from "lucide-react";
 import { Accordion } from "@/components/ui/accordion";
 
