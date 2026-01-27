@@ -3,7 +3,6 @@ import Link from "next/link";
 import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail, Users, CircleUser, Sparkles, Menu } from "lucide-react";
 import { headers } from "next/headers";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/logo";
 import { getPendingReviewCount } from "@/app/actions/portfolio-review";

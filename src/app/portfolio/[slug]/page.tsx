@@ -322,7 +322,16 @@ export default async function PortfolioPage({ params }: PageProps) {
           const isVisible = menu.key in sectionVisibility ? sectionVisibility[menu.key] : true;
           if (!isVisible) return null;
           const isComponentBased = Array.isArray(menu.componentKeys) && menu.componentKeys.length > 0;
-          const menuBlocks = isComponentBased ? (blocksByPm[menu.id] ?? []) : [];
+          // Only show blocks that are in the menu's componentKeys (hidden/removed blocks stay in DB but are not displayed)
+          const menuBlocks = isComponentBased
+            ? (() => {
+                const raw = blocksByPm[menu.id] ?? [];
+                const keys = Array.isArray(menu.componentKeys) ? menu.componentKeys : [];
+                return raw
+                  .filter((b) => keys.includes(b.componentKey))
+                  .sort((a, b) => keys.indexOf(a.componentKey) - keys.indexOf(b.componentKey));
+              })()
+            : [];
           const skills = skillsByMenu[menu.platformMenuId];
           const experience = experienceByMenu[menu.platformMenuId];
           const projects = projectsByMenu[menu.platformMenuId];
@@ -330,7 +339,19 @@ export default async function PortfolioPage({ params }: PageProps) {
           const architecture = architectureByMenu[menu.platformMenuId];
           const sectionPerson = personByMenu[menu.platformMenuId];
 
-          if (isComponentBased) {
+          // Prefer template rendering when we have section data (Skills, Experience, etc. from DB),
+          // so that data is always visible even if the menu also has componentKeys set.
+          const hasSectionData =
+            (menu.key === "skills" && skills && skills.length > 0) ||
+            (menu.key === "projects" && projects && projects.length > 0) ||
+            (menu.key === "experience" && experience?.roles?.length) ||
+            (menu.key === "about" && about) ||
+            (menu.key === "architecture" && architecture?.pillars?.length) ||
+            (menu.key === "contact" && sectionPerson);
+
+          if (hasSectionData) {
+            // Fall through to template switch below (use templateKey so sectionType can be key or key_template)
+          } else if (isComponentBased) {
             return (
               <MenuBlockRenderer
                 key={menu.key}
@@ -341,7 +362,13 @@ export default async function PortfolioPage({ params }: PageProps) {
             );
           }
 
-          switch (menu.sectionType) {
+          const rawTemplate = menu.sectionType ?? (menu.key ? `${menu.key}_template` : null);
+          const canonicalSectionKeys = ["skills", "projects", "experience", "about", "architecture", "contact"] as const;
+          const templateKey =
+            rawTemplate && !rawTemplate.endsWith("_template") && canonicalSectionKeys.includes(rawTemplate as typeof canonicalSectionKeys[number])
+              ? `${rawTemplate}_template`
+              : rawTemplate;
+          switch (templateKey) {
             case "skills_template":
               if (!skills || skills.length === 0) return null;
               return (

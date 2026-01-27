@@ -1,6 +1,6 @@
 import { Container } from "@/components/container";
 import Link from "next/link";
-import { Code, FolderOpen, Briefcase, User, Building2, Mail, Home } from "lucide-react";
+import { Code, FolderOpen, Briefcase, User, Building2, Mail } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { getHeroContentForAdmin } from "@/app/actions/hero";

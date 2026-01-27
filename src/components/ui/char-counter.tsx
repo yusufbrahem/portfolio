@@ -1,6 +1,6 @@
 "use client";
 
-import { TEXT_LIMITS, getCharCountDisplay, getRemainingChars } from "@/lib/text-limits";
+import { getCharCountDisplay, getRemainingChars } from "@/lib/text-limits";
 import { cn } from "@/lib/utils";
 
 type CharCounterProps = {
