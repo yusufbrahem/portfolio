@@ -244,6 +244,39 @@ enum PortfolioStatus {
   PUBLISHED
 }
 
+model PlatformMenu {
+  id          String   @id @default(uuid())
+  key         String   @unique // Stable identifier: skills, projects, experience, about, architecture, contact
+  label       String   // Default display name
+  sectionType String   // Section type: about, skills, projects, experience, architecture, contact, custom_static
+  enabled     Boolean  @default(true) // Global enable/disable toggle
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  portfolioMenus PortfolioMenu[] // Portfolio-specific menu configurations
+
+  @@index([key])
+  @@index([enabled])
+  @@index([sectionType])
+}
+
+model PortfolioMenu {
+  id            String       @id @default(uuid())
+  portfolioId   String       // Portfolio that owns this menu configuration
+  platformMenuId String      // Reference to PlatformMenu
+  portfolio     Portfolio    @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  platformMenu  PlatformMenu @relation(fields: [platformMenuId], references: [id], onDelete: Cascade)
+  visible       Boolean      @default(true) // Visibility toggle per portfolio
+  order         Int          @default(0) // Order within portfolio
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([portfolioId, platformMenuId]) // One PortfolioMenu per portfolio+menu combination
+  @@index([portfolioId])
+  @@index([portfolioId, order])
+  @@index([portfolioId, visible])
+  @@index([platformMenuId])
+}
+
 model Portfolio {
   id                String                @id @default(uuid())
   userId            String                @unique // One portfolio per user
@@ -272,6 +305,7 @@ model Portfolio {
   heroContent       HeroContent?          // Portfolio-specific hero content (1-1)
   personInfo        PersonInfo?           // Portfolio-specific person info (1-1)
   architectureContent ArchitectureContent? // Portfolio-specific architecture content (1-1)
+  portfolioMenus     PortfolioMenu[]       // Portfolio-specific menu configurations
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 

@@ -4,6 +4,7 @@ import { getAdminReadScope, requireAuth } from "@/lib/auth";
 import { ContactManager } from "@/components/admin/contact-manager";
 import { SectionVisibilityToggle } from "@/components/admin/section-visibility-toggle";
 import { getSectionVisibility } from "@/app/actions/section-visibility";
+import { isMenuEnabled } from "@/app/actions/menu-helpers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
@@ -16,6 +17,12 @@ export default async function AdminContactPage() {
   // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
   if (session.user.role === "super_admin" && !scope.portfolioId) {
     redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
+
+  // SINGLE SOURCE OF TRUTH: Check if menu is enabled
+  const menuEnabled = await isMenuEnabled("contact");
+  if (!menuEnabled) {
+    redirect("/admin?message=This section is disabled by the platform.");
   }
   
   const personInfo = await getPersonInfoForAdmin();

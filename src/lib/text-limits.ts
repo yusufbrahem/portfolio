@@ -34,7 +34,7 @@ export const TEXT_LIMITS = {
   // Hero content
   HEADLINE: 100, // Hero headline
   SUBHEADLINE: 1000, // Hero subheadline
-  HIGHLIGHT: 60, // Hero highlight items
+  HIGHLIGHT: 100, // Hero highlight items
   
   // Architecture
   ARCHITECTURE_PILLAR_TITLE: 80, // Architecture pillar titles

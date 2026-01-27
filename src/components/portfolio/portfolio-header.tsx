@@ -2,40 +2,36 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { Avatar } from "@/components/avatar";
 
+type MenuItem = {
+  key: string;
+  label: string;
+  order: number;
+};
+
 export function PortfolioHeader({
   slug,
   name,
   avatarSrc,
-  visibleSections,
+  menus,
 }: {
   slug: string;
   name: string;
   avatarSrc?: string | null;
-  visibleSections?: {
-    about?: boolean;
-    skills?: boolean;
-    projects?: boolean;
-    experience?: boolean;
-    architecture?: boolean;
-    contact?: boolean;
-  };
+  menus?: MenuItem[];
 }) {
   const base = `/portfolio/${slug}`;
-  const allNav = [
-    { href: `${base}#skills`, label: "Skills", key: "skills" as const },
-    { href: `${base}#projects`, label: "Projects", key: "projects" as const },
-    { href: `${base}#experience`, label: "Experience", key: "experience" as const },
-    { href: `${base}#about`, label: "About", key: "about" as const },
-    { href: `${base}#architecture`, label: "Architecture", key: "architecture" as const },
-    { href: `${base}#contact`, label: "Contact", key: "contact" as const },
-  ] as const;
-
-  // Filter navigation based on visible sections
-  const nav = visibleSections
-    ? allNav.filter((item) => {
-        return visibleSections[item.key] === true;
-      })
-    : allNav;
+  
+  // Build navigation from menu configuration
+  // If menus are provided, use them; otherwise fall back to empty array
+  const nav = menus
+    ? menus
+        .sort((a, b) => a.order - b.order)
+        .map((menu) => ({
+          href: `${base}#${menu.key}`,
+          label: menu.label,
+          key: menu.key,
+        }))
+    : [];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">

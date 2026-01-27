@@ -6,6 +6,7 @@ import { SectionIntroEditor } from "@/components/admin/section-intro-editor";
 import { SectionVisibilityToggle } from "@/components/admin/section-visibility-toggle";
 import { getPortfolioIntros } from "@/app/actions/portfolio-intros";
 import { getSectionVisibility } from "@/app/actions/section-visibility";
+import { isMenuEnabled } from "@/app/actions/menu-helpers";
 import { redirect } from "next/navigation";
 
 export default async function AdminSkillsPage() {
@@ -15,6 +16,12 @@ export default async function AdminSkillsPage() {
   // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
   if (session.user.role === "super_admin" && !scope.portfolioId) {
     redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
+
+  // SINGLE SOURCE OF TRUTH: Check if menu is enabled
+  const menuEnabled = await isMenuEnabled("skills");
+  if (!menuEnabled) {
+    redirect("/admin?message=This section is disabled by the platform.");
   }
   
   const [skillGroups, portfolioIntros, visibility] = await Promise.all([

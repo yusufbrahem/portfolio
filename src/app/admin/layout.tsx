@@ -1,12 +1,13 @@
 import { Container } from "@/components/container";
 import Link from "next/link";
-import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail, Users, CircleUser, Sparkles } from "lucide-react";
+import { LogOut, Home, Briefcase, Code, FolderOpen, User, Settings, Building2, Mail, Users, CircleUser, Sparkles, Menu } from "lucide-react";
 import { headers } from "next/headers";
 import { requireAuth, getAdminReadScope } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/logo";
 import { getPendingReviewCount } from "@/app/actions/portfolio-review";
+import { getEnabledAdminMenus } from "@/app/actions/menu-helpers";
 
 export default async function AdminLayout({
   children,
@@ -25,9 +26,14 @@ export default async function AdminLayout({
   // Defense in depth: Verify authentication again at layout level
   // Middleware protects routes, but this adds an extra layer
   const session = await requireAuth();
-
-  // Resolve active admin read scope (supports super-admin impersonation)
+  
+  // Get enabled menus for side navigation (only for portfolio users)
+  let enabledMenus: Array<{ key: string; label: string; route: string }> = [];
   const scope = await getAdminReadScope();
+  if (session.user.role !== "super_admin" || scope.portfolioId) {
+    enabledMenus = await getEnabledAdminMenus();
+  }
+
   const isReadOnly = scope.isImpersonating;
 
   // Get pending review count for super admin
@@ -191,6 +197,13 @@ export default async function AdminLayout({
                     </span>
                   )}
                 </Link>
+                <Link
+                  href="/admin/platform-menus"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                >
+                  <Menu className="h-4 w-4" />
+                  Platform Menus
+                </Link>
               </>
             ) : (
               // Regular users OR super admin impersonating: full portfolio management UI
@@ -202,34 +215,27 @@ export default async function AdminLayout({
                   <Settings className="h-4 w-4" />
                   Dashboard
                 </Link>
-                <Link
-                  href="/admin/skills"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-                >
-                  <Code className="h-4 w-4" />
-                  Skills
-                </Link>
-                <Link
-                  href="/admin/projects"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  Projects
-                </Link>
-                <Link
-                  href="/admin/experience"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-                >
-                  <Briefcase className="h-4 w-4" />
-                  Experience
-                </Link>
-                <Link
-                  href="/admin/about"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-                >
-                  <User className="h-4 w-4" />
-                  About
-                </Link>
+                {/* Render menu links based on enabled platform menus */}
+                {enabledMenus.map((menu) => {
+                  const iconMap: Record<string, React.ReactNode> = {
+                    skills: <Code className="h-4 w-4" />,
+                    projects: <FolderOpen className="h-4 w-4" />,
+                    experience: <Briefcase className="h-4 w-4" />,
+                    about: <User className="h-4 w-4" />,
+                    architecture: <Building2 className="h-4 w-4" />,
+                    contact: <Mail className="h-4 w-4" />,
+                  };
+                  return (
+                    <Link
+                      key={menu.key}
+                      href={menu.route}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
+                    >
+                      {iconMap[menu.key] || <Menu className="h-4 w-4" />}
+                      {menu.label}
+                    </Link>
+                  );
+                })}
                 <Link
                   href="/admin/hero"
                   className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
@@ -238,18 +244,11 @@ export default async function AdminLayout({
                   Hero
                 </Link>
                 <Link
-                  href="/admin/architecture"
+                  href="/admin/menus"
                   className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
                 >
-                  <Building2 className="h-4 w-4" />
-                  Architecture
-                </Link>
-                <Link
-                  href="/admin/contact"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:bg-panel2 hover:text-foreground rounded-lg"
-                >
-                  <Mail className="h-4 w-4" />
-                  Contact
+                  <Menu className="h-4 w-4" />
+                  Menu Configuration
                 </Link>
                 <Link
                   href="/admin/account"

@@ -4,6 +4,7 @@ import { getAdminReadScope, requireAuth } from "@/lib/auth";
 import { AboutManager } from "@/components/admin/about-manager";
 import { SectionVisibilityToggle } from "@/components/admin/section-visibility-toggle";
 import { getSectionVisibility } from "@/app/actions/section-visibility";
+import { isMenuEnabled } from "@/app/actions/menu-helpers";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,12 @@ export default async function AdminAboutPage() {
   // PLATFORM HARDENING: Super admin (not impersonating) cannot access portfolio pages
   if (session.user.role === "super_admin" && !scope.portfolioId) {
     redirect("/admin/users?message=Super admin accounts are for platform management only.");
+  }
+
+  // SINGLE SOURCE OF TRUTH: Check if menu is enabled
+  const menuEnabled = await isMenuEnabled("about");
+  if (!menuEnabled) {
+    redirect("/admin?message=This section is disabled by the platform.");
   }
   
   const [aboutContent, visibility] = await Promise.all([

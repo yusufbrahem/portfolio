@@ -20,6 +20,7 @@ import { NotPublishedPage } from "@/components/portfolio/not-published-page";
 import { notFound } from "next/navigation";
 import { getSectionIntro } from "@/lib/section-intros";
 import { isSectionVisible } from "@/lib/section-visibility";
+import { getEnabledPortfolioMenus } from "@/app/actions/portfolio-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +70,7 @@ export default async function PortfolioPage({ params }: PageProps) {
   }
 
   // Fetch all portfolio-specific data
-  const [person, hero, skills, projects, experience, about, architecture] = await Promise.all([
+  const [person, hero, skills, projects, experience, about, architecture, menus] = await Promise.all([
     getPersonInfo(portfolio.id),
     getHeroContent(portfolio.id),
     getSkills(portfolio.id),
@@ -77,10 +78,17 @@ export default async function PortfolioPage({ params }: PageProps) {
     getExperience(portfolio.id),
     getAboutContent(portfolio.id),
     getArchitectureContent(portfolio.id),
+    getEnabledPortfolioMenus(portfolio.id),
   ]);
 
-  // LEVEL 2: Check section visibility (enabled AND has visible data)
-  const [aboutVisible, skillsVisible, projectsVisible, experienceVisible, architectureVisible, contactVisible] = await Promise.all([
+  // Create a map of menu keys for quick lookup
+  const menuKeys = new Set(menus.map((m) => m.key));
+
+  // Helper function to check if a section is in menu configuration
+  const isInMenu = (key: string) => menuKeys.has(key);
+
+  // LEVEL 2: Check section visibility (enabled AND has visible data AND in menu configuration)
+  const visibilityChecks = await Promise.all([
     isSectionVisible(portfolio.id, "about", {
       showAbout: portfolio.showAbout,
       showSkills: portfolio.showSkills,
@@ -131,6 +139,16 @@ export default async function PortfolioPage({ params }: PageProps) {
     }),
   ]);
 
+  // Combine visibility checks with menu configuration
+  const sectionVisibility: Record<string, boolean> = {
+    about: isInMenu("about") && visibilityChecks[0],
+    skills: isInMenu("skills") && visibilityChecks[1],
+    projects: isInMenu("projects") && visibilityChecks[2],
+    experience: isInMenu("experience") && visibilityChecks[3],
+    architecture: isInMenu("architecture") && visibilityChecks[4],
+    contact: isInMenu("contact") && visibilityChecks[5],
+  };
+
   const heroHeadline = hero?.headline ?? "";
   const heroSubheadline = hero?.subheadline ?? "";
   const heroHighlights: string[] = (hero?.highlights as string[]) ?? [];
@@ -162,14 +180,7 @@ export default async function PortfolioPage({ params }: PageProps) {
         slug={slug} 
         name={person.name} 
         avatarSrc={avatarSrc}
-        visibleSections={{
-          about: aboutVisible,
-          skills: skillsVisible,
-          projects: projectsVisible,
-          experience: experienceVisible,
-          architecture: architectureVisible,
-          contact: contactVisible,
-        }}
+        menus={menus}
       />
       <ScrollToTopButton />
       {/* Hero Section */}
@@ -287,9 +298,18 @@ export default async function PortfolioPage({ params }: PageProps) {
         </div>
       </Container>
 
-      {/* Skills Section */}
-      {skillsVisible && skills && skills.length > 0 && (
-        <Container id="skills">
+      {/* Render sections dynamically in menu order */}
+      {menus
+        .sort((a, b) => a.order - b.order)
+        .map((menu) => {
+          const isVisible = sectionVisibility[menu.key];
+          if (!isVisible) return null;
+
+          switch (menu.key) {
+            case "skills":
+              if (!skills || skills.length === 0) return null;
+              return (
+                <Container key="skills" id="skills">
           <Section 
             eyebrow="Skills" 
             title="Skills and expertise" 
@@ -312,12 +332,13 @@ export default async function PortfolioPage({ params }: PageProps) {
               ))}
             </div>
           </Section>
-        </Container>
-      )}
+                </Container>
+              );
 
-      {/* Projects Section */}
-      {projectsVisible && projects && projects.length > 0 && (
-        <Container id="projects">
+            case "projects":
+              if (!projects || projects.length === 0) return null;
+              return (
+                <Container key="projects" id="projects">
           <Section 
             eyebrow="Projects" 
             title="Projects and work samples" 
@@ -353,12 +374,13 @@ export default async function PortfolioPage({ params }: PageProps) {
               ))}
             </div>
           </Section>
-        </Container>
-      )}
+                </Container>
+              );
 
-      {/* Experience Section */}
-      {experienceVisible && experience && experience.roles && experience.roles.length > 0 && (
-        <Container id="experience">
+            case "experience":
+              if (!experience || !experience.roles || experience.roles.length === 0) return null;
+              return (
+                <Container key="experience" id="experience">
           <Section 
             eyebrow="Experience" 
             title="Professional experience and career journey"
@@ -398,12 +420,13 @@ export default async function PortfolioPage({ params }: PageProps) {
               ))}
             </div>
           </Section>
-        </Container>
-      )}
+                </Container>
+              );
 
-      {/* About Section */}
-      {aboutVisible && about && (
-        <Container id="about">
+            case "about":
+              if (!about) return null;
+              return (
+                <Container key="about" id="about">
           <Section eyebrow="About" title={about.title} description={about.paragraphs[0]}>
             {(() => {
               const additionalParagraphs = about.paragraphs.slice(1);
@@ -462,12 +485,13 @@ export default async function PortfolioPage({ params }: PageProps) {
               );
             })()}
           </Section>
-        </Container>
-      )}
+                </Container>
+              );
 
-      {/* Architecture Section */}
-      {architectureVisible && architecture && architecture.pillars && architecture.pillars.length > 0 && (
-        <Container id="architecture">
+            case "architecture":
+              if (!architecture || !architecture.pillars || architecture.pillars.length === 0) return null;
+              return (
+                <Container key="architecture" id="architecture">
           <Section 
             eyebrow="Architecture" 
             title="Technical architecture and design principles" 
@@ -493,12 +517,12 @@ export default async function PortfolioPage({ params }: PageProps) {
               ))}
             </div>
           </Section>
-        </Container>
-      )}
+                </Container>
+              );
 
-      {/* Contact Section */}
-      {contactVisible && (
-      <Container id="contact">
+            case "contact":
+              return (
+                <Container key="contact" id="contact">
         <Section 
           eyebrow="Contact" 
           title="Get in touch" 
@@ -644,8 +668,13 @@ export default async function PortfolioPage({ params }: PageProps) {
             </div>
           </div>
         </Section>
-      </Container>
-      )}
+                </Container>
+              );
+
+            default:
+              return null;
+          }
+        })}
     </div>
   );
 }
