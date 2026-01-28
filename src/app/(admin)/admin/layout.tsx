@@ -100,7 +100,7 @@ export default async function AdminLayout({
                 READ-ONLY — impersonation active
               </p>
               <p className="mt-1 text-xs text-muted">
-                You are viewing another portfolio's data. Writes are blocked until impersonation is cleared.
+                You are viewing another portfolio&apos;s data. Writes are blocked until impersonation is cleared.
               </p>
             </div>
           ) : null}

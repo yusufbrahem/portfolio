@@ -79,7 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             select: { id: true },
           });
           portfolioId = portfolio?.id || null;
-        } catch (error) {
+        } catch {
           // Portfolio model doesn't exist yet - this is OK, will work after migration
           portfolioId = null;
         }
@@ -123,7 +123,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             select: { role: true },
           });
           token.role = user?.role || "user";
-        } catch (error) {
+        } catch {
           // Role field doesn't exist yet - default to "user"
           token.role = "user";
         }
@@ -137,7 +137,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             select: { id: true },
           });
           token.portfolioId = portfolio?.id || null;
-        } catch (error) {
+        } catch {
           // Portfolio model doesn't exist yet - this is OK
           token.portfolioId = null;
         }

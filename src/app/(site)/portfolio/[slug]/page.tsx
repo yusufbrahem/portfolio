@@ -186,9 +186,9 @@ export default async function PortfolioPage({ params }: PageProps) {
       : null;
 
   // Build cache-busted avatar URL (only if user uploaded one)
-  const avatarUrl = (person as any).avatarUrl;
-  const avatarSrc = avatarUrl
-    ? `${avatarUrl}?t=${new Date((person as any).updatedAt).getTime()}`
+  const avatarUrl = person.avatarUrl;
+  const avatarSrc = avatarUrl && person.updatedAt
+    ? `${avatarUrl}?t=${new Date(person.updatedAt).getTime()}`
     : null;
 
   return (

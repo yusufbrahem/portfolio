@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { updateSectionVisibility } from "@/app/actions/section-visibility";
+import { updateSectionVisibility, type SectionVisibility } from "@/app/actions/section-visibility";
 
 type SectionVisibilityToggleProps = {
   section: "about" | "skills" | "projects" | "experience" | "architecture" | "contact";
@@ -45,7 +45,7 @@ export function SectionVisibilityToggle({
           ? "showAbout"
           : `show${section.charAt(0).toUpperCase() + section.slice(1)}`;
         updateData[fieldName] = newValue;
-        await updateSectionVisibility(updateData as any);
+        await updateSectionVisibility(updateData as SectionVisibility);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 2000);
       } catch (err) {

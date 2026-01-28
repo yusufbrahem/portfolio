@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
 import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
 import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 
@@ -81,7 +81,8 @@ export async function updatePersonInfo(data: {
     if (!contactMenu) throw new Error("No contact section found for this portfolio");
     platformMenuId = contactMenu.platformMenuId;
   }
-  const { platformMenuId: _pm, ...rest } = data;
+  const { platformMenuId: _omitPlatformMenuId, ...rest } = data;
+  void _omitPlatformMenuId; // intentionally omitted from rest
   
   // Server-side length validation
   const nameValidation = validateTextLength(data.name, TEXT_LIMITS.NAME, "Name");

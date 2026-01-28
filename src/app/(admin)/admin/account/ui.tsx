@@ -43,8 +43,6 @@ export function AccountForm({
       fd.append("file", file);
       const result = await uploadAvatar(fd);
       setAvatarUrl(result.avatarUrl);
-      // Update timestamp to force cache refresh
-      const newTimestamp = new Date();
       // Force refresh all pages that show the avatar
       router.refresh();
       // Also update the displayed image immediately with new timestamp
@@ -91,10 +89,11 @@ export function AccountForm({
           <div className="flex items-center gap-6">
             <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-border bg-panel2 flex items-center justify-center">
               {avatarUrl ? (
-                <img 
-                  src={`${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${initialAvatarUpdatedAt ? new Date(initialAvatarUpdatedAt).getTime() : Date.now()}`} 
-                  alt="Profile avatar" 
-                  className="h-full w-full object-cover" 
+                // eslint-disable-next-line @next/next/no-img-element -- cache-busted avatar URL
+                <img
+                  src={`${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${initialAvatarUpdatedAt ? new Date(initialAvatarUpdatedAt).getTime() : Date.now()}`}
+                  alt="Profile avatar"
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <ImageIcon className="h-12 w-12 text-muted" />
@@ -153,7 +152,7 @@ export function AccountForm({
                 required
               />
               <p className="mt-1 text-xs text-muted-disabled">
-                If you change your email, you'll be logged out and must sign in again.
+                If you change your email, you&apos;ll be logged out and must sign in again.
               </p>
             </div>
           </div>

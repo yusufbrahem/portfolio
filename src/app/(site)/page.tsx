@@ -139,7 +139,7 @@ export default async function Home() {
               Built for professionals
             </h2>
             <p className="text-lg leading-8 text-muted mb-12">
-              Whether you're an engineer, designer, consultant, or creative professional, create a portfolio that presents your work with clarity and professionalism.
+              Whether you&apos;re an engineer, designer, consultant, or creative professional, create a portfolio that presents your work with clarity and professionalism.
             </p>
             <div className="mt-10">
               {!session ? (

@@ -64,8 +64,8 @@ export default async function AdminAccountPage() {
           initialEmail={me?.email || session.user.email}
           initialName={me?.name || ""}
           initialSlug={portfolio?.slug || ""}
-          initialAvatarUrl={(personInfo as any)?.avatarUrl || null}
-          initialAvatarUpdatedAt={(personInfo as any)?.updatedAt || null}
+          initialAvatarUrl={personInfo?.avatarUrl ?? null}
+          initialAvatarUpdatedAt={personInfo?.updatedAt ?? null}
         />
 
         <ChangePasswordForm isImpersonating={scope.isImpersonating} />

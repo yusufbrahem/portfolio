@@ -155,7 +155,7 @@ export async function getCurrentPortfolio() {
         },
       },
     });
-  } catch (error) {
+  } catch {
     // Portfolio model doesn't exist yet
     return null;
   }
@@ -192,7 +192,7 @@ export async function ensureCurrentPortfolio(): Promise<string> {
     await ensurePortfolioHasDefaultMenus(portfolio.id);
 
     return portfolio.id;
-  } catch (error) {
+  } catch {
     // Portfolio model doesn't exist yet - migration required
     throw new Error(
       "Portfolio model not found. Please run database migration first: " +

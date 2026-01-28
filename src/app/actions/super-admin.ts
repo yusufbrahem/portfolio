@@ -85,7 +85,7 @@ export async function setImpersonatedPortfolioId(portfolioId: string | null) {
     if (!exists) {
       throw new Error("Portfolio not found");
     }
-  } catch (e) {
+  } catch {
     throw new Error("Portfolio not found");
   }
 
@@ -151,7 +151,7 @@ export async function createUser(data: { email: string; password: string; name?:
         },
       });
       return { user, portfolio };
-    } catch (e) {
+    } catch {
       // Portfolio model doesn't exist yet - that's OK, user can create it later
       return { user, portfolio: null };
     }
@@ -246,7 +246,7 @@ export async function deleteUser(userId: string) {
  * Blocks during impersonation.
  */
 export async function resetUserPassword(userId: string, newPassword: string) {
-  const session = await requireSuperAdmin();
+  await requireSuperAdmin();
   await assertNotImpersonatingForWrite(); // Block password resets during impersonation
 
   // Validate password length (configurable via MIN_PASSWORD_LENGTH env var)
@@ -300,7 +300,7 @@ export async function togglePortfolioPublish(portfolioId: string, isPublished: b
     });
 
     return { success: true, isPublished };
-  } catch (e) {
+  } catch {
     throw new Error("Portfolio not found");
   }
 }

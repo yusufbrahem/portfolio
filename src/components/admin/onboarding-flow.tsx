@@ -28,13 +28,13 @@ export function OnboardingFlow({ initialStep = 1 }: OnboardingFlowProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  // Initialize completed steps based on current step
+  // Initialize completed steps based on current step (defer setState to avoid synchronous setState in effect)
   useEffect(() => {
     const completed = new Set<OnboardingStep>();
     for (let i = 1; i < initialStep; i++) {
       completed.add(i as OnboardingStep);
     }
-    setCompletedSteps(completed);
+    queueMicrotask(() => setCompletedSteps(completed));
   }, [initialStep]);
 
   const handleStepComplete = (step: OnboardingStep) => {
@@ -74,7 +74,7 @@ export function OnboardingFlow({ initialStep = 1 }: OnboardingFlowProps) {
     <div className="max-w-4xl mx-auto py-8">
       {/* Progress Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground mb-4">Welcome! Let's set up your portfolio</h1>
+        <h1 className="text-2xl font-semibold text-foreground mb-4">Welcome! Let&apos;s set up your portfolio</h1>
         <div className="flex items-center gap-2 mb-4">
           {STEPS.map((step, index) => {
             const isCompleted = completedSteps.has(step.id as OnboardingStep);
@@ -701,7 +701,7 @@ function OnboardingStep5({ onComplete }: { onComplete: () => void }) {
         Step 5: Review & Request Publication
       </h2>
       <p className="text-muted mb-6">
-        Great! You've set up your portfolio. Review your work and request publication when ready.
+        Great! You&apos;ve set up your portfolio. Review your work and request publication when ready.
       </p>
 
       <div className="space-y-4 mb-6">
@@ -709,7 +709,7 @@ function OnboardingStep5({ onComplete }: { onComplete: () => void }) {
           <h3 className="font-semibold text-foreground mb-2">What happens next?</h3>
           <ul className="text-sm text-muted space-y-1 list-disc list-inside">
             <li>Your portfolio will be submitted for review</li>
-            <li>You'll receive a notification once it's been reviewed</li>
+            <li>You&apos;ll receive a notification once it&apos;s been reviewed</li>
             <li>Once approved, your portfolio will be live and accessible to the public</li>
           </ul>
         </div>

@@ -1,3 +1,4 @@
+import type { CountryCode } from "libphonenumber-js";
 import { isValidPhoneNumber, parsePhoneNumber } from "libphonenumber-js";
 
 /**
@@ -53,7 +54,7 @@ export function validatePhone(
           return { isValid: true, error: null };
         }
         return { isValid: false, error: "Invalid phone number format" };
-      } catch (parseError) {
+      } catch {
         // If parsing fails, try direct validation
         if (isValidPhoneNumber(cleaned)) {
           return { isValid: true, error: null };
@@ -63,20 +64,20 @@ export function validatePhone(
     } else {
       // Parse as national format with country code
       try {
-        const parsed = parsePhoneNumber(cleaned, countryCode as any);
-        if (parsed && isValidPhoneNumber(parsed.number, countryCode as any)) {
+        const parsed = parsePhoneNumber(cleaned, countryCode as CountryCode);
+        if (parsed && isValidPhoneNumber(parsed.number, countryCode as CountryCode)) {
           return { isValid: true, error: null };
         }
         return { isValid: false, error: "Invalid phone number format" };
-      } catch (parseError) {
+      } catch {
         // If parsing fails, try direct validation with country code
-        if (isValidPhoneNumber(cleaned, countryCode as any)) {
+        if (isValidPhoneNumber(cleaned, countryCode as CountryCode)) {
           return { isValid: true, error: null };
         }
         return { isValid: false, error: "Invalid phone number format" };
       }
     }
-  } catch (error) {
+  } catch {
     return { isValid: false, error: "Invalid phone number format" };
   }
 }
@@ -95,7 +96,7 @@ export function formatPhoneToE164(phone: string, countryCode: string): string | 
   }
   
   try {
-    const parsed = parsePhoneNumber(trimmed, countryCode as any);
+    const parsed = parsePhoneNumber(trimmed, countryCode as CountryCode);
     return parsed ? parsed.number : null;
   } catch {
     // Try parsing as international format
