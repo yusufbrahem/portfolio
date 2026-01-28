@@ -10,6 +10,9 @@ jobs:
   ci:
     name: Lint, typecheck, build
     runs-on: ubuntu-latest
+    env:
+      # Prisma config loads this; generate/validate only need schema, no DB connection.
+      DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,9 +28,6 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
-        env:
-          # generate only needs schema; no DB connection. Dummy URL so prisma.config.ts loads.
-          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
 
       - name: Lint
         run: npm run lint
