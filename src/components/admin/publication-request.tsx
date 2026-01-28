@@ -55,7 +55,7 @@ export function PublicationRequest({
           <Clock className="h-5 w-5" />
           <div className="flex-1">
             <h3 className="font-semibold text-foreground">Pending Review</h3>
-            <p className="text-sm text-muted">Your portfolio has been submitted for review. We'll notify you once it's been reviewed.</p>
+            <p className="text-sm text-muted">Your portfolio has been submitted for review. We&apos;ll notify you once it&apos;s been reviewed.</p>
           </div>
         </div>
       </div>

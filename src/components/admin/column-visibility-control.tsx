@@ -129,14 +129,14 @@ export function useColumnVisibility() {
 
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Load from localStorage after hydration
+  // Load from localStorage after hydration (defer setState to avoid synchronous setState in effect)
   useEffect(() => {
-    setIsHydrated(true);
+    queueMicrotask(() => setIsHydrated(true));
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as ColumnId[];
-        setVisibleColumns(new Set(parsed));
+        queueMicrotask(() => setVisibleColumns(new Set(parsed)));
       }
     } catch {
       // Ignore parse errors

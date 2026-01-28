@@ -26,11 +26,29 @@ const prisma = new PrismaClient({
 async function main() {
   console.log("Seeding database...");
 
-  // Seed PersonInfo - delete existing and create new
-  await prisma.personInfo.deleteMany();
+  const portfolio = await prisma.portfolio.findFirst({ orderBy: { createdAt: "asc" } });
+  if (!portfolio) {
+    throw new Error("No portfolio found. Create a user and portfolio first (e.g. run app and sign up).");
+  }
+
+  const [contactMenu, skillsMenu, experienceMenu, projectsMenu, aboutMenu] = await Promise.all([
+    prisma.platformMenu.findFirst({ where: { key: "contact", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "skills", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "experience", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "projects", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "about", enabled: true } }),
+  ]);
+  if (!contactMenu || !skillsMenu || !experienceMenu || !projectsMenu || !aboutMenu) {
+    throw new Error("Default PlatformMenus not found. Run seed-menu-configuration first.");
+  }
+
+  // Seed PersonInfo - delete existing for this portfolio and create new
+  await prisma.personInfo.deleteMany({ where: { portfolioId: portfolio.id } });
   await prisma.personInfo.create({
     data: {
       id: "person-1",
+      portfolioId: portfolio.id,
+      platformMenuId: contactMenu.id,
       name: site.person.name,
       role: site.person.role,
       location: site.person.location,
@@ -39,12 +57,13 @@ async function main() {
     },
   });
 
-  // Seed HeroContent
+  // Seed HeroContent (by id for this seed; ensure portfolioId set)
   await prisma.heroContent.upsert({
     where: { id: "hero-1" },
     update: {},
     create: {
       id: "hero-1",
+      portfolioId: portfolio.id,
       headline: site.hero.headline,
       subheadline: site.hero.subheadline,
       highlights: JSON.stringify(site.hero.highlights),
@@ -59,6 +78,8 @@ async function main() {
       update: { name: group.group, order: i },
       create: {
         id: `group-${i}`,
+        portfolioId: portfolio.id,
+        platformMenuId: skillsMenu.id,
         name: group.group,
         order: i,
       },
@@ -92,6 +113,8 @@ async function main() {
       },
       create: {
         id: `exp-${i}`,
+        portfolioId: portfolio.id,
+        platformMenuId: experienceMenu.id,
         title: role.title,
         company: role.company,
         location: role.location,
@@ -139,6 +162,8 @@ async function main() {
       },
       create: {
         id: `proj-${i}`,
+        portfolioId: portfolio.id,
+        platformMenuId: projectsMenu.id,
         title: project.title,
         summary: project.summary,
         order: i,
@@ -181,6 +206,8 @@ async function main() {
     },
     create: {
       id: "about-1",
+      portfolioId: portfolio.id,
+      platformMenuId: aboutMenu.id,
       title: site.about.title,
       paragraphs: JSON.stringify(site.about.paragraphs),
     },

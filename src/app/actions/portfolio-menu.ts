@@ -98,7 +98,7 @@ export async function reorderPortfolioMenus(
   });
 
   // Only allow reordering menus that are enabled by the platform
-  const invalidMenus = menus.filter((m) => !m.platformMenu.enabled);
+  const invalidMenus = menus.filter((m: { platformMenu: { enabled: boolean } }) => !m.platformMenu.enabled);
   if (invalidMenus.length > 0) {
     throw new Error("Cannot reorder menus that are disabled by the platform");
   }
@@ -137,7 +137,7 @@ export async function getEnabledPortfolioMenus(portfolioId: string) {
     orderBy: { publishedOrder: "asc" },
   });
 
-  return menus.map((menu) => ({
+  return menus.map((menu: { id: string; publishedOrder: number; platformMenu: { key: string; label: string; id: string; sectionType: string | null; componentKeys: unknown } }) => ({
     id: menu.id,
     key: menu.platformMenu.key,
     label: menu.platformMenu.label,
@@ -166,7 +166,7 @@ export async function publishMenuConfiguration(portfolioId: string) {
   });
 
   await Promise.all(
-    menus.map((pm, index) =>
+    menus.map((pm: { id: string; visible: boolean }, index: number) =>
       prisma.portfolioMenu.update({
         where: { id: pm.id },
         data: { publishedVisible: pm.visible, publishedOrder: index },
@@ -184,5 +184,38 @@ export async function publishMenuConfiguration(portfolioId: string) {
   });
   if (portfolio?.slug) {
     revalidatePath(`/portfolio/${portfolio.slug}`, "page");
+  }
+}
+
+/**
+ * Ensure a portfolio has a PortfolioMenu for every enabled PlatformMenu.
+ * Called when creating a new portfolio so contact and other sections exist (e.g. onboarding).
+ * Idempotent: only creates missing entries.
+ */
+export async function ensurePortfolioHasDefaultMenus(portfolioId: string): Promise<void> {
+  const platformMenus = await prisma.platformMenu.findMany({
+    where: { enabled: true },
+    select: { id: true },
+    orderBy: { order: "asc" },
+  });
+  const existing = await prisma.portfolioMenu.findMany({
+    where: { portfolioId },
+    select: { platformMenuId: true },
+  });
+  const existingIds = new Set(existing.map((e: { platformMenuId: string }) => e.platformMenuId));
+  let order = 0;
+  for (const pm of platformMenus) {
+    if (existingIds.has(pm.id)) continue;
+    await prisma.portfolioMenu.create({
+      data: {
+        portfolioId,
+        platformMenuId: pm.id,
+        visible: true,
+        publishedVisible: true,
+        order,
+        publishedOrder: order,
+      },
+    });
+    order++;
   }
 }

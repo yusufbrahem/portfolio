@@ -72,7 +72,7 @@ export function ProjectsManager({
     try {
       await updateProject(id, { ...data, order: project.order });
       setProjects(
-        projects.map((p) =>
+        projects.map((p: Project) =>
           p.id === id
             ? {
                 ...p,
@@ -189,7 +189,7 @@ export function ProjectsManager({
               <div>
                 <p className="text-xs text-muted-disabled mb-1">Bullets:</p>
                 <ul className="text-sm text-muted space-y-1 break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-                  {project.bullets.map((b) => (
+                  {project.bullets.map((b: { id: string; text: string }) => (
                     <li key={b.id} className="break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>• {b.text}</li>
                   ))}
                 </ul>
@@ -225,8 +225,8 @@ function ProjectForm({
 }) {
   const [title, setTitle] = useState(project?.title || "");
   const [summary, setSummary] = useState(project?.summary || "");
-  const [bullets, setBullets] = useState<string[]>(project?.bullets.map((b) => b.text) || []);
-  const [tags, setTags] = useState<string[]>(project?.tags.map((t) => t.name) || []);
+  const [bullets, setBullets] = useState<string[]>(project?.bullets.map((b: { text: string }) => b.text) || []);
+  const [tags, setTags] = useState<string[]>(project?.tags.map((t: { name: string }) => t.name) || []);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [bulletErrors, setBulletErrors] = useState<(string | null)[]>([]);

@@ -108,7 +108,7 @@ export async function getPendingReviewPortfolios() {
     orderBy: { updatedAt: "desc" },
   });
 
-  return portfolios.map((p) => ({
+  return portfolios.map((p: typeof portfolios[number]) => ({
     ...p,
     personInfo: p.personInfos?.[0] ?? null,
     personInfos: undefined,

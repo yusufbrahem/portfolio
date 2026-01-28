@@ -13,6 +13,7 @@ import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 import { CharCounter } from "@/components/ui/char-counter";
 
 type AboutContent = Awaited<ReturnType<typeof getAboutContent>>;
+type Principle = NonNullable<AboutContent>["principles"][number];
 
 export function AboutManager({
   initialData,
@@ -77,7 +78,7 @@ export function AboutManager({
         aboutContent
           ? {
               ...aboutContent,
-              principles: aboutContent.principles.map((p) =>
+              principles: aboutContent.principles.map((p: Principle) =>
                 p.id === id ? { ...p, ...data } : p
               ),
             }
@@ -200,14 +201,14 @@ export function AboutManager({
           {aboutContent.principles.length === 0 && !isCreatingPrinciple ? (
             <p className="text-sm text-muted text-center py-4">No principles yet. Add your first principle to get started.</p>
           ) : (
-            aboutContent.principles.map((principle) => (
+            aboutContent.principles.map((principle: Principle) => (
             <div key={principle.id} className="border border-border bg-background rounded-lg p-4">
               {editingPrinciple === principle.id ? (
                 <PrincipleForm
                   initialData={{
                     title: principle.title,
                     description: principle.description,
-                    order: principle.order,
+                    order: principle.order ?? 0,
                   }}
                   onSave={(data) =>
                     handleUpdatePrinciple(principle.id, {

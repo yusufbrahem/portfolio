@@ -610,9 +610,9 @@ export function ContactManager({
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted mb-1">Primary Email</p>
                   {personInfo.showEmail1 ? (
-                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                    <span title="Visible on portfolio"><Eye className="h-3 w-3 text-green-400" /></span>
                   ) : (
-                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                    <span title="Hidden from portfolio"><EyeOff className="h-3 w-3 text-muted" /></span>
                   )}
                 </div>
                 <p className="text-sm font-medium text-foreground">{personInfo.email1 || personInfo.email}</p>
@@ -628,9 +628,9 @@ export function ContactManager({
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted mb-1">Secondary Email</p>
                   {personInfo.showEmail2 ? (
-                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                    <span title="Visible on portfolio"><Eye className="h-3 w-3 text-green-400" /></span>
                   ) : (
-                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                    <span title="Hidden from portfolio"><EyeOff className="h-3 w-3 text-muted" /></span>
                   )}
                 </div>
                 <p className="text-sm font-medium text-foreground">{personInfo.email2}</p>
@@ -646,9 +646,9 @@ export function ContactManager({
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted mb-1">Primary Phone</p>
                   {personInfo.showPhone1 ? (
-                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                    <span title="Visible on portfolio"><Eye className="h-3 w-3 text-green-400" /></span>
                   ) : (
-                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                    <span title="Hidden from portfolio"><EyeOff className="h-3 w-3 text-muted" /></span>
                   )}
                 </div>
                 <p className="text-sm font-medium text-foreground">{formatPhoneForDisplay(personInfo.phone1 || personInfo.phone)}</p>
@@ -664,9 +664,9 @@ export function ContactManager({
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted mb-1">Secondary Phone</p>
                   {personInfo.showPhone2 ? (
-                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                    <span title="Visible on portfolio"><Eye className="h-3 w-3 text-green-400" /></span>
                   ) : (
-                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                    <span title="Hidden from portfolio"><EyeOff className="h-3 w-3 text-muted" /></span>
                   )}
                 </div>
                 <p className="text-sm font-medium text-foreground">{formatPhoneForDisplay(personInfo.phone2)}</p>
@@ -682,9 +682,9 @@ export function ContactManager({
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted mb-1">WhatsApp</p>
                   {personInfo.showWhatsApp ? (
-                    <Eye className="h-3 w-3 text-green-400" title="Visible on portfolio" />
+                    <span title="Visible on portfolio"><Eye className="h-3 w-3 text-green-400" /></span>
                   ) : (
-                    <EyeOff className="h-3 w-3 text-muted" title="Hidden from portfolio" />
+                    <span title="Hidden from portfolio"><EyeOff className="h-3 w-3 text-muted" /></span>
                   )}
                 </div>
                 <p className="text-sm font-medium text-foreground">{formatPhoneForDisplay(personInfo.whatsapp)}</p>
@@ -758,15 +758,27 @@ export function ContactManager({
             setPhoneError(null);
               // Reset form data to saved values
               if (personInfo) {
+                const phone1 = personInfo.phone1 || personInfo.phone || "";
+                const email1 = personInfo.email1 || personInfo.email || "";
                 setFormData({
                   name: personInfo.name || "",
-                  email: personInfo.email || "",
+                  email: email1,
                   role: personInfo.role || "",
                   location: personInfo.location || "",
                   linkedIn: personInfo.linkedIn || "",
-                  phone: personInfo.phone || "",
+                  phone: phone1,
                   contactMessage: personInfo.contactMessage || "",
                   cvUrl: personInfo.cvUrl || "",
+                  phone1,
+                  phone2: personInfo.phone2 || "",
+                  whatsapp: personInfo.whatsapp || "",
+                  email1,
+                  email2: personInfo.email2 || "",
+                  showPhone1: personInfo.showPhone1 ?? true,
+                  showPhone2: personInfo.showPhone2 ?? true,
+                  showWhatsApp: personInfo.showWhatsApp ?? true,
+                  showEmail1: personInfo.showEmail1 ?? true,
+                  showEmail2: personInfo.showEmail2 ?? true,
                 });
                 // Reset phone state
                 const phoneState = initializePhoneState(personInfo.phone);
@@ -1449,15 +1461,27 @@ export function ContactManager({
               setUploadError(null);
               setPhoneError(null);
               if (personInfo) {
+                const phone1 = personInfo.phone1 || personInfo.phone || "";
+                const email1 = personInfo.email1 || personInfo.email || "";
                 setFormData({
                   name: personInfo.name || "",
-                  email: personInfo.email || "",
+                  email: email1,
                   role: personInfo.role || "",
                   location: personInfo.location || "",
                   linkedIn: personInfo.linkedIn || "",
-                  phone: personInfo.phone || "",
+                  phone: phone1,
                   contactMessage: personInfo.contactMessage || "",
                   cvUrl: personInfo.cvUrl || "",
+                  phone1,
+                  phone2: personInfo.phone2 || "",
+                  whatsapp: personInfo.whatsapp || "",
+                  email1,
+                  email2: personInfo.email2 || "",
+                  showPhone1: personInfo.showPhone1 ?? true,
+                  showPhone2: personInfo.showPhone2 ?? true,
+                  showWhatsApp: personInfo.showWhatsApp ?? true,
+                  showEmail1: personInfo.showEmail1 ?? true,
+                  showEmail2: personInfo.showEmail2 ?? true,
                 });
                 // Reset phone state
                 const phoneState = initializePhoneState(personInfo.phone);

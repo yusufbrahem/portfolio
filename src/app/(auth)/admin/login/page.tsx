@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { Container } from "@/components/container";
 
@@ -10,10 +9,11 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const redirectStarted = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || redirectStarted.current) return;
     setError("");
     setLoading(true);
 
@@ -30,9 +30,12 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Success - redirect to admin dashboard
-      router.push("/admin");
-      router.refresh();
+      if (redirectStarted.current) return;
+      redirectStarted.current = true;
+      // Full redirect so session cookie is sent; avoids refetch loops
+      setTimeout(() => {
+        window.location.replace("/admin");
+      }, 50);
     } catch {
       setError("Login failed. Please try again.");
       setLoading(false);

@@ -4,7 +4,44 @@ import { useState, useMemo } from "react";
 import { Users, ArrowUp, ArrowDown } from "lucide-react";
 import { UserActionsMenu } from "@/components/admin/user-actions-menu";
 import { UsersTableFilters } from "@/components/admin/users-table-filters";
-import { ColumnVisibilityControl, useColumnVisibility, type ColumnId } from "@/components/admin/column-visibility-control";
+import { ColumnVisibilityControl, useColumnVisibility } from "@/components/admin/column-visibility-control";
+
+type SortField = "created" | "requested" | "approved" | "email" | "name";
+type SortDirection = "asc" | "desc";
+
+function SortButton({
+  field,
+  label,
+  sortField,
+  sortDirection,
+  onSort,
+}: {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSort: (field: SortField) => void;
+}) {
+  const isActive = sortField === field;
+  return (
+    <button
+      onClick={() => onSort(field)}
+      className={`flex items-center gap-1 text-xs font-semibold text-foreground uppercase tracking-wider hover:text-accent transition-colors ${
+        isActive ? "text-accent" : ""
+      }`}
+      aria-label={`Sort by ${label} ${isActive ? (sortDirection === "asc" ? "ascending" : "descending") : ""}`}
+    >
+      {label}
+      {isActive && (
+        sortDirection === "asc" ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : (
+          <ArrowDown className="h-3 w-3" />
+        )
+      )}
+    </button>
+  );
+}
 
 type UserWithPortfolio = {
   id: string;
@@ -25,9 +62,6 @@ type UserWithPortfolio = {
     } | null;
   } | null;
 };
-
-type SortField = "created" | "requested" | "approved" | "email" | "name";
-type SortDirection = "asc" | "desc";
 
 export function SortableUsersTable({
   users: initialUsers,
@@ -89,12 +123,12 @@ export function SortableUsersTable({
           bValue = b.portfolio?.createdAt || b.createdAt;
           break;
         case "requested":
-          aValue = a.portfolio?.requestedAt;
-          bValue = b.portfolio?.requestedAt;
+          aValue = a.portfolio?.requestedAt ?? null;
+          bValue = b.portfolio?.requestedAt ?? null;
           break;
         case "approved":
-          aValue = a.portfolio?.approvedAt;
-          bValue = b.portfolio?.approvedAt;
+          aValue = a.portfolio?.approvedAt ?? null;
+          bValue = b.portfolio?.approvedAt ?? null;
           break;
         case "email":
           aValue = a.email.toLowerCase();
@@ -127,28 +161,6 @@ export function SortableUsersTable({
     setSearchQuery("");
     setRoleFilter("");
     setStatusFilter("");
-  };
-
-  const SortButton = ({ field, label }: { field: SortField; label: string }) => {
-    const isActive = sortField === field;
-    return (
-      <button
-        onClick={() => handleSort(field)}
-        className={`flex items-center gap-1 text-xs font-semibold text-foreground uppercase tracking-wider hover:text-accent transition-colors ${
-          isActive ? "text-accent" : ""
-        }`}
-        aria-label={`Sort by ${label} ${isActive ? (sortDirection === "asc" ? "ascending" : "descending") : ""}`}
-      >
-        {label}
-        {isActive && (
-          sortDirection === "asc" ? (
-            <ArrowUp className="h-3 w-3" />
-          ) : (
-            <ArrowDown className="h-3 w-3" />
-          )
-        )}
-      </button>
-    );
   };
 
   const formatDate = (date: Date | null) => {
@@ -202,12 +214,12 @@ export function SortableUsersTable({
                   )}
                   {visibleColumns.has("email") && (
                     <th className="px-3 py-3 text-left">
-                      <SortButton field="email" label="Email" />
+                      <SortButton field="email" label="Email" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
                     </th>
                   )}
                   {visibleColumns.has("name") && (
                     <th className="px-3 py-3 text-left">
-                      <SortButton field="name" label="Name" />
+                      <SortButton field="name" label="Name" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
                     </th>
                   )}
                   {visibleColumns.has("role") && (
@@ -221,17 +233,17 @@ export function SortableUsersTable({
                   )}
                   {visibleColumns.has("created") && (
                     <th className="px-3 py-3 text-left hidden xl:table-cell">
-                      <SortButton field="created" label="Created" />
+                      <SortButton field="created" label="Created" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
                     </th>
                   )}
                   {visibleColumns.has("requested") && (
                     <th className="px-3 py-3 text-left hidden xl:table-cell">
-                      <SortButton field="requested" label="Requested" />
+                      <SortButton field="requested" label="Requested" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
                     </th>
                   )}
                   {visibleColumns.has("approved") && (
                     <th className="px-3 py-3 text-left hidden xl:table-cell">
-                      <SortButton field="approved" label="Approved" />
+                      <SortButton field="approved" label="Approved" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
                     </th>
                   )}
                   {visibleColumns.has("actions") && (
@@ -364,7 +376,7 @@ export function SortableUsersTable({
                                 user={user}
                                 isCurrentlyImpersonating={isCurrentlyImpersonating}
                                 currentUserId={currentUserId}
-                                onImpersonate={onImpersonate}
+                                onImpersonate={(id) => Promise.resolve(onImpersonate(id))}
                               />
                             ) : (
                               <span className="text-muted-disabled text-xs">—</span>
@@ -516,7 +528,7 @@ export function SortableUsersTable({
                                 user={user}
                                 isCurrentlyImpersonating={isCurrentlyImpersonating}
                                 currentUserId={currentUserId}
-                                onImpersonate={onImpersonate}
+                                onImpersonate={(id) => Promise.resolve(onImpersonate(id))}
                               />
                             ) : (
                               <span className="text-muted-disabled text-xs">—</span>

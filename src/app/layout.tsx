@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
-import { Providers } from "@/components/providers";
 import { validateRequiredEnv } from "@/lib/env";
 
 // Validate required env vars at startup
@@ -61,12 +58,15 @@ export const metadata: Metadata = {
   category: "Technology",
 };
 
+/**
+ * Root layout is static (no headers() / no dynamic APIs) so /admin/login
+ * does not trigger refetch loops. Login is under (auth), site under (site), admin under (admin).
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Fail fast at runtime if required secrets are missing (server-side only).
   validateRequiredEnv();
 
   return (
@@ -74,11 +74,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh`}
       >
-        <Providers>
-          <Header />
-          <main className="relative">{children}</main>
-          <Footer />
-        </Providers>
+        {children}
       </body>
     </html>
   );

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth, assertNotImpersonatingForWrite, assertNotSuperAdminForPortfolioWrite } from "@/lib/auth";
+import { requireAuth, assertNotImpersonatingForWrite } from "@/lib/auth";
 import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
 import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 
@@ -60,17 +60,29 @@ export async function updatePersonInfo(data: {
 
   let platformMenuId = data.platformMenuId;
   if (!platformMenuId) {
-    const contactMenu = await prisma.portfolioMenu.findFirst({
+    let contactMenu = await prisma.portfolioMenu.findFirst({
       where: {
         portfolioId,
-        platformMenu: { sectionType: "contact_template", enabled: true },
+        platformMenu: { key: "contact", enabled: true },
       },
       select: { platformMenuId: true },
     });
+    if (!contactMenu) {
+      const { ensurePortfolioHasDefaultMenus } = await import("@/app/actions/portfolio-menu");
+      await ensurePortfolioHasDefaultMenus(portfolioId);
+      contactMenu = await prisma.portfolioMenu.findFirst({
+        where: {
+          portfolioId,
+          platformMenu: { key: "contact", enabled: true },
+        },
+        select: { platformMenuId: true },
+      });
+    }
     if (!contactMenu) throw new Error("No contact section found for this portfolio");
     platformMenuId = contactMenu.platformMenuId;
   }
-  const { platformMenuId: _pm, ...rest } = data;
+  const { platformMenuId: _omitPlatformMenuId, ...rest } = data;
+  void _omitPlatformMenuId; // intentionally omitted from rest
   
   // Server-side length validation
   const nameValidation = validateTextLength(data.name, TEXT_LIMITS.NAME, "Name");

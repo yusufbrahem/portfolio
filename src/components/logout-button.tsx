@@ -1,15 +1,9 @@
 import { LogOut } from "lucide-react";
+import { logout } from "@/app/actions/logout";
 
 export function LogoutButton() {
   return (
-    <form
-      action={async () => {
-        "use server";
-        const { signOut } = await import("@/auth");
-        await signOut({ redirectTo: "/admin/login" });
-      }}
-      className="inline"
-    >
+    <form action={logout} className="inline">
       <button
         type="submit"
         className="text-sm text-muted hover:text-foreground transition-colors flex items-center gap-2"

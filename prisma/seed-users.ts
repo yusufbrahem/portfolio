@@ -666,12 +666,31 @@ async function seedPortfolioData(portfolioId: string, userEmail: string, userNam
 
   const profile = profiles[profileIndex];
 
+  // Resolve default PlatformMenus (compound uniques and section content require platformMenuId)
+  const [contactMenu, skillsMenu, experienceMenu, projectsMenu, aboutMenu, architectureMenu] = await Promise.all([
+    prisma.platformMenu.findFirst({ where: { key: "contact", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "skills", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "experience", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "projects", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "about", enabled: true } }),
+    prisma.platformMenu.findFirst({ where: { key: "architecture", enabled: true } }),
+  ]);
+  if (!contactMenu) {
+    throw new Error('PlatformMenu with key "contact" not found. Run seed-menu-configuration or migrations first.');
+  }
+  if (!skillsMenu || !experienceMenu || !projectsMenu || !aboutMenu || !architectureMenu) {
+    throw new Error('Default PlatformMenus (skills, experience, projects, about, architecture) not found. Run seed-menu-configuration first.');
+  }
+
   // 1. PersonInfo
   await prisma.personInfo.upsert({
-    where: { portfolioId },
+    where: {
+      portfolioId_platformMenuId: { portfolioId, platformMenuId: contactMenu.id },
+    },
     update: {},
     create: {
       portfolioId,
+      platformMenuId: contactMenu.id,
       name: displayName,
       role: profile.role,
       location: profile.location,
@@ -703,6 +722,7 @@ async function seedPortfolioData(portfolioId: string, userEmail: string, userNam
       const skillGroup = await prisma.skillGroup.create({
         data: {
           portfolioId,
+          platformMenuId: skillsMenu.id,
           name: group.group,
           order: i,
         },
@@ -731,6 +751,7 @@ async function seedPortfolioData(portfolioId: string, userEmail: string, userNam
       const experience = await prisma.experience.create({
         data: {
           portfolioId,
+          platformMenuId: experienceMenu.id,
           title: role.title,
           company: role.company,
           location: role.location,
@@ -772,6 +793,7 @@ async function seedPortfolioData(portfolioId: string, userEmail: string, userNam
       const dbProject = await prisma.project.create({
         data: {
           portfolioId,
+          platformMenuId: projectsMenu.id,
           title: project.title,
           summary: project.summary,
           order: i,
@@ -801,14 +823,15 @@ async function seedPortfolioData(portfolioId: string, userEmail: string, userNam
   }
 
   // 6. AboutContent
-  const existingAbout = await prisma.aboutContent.findUnique({
-    where: { portfolioId },
+  const existingAbout = await prisma.aboutContent.findFirst({
+    where: { portfolioId, platformMenuId: aboutMenu.id },
   });
 
   if (!existingAbout) {
     const aboutContent = await prisma.aboutContent.create({
       data: {
         portfolioId,
+        platformMenuId: aboutMenu.id,
         title: profile.about.title,
         paragraphs: JSON.stringify(profile.about.paragraphs),
       },
@@ -828,14 +851,15 @@ async function seedPortfolioData(portfolioId: string, userEmail: string, userNam
   }
 
   // 7. ArchitectureContent
-  const existingArchitecture = await prisma.architectureContent.findUnique({
-    where: { portfolioId },
+  const existingArchitecture = await prisma.architectureContent.findFirst({
+    where: { portfolioId, platformMenuId: architectureMenu.id },
   });
 
   if (!existingArchitecture) {
     const architectureContent = await prisma.architectureContent.create({
       data: {
         portfolioId,
+        platformMenuId: architectureMenu.id,
       },
     });
 

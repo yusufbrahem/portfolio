@@ -18,7 +18,6 @@ export async function listAllUsers() {
       id: true,
       email: true,
       name: true,
-      // @ts-expect-error - role may not exist in Prisma Client until migration
       role: true,
       createdAt: true,
       updatedAt: true,
@@ -32,7 +31,6 @@ export async function listAllUsers() {
  */
 export async function listAllPortfolios() {
   await requireSuperAdmin();
-  // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
   return await prisma.portfolio.findMany({
     select: {
       id: true,
@@ -44,8 +42,7 @@ export async function listAllPortfolios() {
           id: true,
           email: true,
           name: true,
-          // @ts-expect-error - role may not exist in Prisma Client until migration
-          role: true,
+        role: true,
         },
       },
       createdAt: true,
@@ -81,7 +78,6 @@ export async function setImpersonatedPortfolioId(portfolioId: string | null) {
 
   // Validate portfolio exists (and avoid setting arbitrary IDs)
   try {
-    // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
     const exists = await prisma.portfolio.findUnique({
       where: { id: portfolioId },
       select: { id: true },
@@ -89,7 +85,7 @@ export async function setImpersonatedPortfolioId(portfolioId: string | null) {
     if (!exists) {
       throw new Error("Portfolio not found");
     }
-  } catch (e) {
+  } catch {
     throw new Error("Portfolio not found");
   }
 
@@ -141,14 +137,12 @@ export async function createUser(data: { email: string; password: string; name?:
         email: data.email,
         name: data.name || null,
         passwordHash,
-        // @ts-expect-error - role may not exist in Prisma Client until migration
         role: data.role || "user",
       },
     });
 
     // Create portfolio for the user
     try {
-      // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
       const portfolio = await tx.portfolio.create({
         data: {
           userId: user.id,
@@ -157,11 +151,16 @@ export async function createUser(data: { email: string; password: string; name?:
         },
       });
       return { user, portfolio };
-    } catch (e) {
+    } catch {
       // Portfolio model doesn't exist yet - that's OK, user can create it later
       return { user, portfolio: null };
     }
   });
+
+  if (result.portfolio) {
+    const { ensurePortfolioHasDefaultMenus } = await import("@/app/actions/portfolio-menu");
+    await ensurePortfolioHasDefaultMenus(result.portfolio.id);
+  }
 
   return result;
 }
@@ -200,7 +199,7 @@ export async function getUsersWithPortfolios() {
     orderBy: { createdAt: "asc" },
   });
 
-  return rows.map((u) => ({
+  return rows.map((u: typeof rows[number]) => ({
     ...u,
     portfolio: u.portfolio
       ? {
@@ -247,7 +246,7 @@ export async function deleteUser(userId: string) {
  * Blocks during impersonation.
  */
 export async function resetUserPassword(userId: string, newPassword: string) {
-  const session = await requireSuperAdmin();
+  await requireSuperAdmin();
   await assertNotImpersonatingForWrite(); // Block password resets during impersonation
 
   // Validate password length (configurable via MIN_PASSWORD_LENGTH env var)
@@ -286,8 +285,7 @@ export async function togglePortfolioPublish(portfolioId: string, isPublished: b
 
   // Verify portfolio exists
   try {
-    // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
-    const portfolio = await prisma.portfolio.findUnique({
+      const portfolio = await prisma.portfolio.findUnique({
       where: { id: portfolioId },
       select: { id: true },
     });
@@ -296,14 +294,13 @@ export async function togglePortfolioPublish(portfolioId: string, isPublished: b
       throw new Error("Portfolio not found");
     }
 
-    // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
     await prisma.portfolio.update({
       where: { id: portfolioId },
       data: { isPublished },
     });
 
     return { success: true, isPublished };
-  } catch (e) {
+  } catch {
     throw new Error("Portfolio not found");
   }
 }

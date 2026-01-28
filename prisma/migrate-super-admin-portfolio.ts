@@ -122,10 +122,10 @@ async function main() {
       skillGroups: { include: { skills: true } },
       projects: true,
       experiences: true,
-      aboutContent: { include: { principles: true } },
+      aboutContents: { include: { principles: true } },
       heroContent: true,
-      personInfo: true,
-      architectureContent: { include: { pillars: { include: { points: true } } } },
+      personInfos: true,
+      architectureContents: { include: { pillars: { include: { points: true } } } },
     },
   });
 
@@ -138,10 +138,10 @@ async function main() {
   console.log(`   - Skills: ${verifyPortfolio.skillGroups.reduce((sum, g) => sum + g.skills.length, 0)}`);
   console.log(`   - Projects: ${verifyPortfolio.projects.length}`);
   console.log(`   - Experience: ${verifyPortfolio.experiences.length}`);
-  console.log(`   - About Content: ${verifyPortfolio.aboutContent ? "Yes" : "No"}`);
+  console.log(`   - About Content: ${verifyPortfolio.aboutContents.length > 0 ? "Yes" : "No"}`);
   console.log(`   - Hero Content: ${verifyPortfolio.heroContent ? "Yes" : "No"}`);
-  console.log(`   - Person Info: ${verifyPortfolio.personInfo ? "Yes" : "No"}`);
-  console.log(`   - Architecture Content: ${verifyPortfolio.architectureContent ? "Yes" : "No"}`);
+  console.log(`   - Person Info: ${verifyPortfolio.personInfos.length > 0 ? "Yes" : "No"}`);
+  console.log(`   - Architecture Content: ${verifyPortfolio.architectureContents.length > 0 ? "Yes" : "No"}`);
 
   console.log("\n✅ Migration complete!");
   console.log("\n📋 IMPORTANT:");
@@ -177,10 +177,10 @@ PORTFOLIO DATA:
 - Skills: ${verifyPortfolio.skillGroups.reduce((sum, g) => sum + g.skills.length, 0)}
 - Projects: ${verifyPortfolio.projects.length}
 - Experience: ${verifyPortfolio.experiences.length}
-- About Content: ${verifyPortfolio.aboutContent ? "Yes" : "No"}
+- About Content: ${verifyPortfolio.aboutContents.length > 0 ? "Yes" : "No"}
 - Hero Content: ${verifyPortfolio.heroContent ? "Yes" : "No"}
-- Person Info: ${verifyPortfolio.personInfo ? "Yes" : "No"}
-- Architecture Content: ${verifyPortfolio.architectureContent ? "Yes" : "No"}
+- Person Info: ${verifyPortfolio.personInfos.length > 0 ? "Yes" : "No"}
+- Architecture Content: ${verifyPortfolio.architectureContents.length > 0 ? "Yes" : "No"}
 
 IMPORTANT:
 ----------

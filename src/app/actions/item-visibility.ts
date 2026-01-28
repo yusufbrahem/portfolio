@@ -138,7 +138,7 @@ export async function updateArchitecturePillarVisibility(pillarId: string, isVis
   }
 
   // Verify the pillar belongs to this portfolio's architecture content
-  const architectureContent = await prisma.architectureContent.findUnique({
+  const architectureContent = await prisma.architectureContent.findFirst({
     where: { portfolioId },
     select: { id: true },
   });

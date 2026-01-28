@@ -74,13 +74,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Safe lookup - returns null if Portfolio model doesn't exist yet (pre-migration)
         let portfolioId: string | null = null;
         try {
-          // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
           const portfolio = await prisma.portfolio.findUnique({
             where: { userId: user.id },
             select: { id: true },
           });
           portfolioId = portfolio?.id || null;
-        } catch (error) {
+        } catch {
           // Portfolio model doesn't exist yet - this is OK, will work after migration
           portfolioId = null;
         }
@@ -119,13 +118,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Safe lookup - role field may not exist in Prisma Client until migration
       if (!token.role && token.id) {
         try {
-          // @ts-expect-error - role field may not exist in Prisma Client until migration
           const user = await prisma.adminUser.findUnique({
             where: { id: token.id as string },
             select: { role: true },
           });
           token.role = user?.role || "user";
-        } catch (error) {
+        } catch {
           // Role field doesn't exist yet - default to "user"
           token.role = "user";
         }
@@ -134,13 +132,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Safe lookup - returns null if Portfolio model doesn't exist yet (pre-migration)
       if (!token.portfolioId && token.id) {
         try {
-          // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
           const portfolio = await prisma.portfolio.findUnique({
             where: { userId: token.id as string },
             select: { id: true },
           });
           token.portfolioId = portfolio?.id || null;
-        } catch (error) {
+        } catch {
           // Portfolio model doesn't exist yet - this is OK
           token.portfolioId = null;
         }
@@ -148,13 +145,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string | null;
-        session.user.role = (token.role as string) || "user";
-        session.user.portfolioId = (token.portfolioId as string | null) || null;
+      if (!session.user || !token) return session;
+
+      const userId = token.id as string;
+      // If user was deleted from the platform, invalidate session (log them out)
+      const userExists = await prisma.adminUser.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        return { ...session, user: { id: "", email: "", name: null, role: "user", portfolioId: null } };
       }
+
+      session.user.id = userId;
+      session.user.email = token.email as string;
+      session.user.name = token.name as string | null;
+      session.user.role = (token.role as string) || "user";
+      session.user.portfolioId = (token.portfolioId as string | null) || null;
       return session;
     },
   },

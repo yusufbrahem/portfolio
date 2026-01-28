@@ -2,6 +2,12 @@
 
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+
+type TransactionClient = Prisma.TransactionClient;
+type MenuBlockRow = { id: string; componentKey: string; data: unknown; order: number };
+type PortfolioMenuRow = { id: string };
+type GroupByOrderRow = { portfolioId: string; _max: { order: number | null } };
+type PmWithPlatform = { id: string; platformMenuId: string; platformMenu: { key: string } };
 import { requireAuth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
@@ -141,7 +147,7 @@ export async function updatePlatformMenu(
     });
     const offset = 10000;
     const hiddenOffset = 20000; // Distinct range so hidden blocks don't conflict with temp offset
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: TransactionClient) => {
       for (const pm of portfolioMenus) {
         const existing = await tx.menuBlock.findMany({
           where: { portfolioMenuId: pm.id },
@@ -154,7 +160,7 @@ export async function updatePlatformMenu(
             data: { order: offset + j },
           });
         }
-        const byKey = new Map(existing.map((b) => [b.componentKey, b]));
+        const byKey = new Map<string, MenuBlockRow>(existing.map((b: MenuBlockRow) => [b.componentKey, b]));
         for (let i = 0; i < componentKeysToSync.length; i++) {
           const key = componentKeysToSync[i];
           const block = byKey.get(key);
@@ -172,7 +178,7 @@ export async function updatePlatformMenu(
         }
         // Never delete: keep blocks not in the list; assign hidden range (data preserved, hidden in UI)
         let hiddenIndex = 0;
-        for (const [, block] of byKey) {
+        for (const block of byKey.values()) {
           await tx.menuBlock.update({
             where: { id: block.id },
             data: { order: hiddenOffset + hiddenIndex },
@@ -232,7 +238,7 @@ export async function createPlatformMenu(data: {
   });
   const platformOrder = data.order ?? (maxOrderResult._max.order ?? -1) + 1;
 
-  const platformMenu = await prisma.$transaction(async (tx) => {
+  const platformMenu = await prisma.$transaction(async (tx: TransactionClient) => {
     const created = await tx.platformMenu.create({
       data: {
         key: data.key.trim().toLowerCase(),
@@ -262,8 +268,8 @@ export async function createPlatformMenu(data: {
       by: ["portfolioId"],
       _max: { order: true },
     });
-    const nextOrderByPortfolio = new Map(
-      maxOrderByPortfolio.map((r) => [r.portfolioId, (r._max.order ?? -1) + 1])
+    const nextOrderByPortfolio = new Map<string, number>(
+      maxOrderByPortfolio.map((r: GroupByOrderRow) => [r.portfolioId, (r._max.order ?? -1) + 1])
     );
 
     for (const portfolio of portfolios) {
@@ -391,12 +397,12 @@ export async function restoreDefaultMenuComponents(): Promise<{ updated: string[
     const existingBlockKeys =
       portfolioMenuIds.length > 0
         ? await prisma.menuBlock.findMany({
-            where: { portfolioMenuId: { in: portfolioMenuIds.map((pm) => pm.id) } },
+            where: { portfolioMenuId: { in: portfolioMenuIds.map((pm: { id: string }) => pm.id) } },
             select: { componentKey: true },
             distinct: ["componentKey"],
           })
         : [];
-    const keysFromBlocks = existingBlockKeys.map((b) => b.componentKey);
+    const keysFromBlocks = existingBlockKeys.map((b: { componentKey: string }) => b.componentKey);
 
     // Build merged: missing defaults first, then current order, then any block keys not yet included (preserve all existing blocks)
     const merged = [...missing, ...current];
@@ -442,12 +448,12 @@ export async function recoverHiddenMenuBlocks(): Promise<{
     return { recovered: [], noneFound: true };
   }
 
-  const pmIds = [...new Set(hiddenBlocks.map((b) => b.portfolioMenuId))];
+  const pmIds = [...new Set(hiddenBlocks.map((b: { portfolioMenuId: string }) => b.portfolioMenuId))];
   const portfolioMenus = await prisma.portfolioMenu.findMany({
     where: { id: { in: pmIds } },
     select: { id: true, platformMenuId: true, platformMenu: { select: { key: true } } },
   });
-  const pmToPlatform = new Map(portfolioMenus.map((pm) => [pm.id, pm]));
+  const pmToPlatform = new Map<string, PmWithPlatform>(portfolioMenus.map((pm: PmWithPlatform) => [pm.id, pm]));
 
   const platformToHiddenKeys = new Map<string, Set<string>>();
   for (const b of hiddenBlocks) {
@@ -463,7 +469,7 @@ export async function recoverHiddenMenuBlocks(): Promise<{
 
   const recovered: { menuKey: string; keysRestored: string[] }[] = [];
   for (const [platformMenuId, hiddenKeys] of platformToHiddenKeys) {
-    const pm = portfolioMenus.find((p) => p.platformMenuId === platformMenuId);
+    const pm = portfolioMenus.find((p: PmWithPlatform) => p.platformMenuId === platformMenuId);
     const menuKey = pm?.platformMenu?.key ?? platformMenuId;
     const keysRestored = [...hiddenKeys];
 

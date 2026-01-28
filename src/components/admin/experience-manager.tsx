@@ -197,7 +197,7 @@ export function ExperienceManager({
               <div>
                 <p className="text-xs text-muted-disabled mb-1">Bullets:</p>
                 <ul className="text-sm text-muted space-y-1 break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-                  {exp.bullets.map((b) => (
+                  {exp.bullets.map((b: { id: string; text: string }) => (
                     <li key={b.id} className="break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>• {b.text}</li>
                   ))}
                 </ul>
@@ -205,7 +205,7 @@ export function ExperienceManager({
               <div>
                 <p className="text-xs text-muted-disabled mb-1">Tech:</p>
                 <div className="flex flex-wrap gap-2">
-                  {exp.tech.map((t) => (
+                  {exp.tech.map((t: { id: string; name: string }) => (
                     <span key={t.id} className="text-xs px-2 py-1 bg-panel2 rounded break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                       {t.name}
                     </span>
@@ -311,8 +311,8 @@ function ExperienceForm({
     experience?.location === "Freelance" ? "freelance" :
     experience?.location === "Hybrid" ? "hybrid" : "custom"
   );
-  const [bullets, setBullets] = useState<string[]>(experience?.bullets.map((b) => b.text) || []);
-  const [tech, setTech] = useState<string[]>(experience?.tech.map((t) => t.name) || []);
+  const [bullets, setBullets] = useState<string[]>(experience?.bullets.map((b: { text: string }) => b.text) || []);
+  const [tech, setTech] = useState<string[]>(experience?.tech.map((t: { name: string }) => t.name) || []);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [companyError, setCompanyError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);

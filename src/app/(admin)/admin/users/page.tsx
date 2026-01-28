@@ -49,7 +49,7 @@ export default async function AdminUsersPage() {
               </div>
             </div>
             <div className="space-y-3">
-              {pendingReviews.map((portfolio) => (
+              {pendingReviews.map((portfolio: Awaited<ReturnType<typeof getPendingReviewPortfolios>>[number]) => (
                 <PortfolioReviewCard key={portfolio.id} portfolio={portfolio} />
               ))}
             </div>

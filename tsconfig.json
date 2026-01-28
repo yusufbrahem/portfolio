@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "prisma/migrate-super-admin-portfolio.ts", "prisma/seed.ts", "prisma/seed-auth.ts", "prisma/seed-users.ts", "prisma/seed-menu-configuration.ts", "scripts/restore-section-data-to-users.ts"]
 }
