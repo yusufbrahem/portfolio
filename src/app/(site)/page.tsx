@@ -12,9 +12,7 @@ export default async function Home() {
   let isPublished = false;
 
   if (session?.user) {
-    // Fetch user's portfolio slug and publish status
     if (session.user.role === "super_admin") {
-      // Super admin doesn't have a portfolio
       portfolioSlug = null;
     } else if (session.user.portfolioId) {
       const portfolio = await prisma.portfolio.findUnique({
@@ -28,7 +26,6 @@ export default async function Home() {
 
   return (
     <>
-      {/* Hero Section */}
       <section className="border-b border-border bg-background">
         <Container className="py-24 sm:py-32">
           <div className="mx-auto max-w-2xl text-center">
@@ -40,7 +37,6 @@ export default async function Home() {
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               {!session ? (
-                // Not logged in
                 <>
                   <Link
                     href="/admin"
@@ -56,7 +52,6 @@ export default async function Home() {
                   </Link>
                 </>
               ) : session.user.role === "super_admin" ? (
-                // Super admin
                 <Link
                   href="/admin/users"
                   className="rounded-lg bg-accent px-6 py-3 text-base font-semibold text-foreground hover:bg-blue-500 transition-colors"
@@ -64,7 +59,6 @@ export default async function Home() {
                   Go to Admin Panel
                 </Link>
               ) : (
-                // Normal user
                 <>
                   <Link
                     href="/admin"
@@ -87,7 +81,6 @@ export default async function Home() {
         </Container>
       </section>
 
-      {/* Value Proposition */}
       <section id="features" className="border-b border-border bg-panel">
         <Container className="py-24 sm:py-32">
           <div className="mx-auto max-w-2xl lg:max-w-4xl">
@@ -139,7 +132,6 @@ export default async function Home() {
         </Container>
       </section>
 
-      {/* Who it's for */}
       <section className="border-b border-border bg-background">
         <Container className="py-24 sm:py-32">
           <div className="mx-auto max-w-2xl text-center">

@@ -19,7 +19,7 @@ export async function getSession() {
  */
 export async function requireAuth() {
   const session = await getSession();
-  if (!session) {
+  if (!session?.user?.id) {
     redirect("/admin/login");
   }
   return session;
@@ -142,7 +142,6 @@ export async function getCurrentPortfolio() {
   
   // Safe lookup - returns null if Portfolio model doesn't exist yet (pre-migration)
   try {
-    // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
     return await prisma.portfolio.findUnique({
       where: { id: session.user.portfolioId },
       include: {
@@ -181,7 +180,6 @@ export async function ensureCurrentPortfolio(): Promise<string> {
   
   // Safe lookup - throws if Portfolio model doesn't exist yet (migration required)
   try {
-    // @ts-expect-error - Portfolio model may not exist in Prisma Client until migration
     const portfolio = await prisma.portfolio.create({
       data: {
         userId,
@@ -189,7 +187,10 @@ export async function ensureCurrentPortfolio(): Promise<string> {
         isPublished: false,
       },
     });
-    
+
+    const { ensurePortfolioHasDefaultMenus } = await import("@/app/actions/portfolio-menu");
+    await ensurePortfolioHasDefaultMenus(portfolio.id);
+
     return portfolio.id;
   } catch (error) {
     // Portfolio model doesn't exist yet - migration required

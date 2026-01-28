@@ -89,12 +89,12 @@ export function SortableUsersTable({
           bValue = b.portfolio?.createdAt || b.createdAt;
           break;
         case "requested":
-          aValue = a.portfolio?.requestedAt;
-          bValue = b.portfolio?.requestedAt;
+          aValue = a.portfolio?.requestedAt ?? null;
+          bValue = b.portfolio?.requestedAt ?? null;
           break;
         case "approved":
-          aValue = a.portfolio?.approvedAt;
-          bValue = b.portfolio?.approvedAt;
+          aValue = a.portfolio?.approvedAt ?? null;
+          bValue = b.portfolio?.approvedAt ?? null;
           break;
         case "email":
           aValue = a.email.toLowerCase();
@@ -364,7 +364,7 @@ export function SortableUsersTable({
                                 user={user}
                                 isCurrentlyImpersonating={isCurrentlyImpersonating}
                                 currentUserId={currentUserId}
-                                onImpersonate={onImpersonate}
+                                onImpersonate={(id) => Promise.resolve(onImpersonate(id))}
                               />
                             ) : (
                               <span className="text-muted-disabled text-xs">—</span>
@@ -516,7 +516,7 @@ export function SortableUsersTable({
                                 user={user}
                                 isCurrentlyImpersonating={isCurrentlyImpersonating}
                                 currentUserId={currentUserId}
-                                onImpersonate={onImpersonate}
+                                onImpersonate={(id) => Promise.resolve(onImpersonate(id))}
                               />
                             ) : (
                               <span className="text-muted-disabled text-xs">—</span>

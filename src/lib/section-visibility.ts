@@ -38,7 +38,7 @@ export async function hasSectionData(
     }
     case "architecture": {
       const architecture = await getArchitectureContent(portfolioId, menuId);
-      return architecture?.pillars && architecture.pillars.length > 0;
+      return !!(architecture?.pillars && architecture.pillars.length > 0);
     }
     case "contact": {
       try {

@@ -4,23 +4,10 @@ import type { NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
-  // Skip auth check for login page and NextAuth API routes
+  // Allow unauthenticated access to login and NextAuth API only
   if (pathname === "/admin/login" || pathname.startsWith("/api/auth")) {
-    // Create new request headers with login page flag
-    const requestHeaders = new Headers(request.headers);
-    if (pathname === "/admin/login") {
-      requestHeaders.set("x-is-login-page", "true");
-    }
-    
-    const response = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
-    
-    // Add security headers
+    const response = NextResponse.next();
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
-    
     return response;
   }
   

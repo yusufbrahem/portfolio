@@ -186,3 +186,36 @@ export async function publishMenuConfiguration(portfolioId: string) {
     revalidatePath(`/portfolio/${portfolio.slug}`, "page");
   }
 }
+
+/**
+ * Ensure a portfolio has a PortfolioMenu for every enabled PlatformMenu.
+ * Called when creating a new portfolio so contact and other sections exist (e.g. onboarding).
+ * Idempotent: only creates missing entries.
+ */
+export async function ensurePortfolioHasDefaultMenus(portfolioId: string): Promise<void> {
+  const platformMenus = await prisma.platformMenu.findMany({
+    where: { enabled: true },
+    select: { id: true },
+    orderBy: { order: "asc" },
+  });
+  const existing = await prisma.portfolioMenu.findMany({
+    where: { portfolioId },
+    select: { platformMenuId: true },
+  });
+  const existingIds = new Set(existing.map((e) => e.platformMenuId));
+  let order = 0;
+  for (const pm of platformMenus) {
+    if (existingIds.has(pm.id)) continue;
+    await prisma.portfolioMenu.create({
+      data: {
+        portfolioId,
+        platformMenuId: pm.id,
+        visible: true,
+        publishedVisible: true,
+        order,
+        publishedOrder: order,
+      },
+    });
+    order++;
+  }
+}

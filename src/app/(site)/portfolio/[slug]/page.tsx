@@ -206,7 +206,7 @@ export default async function PortfolioPage({ params }: PageProps) {
           <div className="space-y-7 lg:col-span-7">
             <div className="flex flex-wrap gap-2">
               {heroBadges.map((label, idx) => (
-                <Pill key={label}>
+                <Pill key={`${label}-${idx}`}>
                   {idx === 0 ? (
                     <ShieldCheck className="h-4 w-4 text-accent" aria-hidden="true" />
                   ) : idx === 1 ? (

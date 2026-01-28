@@ -60,13 +60,24 @@ export async function updatePersonInfo(data: {
 
   let platformMenuId = data.platformMenuId;
   if (!platformMenuId) {
-    const contactMenu = await prisma.portfolioMenu.findFirst({
+    let contactMenu = await prisma.portfolioMenu.findFirst({
       where: {
         portfolioId,
-        platformMenu: { sectionType: "contact_template", enabled: true },
+        platformMenu: { key: "contact", enabled: true },
       },
       select: { platformMenuId: true },
     });
+    if (!contactMenu) {
+      const { ensurePortfolioHasDefaultMenus } = await import("@/app/actions/portfolio-menu");
+      await ensurePortfolioHasDefaultMenus(portfolioId);
+      contactMenu = await prisma.portfolioMenu.findFirst({
+        where: {
+          portfolioId,
+          platformMenu: { key: "contact", enabled: true },
+        },
+        select: { platformMenuId: true },
+      });
+    }
     if (!contactMenu) throw new Error("No contact section found for this portfolio");
     platformMenuId = contactMenu.platformMenuId;
   }

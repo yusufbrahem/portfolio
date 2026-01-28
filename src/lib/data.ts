@@ -18,7 +18,7 @@ export async function getPlatformMenuIdForSection(portfolioId: string, menuKey: 
  * Caller should handle status to show appropriate content
  */
 export async function getPortfolioBySlug(slug: string) {
-  const portfolio = await prisma.portfolio.findUnique({
+  const portfolio = await prisma.portfolio.findFirst({
     where: { slug },
     select: {
       id: true,
