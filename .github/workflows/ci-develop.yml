@@ -25,6 +25,9 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+        env:
+          # generate only needs schema; no DB connection. Dummy URL so prisma.config.ts loads.
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
 
       - name: Lint
         run: npm run lint
