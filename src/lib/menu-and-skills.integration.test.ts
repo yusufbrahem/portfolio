@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { describe, it, expect } from "vitest";
-import { prisma } from "@/vitest/test-prisma";
+import { prisma } from "../../vitest/test-prisma";
 import { DEFAULT_MENU_COMPONENT_KEYS } from "@/lib/default-menu-components";
 
 const DEFAULT_MENU_KEYS = Object.keys(DEFAULT_MENU_COMPONENT_KEYS);
@@ -66,7 +66,7 @@ describe.skipIf(isDummyDb)("menu edits and data integrity", () => {
       select: { key: true },
     });
     expect(after.length).toBe(before.length);
-    expect(new Set(after.map((m) => m.key))).toEqual(new Set(DEFAULT_MENU_KEYS));
+    expect(new Set(after.map((m: { key: string }) => m.key))).toEqual(new Set(DEFAULT_MENU_KEYS));
 
     await prisma.platformMenu.update({
       where: { id: first.id },

@@ -25,8 +25,8 @@ test.describe("Admin login", () => {
     await page.goto("/admin/login");
     await expect(page.getByRole("heading", { name: /Admin Login/i })).toBeVisible();
 
-    await page.getByLabel(/Email/i).fill(email);
-    await page.getByLabel(/Password/i).fill(password);
+    await page.getByLabel(/Email/i).fill(email as string);
+    await page.getByLabel(/Password/i).fill(password as string);
     await page.getByRole("button", { name: /Login/i }).click();
 
     await expect(page).toHaveURL(/\/admin(?:\/|$)/, { timeout: 10000 });
