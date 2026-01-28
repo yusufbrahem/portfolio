@@ -17,6 +17,8 @@ import { TEXT_LIMITS, validateTextLength } from "@/lib/text-limits";
 import { CharCounter } from "@/components/ui/char-counter";
 
 type ArchitectureContent = Awaited<ReturnType<typeof getArchitectureContent>>;
+type PillarShape = NonNullable<ArchitectureContent>["pillars"][number];
+type PointShape = PillarShape["points"][number];
 
 export function ArchitectureManager({ initialData, isReadOnly = false }: { initialData: ArchitectureContent | null; isReadOnly?: boolean }) {
   const [architecture, setArchitecture] = useState(initialData);
@@ -25,7 +27,7 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
   const [isCreatingPillar, setIsCreatingPillar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedPillars, setExpandedPillars] = useState<Set<string>>(
-    new Set(architecture?.pillars.map((p) => p.id) || [])
+    new Set(architecture?.pillars.map((p: PillarShape) => p.id) || [])
   );
 
   const togglePillar = (pillarId: string) => {
@@ -94,7 +96,7 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
         architecture
           ? {
               ...architecture,
-              pillars: architecture.pillars.filter((p) => p.id !== id),
+              pillars: architecture.pillars.filter((p: PillarShape) => p.id !== id),
             }
           : null
       );
@@ -108,7 +110,7 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
   };
 
   const handleSaveNewPoint = async (pillarId: string, data: { text: string }) => {
-    const pillar = architecture?.pillars.find((p) => p.id === pillarId);
+    const pillar = architecture?.pillars.find((p: PillarShape) => p.id === pillarId);
     if (!pillar) return;
     setError(null);
     try {
@@ -122,7 +124,7 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
         architecture
           ? {
               ...architecture,
-              pillars: architecture.pillars.map((p) =>
+              pillars: architecture.pillars.map((p: PillarShape) =>
                 p.id === pillarId ? { ...p, points: [...p.points, newPoint] } : p
               ),
             }
@@ -146,11 +148,11 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
         architecture
           ? {
               ...architecture,
-              pillars: architecture.pillars.map((p) =>
+              pillars: architecture.pillars.map((p: PillarShape) =>
                 p.id === pillarId
                   ? {
                       ...p,
-                      points: p.points.map((pt) => (pt.id === pointId ? { ...pt, ...data } : pt)),
+                      points: p.points.map((pt: PointShape) => (pt.id === pointId ? { ...pt, ...data } : pt)),
                     }
                   : p
               ),
@@ -173,7 +175,7 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
           ? {
               ...architecture,
               pillars: architecture.pillars.map((p) =>
-                p.id === pillarId ? { ...p, points: p.points.filter((pt) => pt.id !== pointId) } : p
+                p.id === pillarId ? { ...p, points: p.points.filter((pt: PointShape) => pt.id !== pointId) } : p
               ),
             }
           : null
@@ -222,7 +224,7 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
         </div>
       ) : (
         <div className="space-y-4">
-          {architecture.pillars.map((pillar) => (
+          {architecture.pillars.map((pillar: PillarShape) => (
             <div key={pillar.id} className="border border-border bg-panel rounded-lg p-4">
             <div className="flex justify-between items-center mb-2">
               {editingPillar === pillar.id ? (
@@ -297,7 +299,7 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
                   )}
                 </div>
 
-                {editingPoint?.pillarId === pillar.id && editingPoint.pointId === "new" && (
+                {editingPoint != null && editingPoint.pillarId === pillar.id && editingPoint.pointId === "new" && (
                   <PointForm
                     onSave={(data) => handleSaveNewPoint(pillar.id, data)}
                     onCancel={() => setEditingPoint(null)}
@@ -307,9 +309,9 @@ export function ArchitectureManager({ initialData, isReadOnly = false }: { initi
                 {pillar.points.length === 0 && editingPoint?.pillarId !== pillar.id ? (
                   <p className="text-xs text-muted py-2">No points yet. Add your first point.</p>
                 ) : (
-                  pillar.points.map((point) => (
+                  pillar.points.map((point: PointShape) => (
                     <div key={point.id} className="flex justify-between items-start p-2 bg-background rounded">
-                    {editingPoint?.pillarId === pillar.id && editingPoint.pointId === point.id ? (
+                    {editingPoint != null && editingPoint.pillarId === pillar.id && editingPoint.pointId === point.id ? (
                       <PointForm
                         initialData={{ text: point.text, order: point.order }}
                         onSave={(data) => handleUpdatePoint(pillar.id, point.id, { ...data, order: point.order })}

@@ -26,7 +26,7 @@ export async function hasSectionData(
     }
     case "skills": {
       const skills = await getSkills(portfolioId, menuId);
-      return skills && skills.length > 0 && skills.some((g) => g.items.length > 0);
+      return skills && skills.length > 0 && skills.some((g: { items: unknown[] }) => g.items.length > 0);
     }
     case "projects": {
       const projects = await getProjects(portfolioId, menuId);

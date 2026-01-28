@@ -199,7 +199,7 @@ export async function getUsersWithPortfolios() {
     orderBy: { createdAt: "asc" },
   });
 
-  return rows.map((u) => ({
+  return rows.map((u: typeof rows[number]) => ({
     ...u,
     portfolio: u.portfolio
       ? {

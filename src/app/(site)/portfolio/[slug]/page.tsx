@@ -27,6 +27,9 @@ import { getEnabledPortfolioMenus } from "@/app/actions/portfolio-menu";
 
 export const dynamic = "force-dynamic";
 
+type PortfolioMenuItem = Awaited<ReturnType<typeof getEnabledPortfolioMenus>>[number];
+type SkillGroupItem = { group: string; items: string[] };
+
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
@@ -74,8 +77,8 @@ export default async function PortfolioPage({ params }: PageProps) {
 
   const menus = await getEnabledPortfolioMenus(portfolio.id);
   const componentMenuIds = menus.filter(
-    (m) => Array.isArray(m.componentKeys) && m.componentKeys.length > 0
-  ).map((m) => m.id);
+    (m: PortfolioMenuItem) => Array.isArray(m.componentKeys) && m.componentKeys.length > 0
+  ).map((m: PortfolioMenuItem) => m.id);
 
   const [hero, skillsByMenu, experienceByMenu, projectsByMenu, aboutByMenu, architectureByMenu, personByMenu, blocksByPm] =
     await Promise.all([
@@ -93,7 +96,7 @@ export default async function PortfolioPage({ params }: PageProps) {
   const person = await getFirstPersonInfoForPortfolio(portfolio.id);
 
   // Create a map of menu keys for quick lookup
-  const menuKeys = new Set(menus.map((m) => m.key));
+  const menuKeys = new Set(menus.map((m: PortfolioMenuItem) => m.key));
 
   // Helper function to check if a section is in menu configuration
   const isInMenu = (key: string) => menuKeys.has(key);
@@ -168,11 +171,11 @@ export default async function PortfolioPage({ params }: PageProps) {
 
   // Derive "Current" and "Focus" from first experience/skills section in menu order
   const firstExperienceData = menus
-    .map((m) => experienceByMenu[m.platformMenuId])
-    .find((e) => e?.roles?.length);
+    .map((m: PortfolioMenuItem) => experienceByMenu[m.platformMenuId])
+    .find((e: { roles?: unknown[] } | undefined) => e?.roles?.length);
   const firstSkillsData = menus
-    .map((m) => skillsByMenu[m.platformMenuId])
-    .find((s) => s?.length);
+    .map((m: PortfolioMenuItem) => skillsByMenu[m.platformMenuId])
+    .find((s: SkillGroupItem[] | undefined) => s?.length);
   const currentRole = firstExperienceData?.roles?.[0]
     ? `${firstExperienceData.roles[0].title}${firstExperienceData.roles[0].company ? ` at ${firstExperienceData.roles[0].company}` : ""}`
     : null;
@@ -180,7 +183,7 @@ export default async function PortfolioPage({ params }: PageProps) {
     firstSkillsData && firstSkillsData.length > 0
       ? firstSkillsData
           .slice(0, 2)
-          .flatMap((g) => g.items)
+          .flatMap((g: SkillGroupItem) => g.items)
           .slice(0, 6)
           .join(" • ")
       : null;
@@ -265,7 +268,7 @@ export default async function PortfolioPage({ params }: PageProps) {
                 ) : (
                   <div className="mx-auto aspect-square w-[260px] sm:w-[300px] lg:w-full rounded-2xl border border-border bg-panel flex items-center justify-center">
                     <div className="text-6xl font-bold text-muted">
-                      {person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      {person.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                   </div>
                 )}
@@ -317,8 +320,8 @@ export default async function PortfolioPage({ params }: PageProps) {
 
       {/* Render sections dynamically in menu order (data keyed by platformMenuId) */}
       {menus
-        .sort((a, b) => a.order - b.order)
-        .map((menu) => {
+        .sort((a: PortfolioMenuItem, b: PortfolioMenuItem) => a.order - b.order)
+        .map((menu: PortfolioMenuItem) => {
           const isVisible = menu.key in sectionVisibility ? sectionVisibility[menu.key] : true;
           if (!isVisible) return null;
           const isComponentBased = Array.isArray(menu.componentKeys) && menu.componentKeys.length > 0;
@@ -328,8 +331,8 @@ export default async function PortfolioPage({ params }: PageProps) {
                 const raw = blocksByPm[menu.id] ?? [];
                 const keys = Array.isArray(menu.componentKeys) ? menu.componentKeys : [];
                 return raw
-                  .filter((b) => keys.includes(b.componentKey))
-                  .sort((a, b) => keys.indexOf(a.componentKey) - keys.indexOf(b.componentKey));
+                  .filter((b: { componentKey: string }) => keys.includes(b.componentKey))
+                  .sort((a: { componentKey: string }, b: { componentKey: string }) => keys.indexOf(a.componentKey) - keys.indexOf(b.componentKey));
               })()
             : [];
           const skills = skillsByMenu[menu.platformMenuId];

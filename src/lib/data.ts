@@ -179,7 +179,7 @@ export async function getSkills(portfolioId: string, platformMenuId: string) {
     },
     orderBy: { order: "asc" },
   });
-  return groups.map((group) => ({
+  return groups.map((group: { name: string; skills: { name: string }[] }) => ({
     group: group.name,
     items: group.skills.map((s) => s.name),
   }));
@@ -197,7 +197,7 @@ export async function getSkillsByPortfolio(portfolioId: string): Promise<Record<
     if (!byMenu[g.platformMenuId]) byMenu[g.platformMenuId] = [];
     byMenu[g.platformMenuId].push({
       group: g.name,
-      items: g.skills.map((s) => s.name),
+      items: g.skills.map((s: { name: string }) => s.name),
     });
   }
   return byMenu;
@@ -215,13 +215,13 @@ export async function getExperience(portfolioId: string, platformMenuId: string)
   });
   return {
     intro: null,
-    roles: roles.map((role) => ({
+    roles: roles.map((role: { title: string; company: string; location: string; period: string; bullets: { text: string }[]; tech: { name: string }[] }) => ({
       title: role.title,
       company: role.company,
       location: role.location,
       period: role.period,
-      bullets: role.bullets.map((b) => b.text),
-      tech: role.tech.map((t) => t.name),
+      bullets: role.bullets.map((b: { text: string }) => b.text),
+      tech: role.tech.map((t: { name: string }) => t.name),
     })),
   };
 }
@@ -267,11 +267,11 @@ export async function getProjects(portfolioId: string, platformMenuId: string) {
     },
     orderBy: { order: "asc" },
   });
-  return projects.map((p) => ({
+  return projects.map((p: { title: string; summary: string; bullets: { text: string }[]; tags: { name: string }[] }) => ({
     title: p.title,
     summary: p.summary,
-    bullets: p.bullets.map((b) => b.text),
-    tags: p.tags.map((t) => t.name),
+    bullets: p.bullets.map((b: { text: string }) => b.text),
+    tags: p.tags.map((t: { name: string }) => t.name),
   }));
 }
 
@@ -284,18 +284,19 @@ export async function getProjectsByPortfolio(portfolioId: string): Promise<
     include: { bullets: { orderBy: { order: "asc" } }, tags: { orderBy: { order: "asc" } } },
     orderBy: { order: "asc" },
   });
-  const byMenu: Record<string, typeof projects> = {};
+  type ProjRow = { platformMenuId: string; title: string; summary: string; bullets: { text: string }[]; tags: { name: string }[] };
+  const byMenu: Record<string, ProjRow[]> = {};
   for (const p of projects) {
     if (!byMenu[p.platformMenuId]) byMenu[p.platformMenuId] = [];
     byMenu[p.platformMenuId].push(p);
   }
   const result: Record<string, Array<{ title: string; summary: string; bullets: string[]; tags: string[] }>> = {};
   for (const [menuId, list] of Object.entries(byMenu)) {
-    result[menuId] = list.map((p) => ({
+    result[menuId] = list.map((p: ProjRow) => ({
       title: p.title,
       summary: p.summary,
-      bullets: p.bullets.map((b) => b.text),
-      tags: p.tags.map((t) => t.name),
+      bullets: p.bullets.map((b: { text: string }) => b.text),
+      tags: p.tags.map((t: { name: string }) => t.name),
     }));
   }
   return result;
@@ -313,7 +314,7 @@ export async function getAboutContent(portfolioId: string, platformMenuId: strin
   return {
     title: about.title,
     paragraphs: JSON.parse(about.paragraphs || "[]"),
-    principles: about.principles.map((p) => ({
+    principles: about.principles.map((p: { id: string; title: string; description: string }) => ({
       id: p.id,
       title: p.title,
       description: p.description,
@@ -334,7 +335,7 @@ export async function getAboutContentByPortfolio(portfolioId: string): Promise<
     byMenu[about.platformMenuId] = {
       title: about.title,
       paragraphs: JSON.parse(about.paragraphs || "[]"),
-      principles: about.principles.map((p) => ({ id: p.id, title: p.title, description: p.description })),
+      principles: about.principles.map((p: { id: string; title: string; description: string }) => ({ id: p.id, title: p.title, description: p.description })),
     };
   }
   return byMenu;
@@ -354,9 +355,9 @@ export async function getArchitectureContent(portfolioId: string, platformMenuId
   });
   if (!architecture) return null;
   return {
-    pillars: architecture.pillars.map((pillar) => ({
+    pillars: architecture.pillars.map((pillar: { title: string; points: { text: string }[] }) => ({
       title: pillar.title,
-      points: pillar.points.map((point) => point.text),
+      points: pillar.points.map((point: { text: string }) => point.text),
     })),
   };
 }
@@ -378,7 +379,7 @@ export async function getArchitectureContentByPortfolio(portfolioId: string): Pr
   const byMenu: Record<string, NonNullable<Awaited<ReturnType<typeof getArchitectureContent>>>> = {};
   for (const arch of list) {
     byMenu[arch.platformMenuId] = {
-      pillars: arch.pillars.map((p) => ({ title: p.title, points: p.points.map((pt) => pt.text) })),
+      pillars: arch.pillars.map((p: { title: string; points: { text: string }[] }) => ({ title: p.title, points: p.points.map((pt: { text: string }) => pt.text) })),
     };
   }
   return byMenu;
@@ -393,7 +394,7 @@ export async function getMenuBlocksByPortfolioMenuIds(portfolioMenuIds: string[]
     select: { portfolioMenuId: true, componentKey: true, order: true, data: true },
   });
   const byPm: Record<string, Array<{ componentKey: string; order: number; data: unknown }>> = {};
-  for (const b of blocks) {
+  for (const b of blocks as Array<{ portfolioMenuId: string; componentKey: string; order: number; data: unknown }>) {
     if (!byPm[b.portfolioMenuId]) byPm[b.portfolioMenuId] = [];
     byPm[b.portfolioMenuId].push({
       componentKey: b.componentKey,

@@ -133,9 +133,9 @@ export function SkillsManager({
     try {
       await updateSkill(skillId, { name: name.trim() });
       setSkillGroups(
-        skillGroups.map((g) =>
+        skillGroups.map((g: SkillGroup) =>
           g.id === groupId
-            ? { ...g, skills: g.skills.map((s) => (s.id === skillId ? { ...s, name: name.trim() } : s)) }
+            ? { ...g, skills: g.skills.map((s: SkillGroup["skills"][number]) => (s.id === skillId ? { ...s, name: name.trim() } : s)) }
             : g,
         ),
       );
@@ -155,7 +155,7 @@ export function SkillsManager({
     try {
       await deleteSkill(skillId);
       setSkillGroups(
-        skillGroups.map((g) => (g.id === groupId ? { ...g, skills: g.skills.filter((s) => s.id !== skillId) } : g)),
+        skillGroups.map((g: SkillGroup) => (g.id === groupId ? { ...g, skills: g.skills.filter((s: SkillGroup["skills"][number]) => s.id !== skillId) } : g)),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete skill");
@@ -267,9 +267,9 @@ export function SkillsManager({
                 {group.skills.length === 0 && creatingSkillGroupId !== group.id ? (
                   <p className="text-sm text-muted py-2">No skills in this group yet.</p>
                 ) : (
-                  group.skills.map((skill) => (
+                  group.skills.map((skill: SkillGroup["skills"][number]) => (
                     <div key={skill.id} className="flex items-center justify-between py-2 px-3 bg-panel2 rounded gap-3 overflow-hidden">
-                      {editingSkill?.groupId === group.id && editingSkill.skillId === skill.id ? (
+                      {editingSkill != null && editingSkill.groupId === group.id && editingSkill.skillId === skill.id ? (
                         <input
                           type="text"
                           defaultValue={skill.name}

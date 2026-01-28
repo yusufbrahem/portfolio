@@ -29,7 +29,7 @@ export async function getEnabledAdminMenus(portfolioId: string | null): Promise<
     orderBy: { order: "asc" },
   });
 
-  return portfolioMenus.map(({ platformMenu: menu }) => ({
+  return portfolioMenus.map(({ platformMenu: menu }: { platformMenu: { key: string; label: string } }) => ({
     key: menu.key,
     label: menu.label,
     route: CANONICAL_ADMIN_ROUTES[menu.key] ?? `/admin/sections/${encodeURIComponent(menu.key)}`,

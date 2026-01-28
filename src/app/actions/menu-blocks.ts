@@ -59,7 +59,7 @@ export async function getMenuEditorData(portfolioId: string, menuKey: string) {
       sectionType: platformMenu.sectionType,
     },
     portfolioMenuId: portfolioMenu.id,
-    blocks: blocks.map((b) => ({
+    blocks: blocks.map((b: { id: string; componentKey: string; order: number; data: unknown }) => ({
       id: b.id,
       componentKey: b.componentKey,
       order: b.order,
